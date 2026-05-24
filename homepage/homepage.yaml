@@ -94,6 +94,9 @@ data:
       Cluster:
         style: row
         columns: 3
+      Infrastructure:
+        style: row
+        columns: 4
 
   bookmarks.yaml: |
     - GitHub:
@@ -103,6 +106,16 @@ data:
         - cluster_config:
             - href: https://github.com/dwilson2547/cluster_config
               abbr: CC
+        - All Repos:
+            - href: https://github.com/dwilson2547?tab=repositories
+              abbr: GH
+    - Registries:
+        - Docker Hub:
+            - href: https://hub.docker.com/repositories/dwilson2547
+              abbr: DH
+        - PyPI:
+            - href: https://pypi.org/user/dwilson2547/
+              abbr: PY
 
   services.yaml: |
     - Gyopart:
@@ -208,6 +221,24 @@ data:
             href: http://search.local
             description: Private meta search engine
             icon: searxng
+
+    - Infrastructure:
+        - Router:
+            href: http://192.168.0.1
+            description: Network router
+            icon: si-router
+        - TrueNAS (SSD):
+            href: http://192.168.0.10
+            description: SSD NAS storage
+            icon: truenas
+        - Unraid:
+            href: http://192.168.0.15
+            description: Unraid server
+            icon: unraid
+        - HPC:
+            href: http://192.168.0.50
+            description: High performance compute node
+            icon: si-linux
 
   widgets.yaml: |
     - kubernetes:
