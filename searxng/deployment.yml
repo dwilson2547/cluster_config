@@ -11,7 +11,7 @@ metadata:
   name: pvc-searxng
   namespace: searxng
 spec:
-  storageClassName: nfs-crucial
+  storageClassName: nfs-dataset
   accessModes: [ReadWriteOnce]
   resources:
     requests:
@@ -42,7 +42,6 @@ spec:
           runAsUser: 4000
           runAsGroup: 100
         env:
-          # Use secret in real usage
         - name: INSTANCE_NAME
           value: SearXNG
         ports:
@@ -62,7 +61,7 @@ metadata:
   name: searxng-entrypoint
   namespace: searxng
 spec:
-  type: NodePort
+  type: ClusterIP
   selector:
     app: searxng-app
   ports:
@@ -74,12 +73,10 @@ kind: Ingress
 metadata:
   name: ingress-searxng
   namespace: searxng
-  annotations:
-    cert-manager.io/cluster-issuer: letsencrypt-cluster-issuer
-    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
 spec:
+  ingressClassName: nginx
   rules:
-  - host: search.danwils.com
+  - host: search.local
     http:
       paths:
       - path: /
@@ -89,11 +86,3 @@ spec:
             name: searxng-entrypoint
             port:
               number: 80
-  tls:
-  - hosts:
-    - search.danwils.com
-    secretName: searxng-tls
-  ingressClassName: nginx
-
-
-
