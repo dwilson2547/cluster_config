@@ -34,6 +34,12 @@ data:
         errors
     }
 
+    ai-services.local:53 {
+        file /etc/coredns/db.ai-services.local
+        log
+        errors
+    }
+
     .:53 {
         forward . 8.8.8.8 1.1.1.1
         cache 30
@@ -119,6 +125,24 @@ data:
 
     ; Apex → Traefik ingress controller
     @   IN  A    192.168.0.60
+
+  db.ai-services.local: |
+    $ORIGIN ai-services.local.
+    $TTL 300
+
+    @   IN  SOA  ns1.scrapestack.local. admin.scrapestack.local. (
+                    2026052301 ; serial
+                    3600       ; refresh
+                    900        ; retry
+                    86400      ; expire
+                    300        ; minimum TTL
+                 )
+
+    @   IN  NS   ns1.scrapestack.local.
+
+    ; Subdomains → Traefik ingress controller
+    notes      IN  A    192.168.0.60
+    playbooks  IN  A    192.168.0.60
 
 ---
 apiVersion: apps/v1
