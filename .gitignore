@@ -1,2 +1,7 @@
 **/secret.yml
-!example-secrets/
+!example-secrets/**/secret.yml
+**/.claude/
+**/example_secret.yml
+**/init-*.sql
+*.log
+ddclient/

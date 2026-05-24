@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ddclient-deployment
+  namespace: dns
+  labels:
+    app: ddclient
+spec:
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ddclient
+  template:
+    metadata:
+      labels:
+        app: ddclient
+    spec:
+      securityContext:
+        fsGroup: 911
+      volumes:
+        - name: ddclient-config-file
+          secret:
+            secretName: ddclient-secret
+      containers:
+        - name: ddclient
+          image: linuxserver/ddclient
+          imagePullPolicy: Always
+          volumeMounts:
+            - mountPath: /defaults
+              name: ddclient-config-file
+          resources:
+            requests:
+              cpu: 10m
+              memory: 64Mi
+            limits:
+              cpu: 50m
+              memory: 128Mi
