@@ -88,7 +88,7 @@ data:
     $TTL 300
 
     @   IN  SOA  ns1.scrapestack.local. admin.scrapestack.local. (
-                    2026051002 ; serial
+                    2026052401 ; serial
                     3600       ; refresh
                     900        ; retry
                     86400      ; expire
@@ -97,8 +97,9 @@ data:
 
     @   IN  NS   ns1.scrapestack.local.
 
-    ; Apex → Traefik ingress controller
+    ; All subdomains → Traefik ingress controller
     @   IN  A    192.168.0.60
+    *   IN  A    192.168.0.60
 
   db.scrapestack-dev.local: |
     $ORIGIN scrapestack-dev.local.
