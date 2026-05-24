@@ -1,0 +1,99 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: searxng
+  labels:
+    name: searxng
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pvc-searxng
+  namespace: searxng
+spec:
+  storageClassName: nfs-crucial
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: searxng-app
+  namespace: searxng
+spec:
+  selector:
+    matchLabels:
+      app: searxng-app
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: searxng-app
+    spec:
+      securityContext:
+        fsGroup: 100
+      containers:
+      - image: searxng/searxng
+        name: searxng
+        securityContext:
+          runAsUser: 4000
+          runAsGroup: 100
+        env:
+          # Use secret in real usage
+        - name: INSTANCE_NAME
+          value: SearXNG
+        ports:
+        - containerPort: 8080
+          name: web-ui
+        volumeMounts:
+        - name: searxng-persistent-storage
+          mountPath: /etc/searxng
+      volumes:
+      - name: searxng-persistent-storage
+        persistentVolumeClaim:
+          claimName: pvc-searxng
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: searxng-entrypoint
+  namespace: searxng
+spec:
+  type: NodePort
+  selector:
+    app: searxng-app
+  ports:
+  - port: 80
+    targetPort: 8080
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ingress-searxng
+  namespace: searxng
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-cluster-issuer
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+spec:
+  rules:
+  - host: search.danwils.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: searxng-entrypoint
+            port:
+              number: 80
+  tls:
+  - hosts:
+    - search.danwils.com
+    secretName: searxng-tls
+  ingressClassName: nginx
+
+
+
