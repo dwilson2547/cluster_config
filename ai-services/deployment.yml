@@ -53,6 +53,7 @@ spec:
     spec:
       containers:
       - image: dwilson2547/ai-notes-api:latest
+        imagePullPolicy: Always
         name: ai-notes-api
         ports:
         - containerPort: 8000
@@ -81,6 +82,7 @@ spec:
     spec:
       containers:
       - image: dwilson2547/ai-notes-ui:latest
+        imagePullPolicy: Always
         name: ai-notes-ui
         ports:
         - containerPort: 80
@@ -206,6 +208,7 @@ spec:
     spec:
       containers:
       - image: dwilson2547/ai-playbooks-api:latest
+        imagePullPolicy: Always
         name: ai-playbooks-api
         ports:
         - containerPort: 8001
@@ -234,6 +237,7 @@ spec:
     spec:
       containers:
       - image: dwilson2547/ai-playbooks-ui:latest
+        imagePullPolicy: Always
         name: ai-playbooks-ui
         ports:
         - containerPort: 80
@@ -349,6 +353,7 @@ spec:
     spec:
       containers:
       - image: dwilson2547/ai-tool-docs-api:latest
+        imagePullPolicy: Always
         name: ai-tool-docs-api
         ports:
         - containerPort: 8002
@@ -381,6 +386,7 @@ spec:
     spec:
       containers:
       - image: dwilson2547/ai-tool-docs-ui:latest
+        imagePullPolicy: Always
         name: ai-tool-docs-ui
         ports:
         - containerPort: 80
