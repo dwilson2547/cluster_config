@@ -207,6 +207,10 @@ data:
             href: http://playbooks.ai-services.local
             description: Agent skill playbooks
             icon: si-bookstack
+        - AI Tool Docs:
+            href: http://docs.ai-services.local
+            description: Local docs index — GitHub repos with semantic search
+            icon: si-readthedocs
 
     - Cluster:
         - ArgoCD:
