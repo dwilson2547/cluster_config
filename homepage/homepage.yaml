@@ -206,7 +206,7 @@ spec:
                 fieldRef:
                   fieldPath: status.podIP
             - name: HOMEPAGE_ALLOWED_HOSTS
-              value: "$(MY_POD_IP):3000,home.monitoring.local"
+              value: "$(MY_POD_IP):3000,home.cluster.local"
           ports:
             - name: http
               containerPort: 3000
@@ -278,7 +278,7 @@ metadata:
 spec:
   ingressClassName: nginx
   rules:
-    - host: home.monitoring.local
+    - host: home.cluster.local
       http:
         paths:
           - path: /

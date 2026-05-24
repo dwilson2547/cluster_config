@@ -52,6 +52,12 @@ data:
         errors
     }
 
+    cluster.local:53 {
+        file /etc/coredns/db.cluster.local
+        log
+        errors
+    }
+
     .:53 {
         forward . 8.8.8.8 1.1.1.1
         cache 30
@@ -177,6 +183,24 @@ data:
 
   db.gyopart.local: |
     $ORIGIN gyopart.local.
+    $TTL 300
+
+    @   IN  SOA  ns1.scrapestack.local. admin.scrapestack.local. (
+                    2026052401 ; serial
+                    3600       ; refresh
+                    900        ; retry
+                    86400      ; expire
+                    300        ; minimum TTL
+                 )
+
+    @   IN  NS   ns1.scrapestack.local.
+
+    ; All subdomains → Traefik ingress controller
+    @   IN  A    192.168.0.60
+    *   IN  A    192.168.0.60
+
+  db.cluster.local: |
+    $ORIGIN cluster.local.
     $TTL 300
 
     @   IN  SOA  ns1.scrapestack.local. admin.scrapestack.local. (
