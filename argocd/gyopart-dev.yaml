@@ -7,7 +7,7 @@ spec:
   project: default
   source:
     repoURL: https://github.com/dwilson2547/gyopart.git
-    targetRevision: main
+    targetRevision: dev
     path: helm/gyopart
     helm:
       valueFiles:
