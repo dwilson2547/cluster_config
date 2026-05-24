@@ -82,6 +82,12 @@ data:
       Gyopart Dev:
         style: row
         columns: 3
+      Scrape Stack:
+        style: row
+        columns: 3
+      Scrape Stack Dev:
+        style: row
+        columns: 3
       AI Services:
         style: row
         columns: 2
@@ -126,6 +132,58 @@ data:
             href: http://admin.gyopart-dev.local
             description: Admin UI — dev
             icon: si-python
+
+    - Scrape Stack:
+        - Cache Browser:
+            href: http://cache-browser.scrapestack.local
+            description: Browse and inspect cached content
+            icon: si-googlechrome
+        - Auth:
+            href: http://auth.scrapestack.local
+            description: Request auth key management
+            icon: si-webauthn
+        - Webcache API:
+            href: http://webcache.scrapestack.local/docs
+            description: Web page cache service
+            icon: si-fastapi
+        - Imgcache API:
+            href: http://imgcache.scrapestack.local/docs
+            description: Image cache service
+            icon: si-fastapi
+        - Vidcache API:
+            href: http://vidcache.scrapestack.local/docs
+            description: Video cache service
+            icon: si-fastapi
+        - Filecache API:
+            href: http://filecache.scrapestack.local/docs
+            description: File cache service
+            icon: si-fastapi
+
+    - Scrape Stack Dev:
+        - Cache Browser (dev):
+            href: http://cache-browser.scrapestack-dev.local
+            description: Browse and inspect cached content — dev
+            icon: si-googlechrome
+        - Auth (dev):
+            href: http://auth.scrapestack-dev.local
+            description: Request auth key management — dev
+            icon: si-webauthn
+        - Webcache API (dev):
+            href: http://webcache.scrapestack-dev.local/docs
+            description: Web page cache service — dev
+            icon: si-fastapi
+        - Imgcache API (dev):
+            href: http://imgcache.scrapestack-dev.local/docs
+            description: Image cache service — dev
+            icon: si-fastapi
+        - Vidcache API (dev):
+            href: http://vidcache.scrapestack-dev.local/docs
+            description: Video cache service — dev
+            icon: si-fastapi
+        - Filecache API (dev):
+            href: http://filecache.scrapestack-dev.local/docs
+            description: File cache service — dev
+            icon: si-fastapi
 
     - AI Services:
         - AI Notes:
