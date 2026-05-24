@@ -1,3 +1,53 @@
+## 2026-05-24 - Homepage dashboard, gyopart deployment, and cluster.local DNS zone
+
+### Homepage (gethomepage.dev)
+
+Deployed at `home.cluster.local` via `homepage/homepage.yaml`. Full manifest
+includes Namespace, ServiceAccount, ClusterRole/Binding (read access to pods,
+nodes, namespaces, ingresses, ingressroutes), ConfigMap, Deployment, Service,
+and Ingress. All configuration lives in the ConfigMap — edit and push to
+update the dashboard without rebuilding any image.
+
+**Groups configured**
+
+| Group | Services |
+|-------|----------|
+| Gyopart | UI, API docs, Admin |
+| Gyopart Dev | UI, API docs, Admin |
+| Scrape Stack | Cache Browser, Auth, Webcache/Imgcache/Vidcache/Filecache APIs |
+| Scrape Stack Dev | Same, on scrapestack-dev.local |
+| AI Services | AI Notes, AI Playbooks |
+| Cluster | ArgoCD, Grafana, SearXNG |
+| Infrastructure | Router (192.168.0.1), TrueNAS SSD (192.168.0.10), Unraid (192.168.0.15), HPC (192.168.0.50) |
+
+**Bookmarks:** GitHub (gyopart, cluster_config, all repos), Docker Hub, PyPI.
+
+ArgoCD app applied manually: `kubectl apply -f argocd/homepage.yaml`
+
+### cluster.local DNS zone
+
+Added `cluster.local` as the central zone for cluster-wide services not tied
+to a specific stack. Wildcard `* IN A 192.168.0.60` means any new subdomain
+resolves to Traefik without a further DNS update. Also added a wildcard to
+`monitoring.local` for the same reason.
+
+### gyopart ArgoCD applications
+
+Added `argocd/gyopart.yaml` (namespace: `gyopart`, targetRevision: `main`) and
+`argocd/gyopart-dev.yaml` (namespace: `gyopart-dev`, targetRevision: `dev`).
+Both point at `https://github.com/dwilson2547/gyopart.git` (public repo, HTTPS).
+Applied manually — these are not auto-discovered from the folder.
+
+Added DNS zones `gyopart.local` and `gyopart-dev.local` (both wildcard → Traefik).
+
+### ai-services ingress (StripPrefix fix)
+
+Added Traefik `StripPrefix` middleware for the `/api` path on ai-notes and
+ai-playbooks ingresses. Without it, the prefix was forwarded to the upstream
+FastAPI service and all `/api/*` routes returned 404.
+
+---
+
 ## 2026-05-24 - Onboard remaining services to ArgoCD
 
 Added ArgoCD applications for dns, monitoring, and postgres. Also added
