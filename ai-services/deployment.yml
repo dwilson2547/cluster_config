@@ -590,11 +590,11 @@ spec:
           service:
             name: todo-store-api
             port:
-            number: 8003
+              number: 8003
       - path: /
         pathType: Prefix
         backend:
           service:
             name: todo-store-ui
             port:
-            number: 80
+              number: 80
