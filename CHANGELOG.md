@@ -1,3 +1,13 @@
+## 2026-05-25 - Todo Store added to ai-services
+
+### Added
+
+- Added Todo Store API/UI to `ai-services/deployment.yml` with a shared PVC, nginx UI override, and `/api` ingress routing via the existing `ai-services-strip-api-prefix` middleware
+- Added `todo.ai-services.local` to the `ai-services.local` DNS zone in `dns/dns.yaml`
+- Added Todo Store to the AI Services group in `homepage/homepage.yaml`
+
+---
+
 ## 2026-05-24 - Homepage dashboard, gyopart deployment, and cluster.local DNS zone
 
 ### Homepage (gethomepage.dev)

@@ -150,7 +150,7 @@ data:
     $TTL 300
 
     @   IN  SOA  ns1.scrapestack.local. admin.scrapestack.local. (
-                    2026052401 ; serial
+                    2026052501 ; serial
                     3600       ; refresh
                     900        ; retry
                     86400      ; expire
@@ -163,6 +163,7 @@ data:
     notes      IN  A    192.168.0.60
     context-store  IN  A    192.168.0.60
     docs       IN  A    192.168.0.60
+    todo       IN  A    192.168.0.60
 
   db.gyopart-dev.local: |
     $ORIGIN gyopart-dev.local.

@@ -211,6 +211,10 @@ data:
             href: http://docs.ai-services.local
             description: Local docs index — GitHub repos with semantic search
             icon: si-readthedocs
+        - Todo Store:
+            href: http://todo.ai-services.local
+            description: Shared lightweight task backlog for agents
+            icon: si-todoist
 
     - Cluster:
         - ArgoCD:
