@@ -1,3 +1,11 @@
+## 2026-05-25 - Todo Store ingress sync fix
+
+### Fixed
+
+- Corrected the mis-indented backend service ports in `ingress-todo-store` so ArgoCD could create the Todo Store route — see [docs/issues/2026_05_25_todo_store_ingress_port_indentation.md](docs/issues/2026_05_25_todo_store_ingress_port_indentation.md)
+
+---
+
 ## 2026-05-25 - Todo Store added to ai-services
 
 ### Added
