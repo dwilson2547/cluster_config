@@ -94,7 +94,7 @@ data:
     $TTL 300
 
     @   IN  SOA  ns1.scrapestack.local. admin.scrapestack.local. (
-                    2026052401 ; serial
+                    2026052402 ; serial
                     3600       ; refresh
                     900        ; retry
                     86400      ; expire
@@ -161,7 +161,7 @@ data:
 
     ; Subdomains → Traefik ingress controller
     notes      IN  A    192.168.0.60
-    playbooks  IN  A    192.168.0.60
+    context-store  IN  A    192.168.0.60
     docs       IN  A    192.168.0.60
 
   db.gyopart-dev.local: |
