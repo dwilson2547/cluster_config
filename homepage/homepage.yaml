@@ -91,12 +91,18 @@ data:
       AI Services:
         style: row
         columns: 2
+      Storage:
+        style: row
+        columns: 2
+      Media:
+        style: row
+        columns: 1
       Cluster:
         style: row
         columns: 3
       Infrastructure:
         style: row
-        columns: 4
+        columns: 3
 
   bookmarks.yaml: |
     - GitHub:
@@ -216,6 +222,22 @@ data:
             description: Shared lightweight task backlog for agents
             icon: si-todoist
 
+    - Storage:
+        - AIStor:
+            href: http://192.168.0.10:30321/login
+            description: TrueNAS S3-compatible object storage
+            icon: si-amazons3
+        - MinIO:
+            href: http://192.168.0.15:9769/browser
+            description: Unraid S3-compatible object storage
+            icon: minio
+
+    - Media:
+        - Plex:
+            href: http://192.168.0.15:32400/web/index.html#!/
+            description: Personal media server
+            icon: plex
+
     - Pub/Sub:
         - Iggy Web UI:
             href: http://iggy-web.pub-sub.local/auth/sign-in
@@ -253,6 +275,14 @@ data:
             href: http://192.168.0.50
             description: High performance compute node
             icon: si-linux
+        - Nginx Proxy Manager:
+            href: http://192.168.0.2:81/
+            description: Reverse proxy and SSL management
+            icon: nginx-proxy-manager
+        - WikiJS:
+            href: http://192.168.0.15:3000/
+            description: Self-hosted wiki and knowledge base
+            icon: wikijs
 
   widgets.yaml: |
     - kubernetes:
