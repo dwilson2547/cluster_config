@@ -12,7 +12,7 @@ spec:
     helm:
       values: |
         reloader:
-          watchGlobally: false
+          watchGlobally: true
   destination:
     server: https://kubernetes.default.svc
     namespace: reloader
