@@ -1,14 +1,16 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: monitoring
+  name: monitoring-extras
   namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
 spec:
   project: default
   source:
     repoURL: git@github.com:dwilson2547/cluster_config.git
     targetRevision: main
-    path: monitoring/apps
+    path: monitoring/manifests
   destination:
     server: https://kubernetes.default.svc
     namespace: monitoring

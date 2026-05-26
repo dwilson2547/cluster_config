@@ -1,0 +1,27 @@
+alertmanager:
+  alertmanagerSpec:
+    storage:
+      volumeClaimTemplate:
+        spec:
+          resources:
+            requests:
+              storage: 10Gi
+          storageClassName: nfs-dataset
+grafana:
+  initChownData:
+    enabled: false
+  persistence:
+    enabled: true
+    size: 10Gi
+    storageClassName: nfs-dataset
+  sidecar:
+    skipTlsVerify: true
+prometheus:
+  prometheusSpec:
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          resources:
+            requests:
+              storage: 50Gi
+          storageClassName: nfs-dataset
