@@ -1,0 +1,3 @@
+# Keep the operator cluster-scoped so future FlinkDeployment resources can live in
+# any namespace without revisiting RBAC on day one.
+watchNamespaces: []

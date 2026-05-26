@@ -31,6 +31,7 @@ Most services are plain Kubernetes manifests tracked directly in this repo. Argo
 | searxng | `searxng/` | `argocd/searxng.yaml` |
 | ingress + argocd ingress | `argocd/ingress.yaml` | (applied manually) |
 | reloader | — (Helm chart, stakater) | `argocd/reloader.yaml` |
+| flink-operator | `flink-operator/` (Helm values) | `argocd/flink-operator.yaml` |
 
 ### 2. Self-managed Helm (external repos)
 
