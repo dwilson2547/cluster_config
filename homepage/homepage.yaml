@@ -283,6 +283,8 @@ metadata:
   namespace: homepage
   labels:
     app.kubernetes.io/name: homepage
+  annotations:
+    configmap.reloader.stakater.com/reload: "homepage-config"
 spec:
   revisionHistoryLimit: 3
   replicas: 1
