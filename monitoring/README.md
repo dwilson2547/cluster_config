@@ -16,8 +16,8 @@ Grafana observability stack running in the `monitoring` namespace.
 | App | Source | Version | Purpose |
 |---|---|---|---|
 | `monitoring-prometheus` | `prometheus-community/kube-prometheus-stack` | `82.4.3` | Prometheus, Grafana, Alertmanager, Prometheus Operator |
-| `monitoring-loki` | `grafana/loki` | `17.1.1` | Log aggregation |
-| `monitoring-tempo` | `grafana/tempo` | `2.1.2` | Trace storage |
+| `monitoring-loki` | `grafana-community/loki` | `17.1.1` | Log aggregation |
+| `monitoring-tempo` | `grafana-community/tempo` | `2.1.2` | Trace storage |
 | `monitoring-extras` | `monitoring/manifests/` | repo-managed | OTEL collector, datasources, ingress, `ServiceMonitor`s |
 
 The parent app at `argocd/monitoring.yaml` points to `monitoring/apps`, so ArgoCD manages the child apps and they manage the actual monitoring resources.
