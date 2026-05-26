@@ -46,6 +46,8 @@ The child apps use pinned chart versions plus values stored in this repo:
 
 This keeps the chart configuration reviewable in Git instead of relying on `helm upgrade --reuse-values`.
 
+For the current cluster migration, `monitoring/helm-values/prometheus-values.yaml` sets `crds.enabled: false` so ArgoCD does not try to re-patch the already-installed Prometheus Operator CRDs and hit Kubernetes annotation size limits. If you ever need to bootstrap this stack from a blank cluster again, handle those CRDs as a separate one-time bootstrap step first.
+
 ## Raw manifests
 
 `monitoring/manifests/` contains the non-chart resources that sit alongside the Helm releases:
