@@ -1,3 +1,8 @@
 # Keep the operator cluster-scoped so future FlinkDeployment resources can live in
 # any namespace without revisiting RBAC on day one.
 watchNamespaces: []
+
+# This cluster does not have cert-manager. Disabling the admission webhook avoids
+# the chart's Issuer/Certificate resources and still leaves the operator usable.
+webhook:
+  create: false
