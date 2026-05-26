@@ -274,6 +274,8 @@ kind: Deployment
 metadata:
   name: coredns-local
   namespace: dns
+  annotations:
+    configmap.reloader.stakater.com/reload: "coredns-local-config"
 spec:
   replicas: 1
   selector:
