@@ -218,7 +218,7 @@ data:
 
     - Pub/Sub:
         - Iggy Web UI:
-            href: http://iggy-web.pub-sub.local
+            href: http://iggy-web.pub-sub.local/auth/sign-in
             description: Inspect streams, topics, partitions, and broker state
             icon: si-apachekafka
 

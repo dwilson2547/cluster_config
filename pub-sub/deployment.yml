@@ -181,7 +181,7 @@ spec:
               protocol: TCP
           readinessProbe:
             httpGet:
-              path: /
+              path: /auth/sign-in
               port: http
             initialDelaySeconds: 10
             periodSeconds: 10
@@ -189,7 +189,7 @@ spec:
             failureThreshold: 12
           livenessProbe:
             httpGet:
-              path: /
+              path: /auth/sign-in
               port: http
             initialDelaySeconds: 20
             periodSeconds: 15

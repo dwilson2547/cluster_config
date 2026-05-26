@@ -1,3 +1,11 @@
+## 2026-05-25 - Iggy Web UI probe path fix
+
+### Fixed
+
+- Pointed the Iggy Web UI health probes and homepage link at the real `/auth/sign-in` entry route so the pod becomes ready and the ingress can serve traffic again — see [docs/issues/2026_05_25_iggy_web_ui_probe_root_404.md](docs/issues/2026_05_25_iggy_web_ui_probe_root_404.md)
+
+---
+
 ## 2026-05-25 - robo-services ArgoCD app and DNS zone
 
 ### Added
