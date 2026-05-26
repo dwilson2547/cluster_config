@@ -1,0 +1,24 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: robo-services
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/dwilson2547/robo-services.git
+    targetRevision: main
+    path: helm/robo-services
+    helm:
+      values: |
+        secret:
+          create: false
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: robo-services
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

@@ -1,3 +1,16 @@
+## 2026-05-25 - robo-services ArgoCD app and DNS zone
+
+### Added
+
+- Added `argocd/robo-services.yaml` to deploy the external `dwilson2547/robo-services` repo from `helm/robo-services`
+- Added `robo-services.local` to `dns/dns.yaml` with an explicit `kreceiver.robo-services.local -> 192.168.0.70` record for the UDP receiver LoadBalancer
+
+### Notes
+
+- `robo-services` follows the same external-repo ArgoCD pattern as `gyopart`: the chart lives in its own repo while `cluster_config` owns the cluster registration and DNS
+
+---
+
 ## 2026-05-25 - Pub-sub namespace and Iggy ArgoCD app
 
 ### Added

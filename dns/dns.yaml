@@ -52,6 +52,12 @@ data:
         errors
     }
 
+    robo-services.local:53 {
+        file /etc/coredns/db.robo-services.local
+        log
+        errors
+    }
+
     cluster.local:53 {
         file /etc/coredns/db.cluster.local
         log
@@ -200,6 +206,24 @@ data:
     ; All subdomains → Traefik ingress controller
     @   IN  A    192.168.0.60
     *   IN  A    192.168.0.60
+
+  db.robo-services.local: |
+    $ORIGIN robo-services.local.
+    $TTL 300
+
+    @   IN  SOA  ns1.robo-services.local. admin.robo-services.local. (
+                    2026052501 ; serial
+                    3600       ; refresh
+                    900        ; retry
+                    86400      ; expire
+                    300        ; minimum TTL
+                 )
+
+    @   IN  NS   ns1.robo-services.local.
+    ns1 IN  A    192.168.0.61
+
+    ; UDP receiver LoadBalancer
+    kreceiver IN A 192.168.0.70
 
   db.cluster.local: |
     $ORIGIN cluster.local.
