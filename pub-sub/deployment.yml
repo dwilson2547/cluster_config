@@ -1,0 +1,122 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: pub-sub
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: iggy-config
+  namespace: pub-sub
+data:
+  IGGY_ROOT_USERNAME: "iggy"
+  IGGY_TCP_ADDRESS: "0.0.0.0:8090"
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: iggy-data
+  namespace: pub-sub
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: iggy
+  namespace: pub-sub
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: iggy
+  template:
+    metadata:
+      labels:
+        app: iggy
+    spec:
+      containers:
+        - name: iggy
+          image: apache/iggy:0.8.0
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: IGGY_ROOT_USERNAME
+              valueFrom:
+                configMapKeyRef:
+                  name: iggy-config
+                  key: IGGY_ROOT_USERNAME
+            - name: IGGY_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: iggy-secret
+                  key: IGGY_ROOT_PASSWORD
+            - name: IGGY_TCP_ADDRESS
+              valueFrom:
+                configMapKeyRef:
+                  name: iggy-config
+                  key: IGGY_TCP_ADDRESS
+          ports:
+            - name: tcp
+              containerPort: 8090
+              protocol: TCP
+          readinessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - >
+                  iggy --transport tcp
+                  --tcp-server-address 127.0.0.1:8090
+                  --credentials-username "$IGGY_ROOT_USERNAME"
+                  --credentials-password "$IGGY_ROOT_PASSWORD"
+                  ping >/dev/null 2>&1
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 12
+          livenessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - >
+                  iggy --transport tcp
+                  --tcp-server-address 127.0.0.1:8090
+                  --credentials-username "$IGGY_ROOT_USERNAME"
+                  --credentials-password "$IGGY_ROOT_PASSWORD"
+                  ping >/dev/null 2>&1
+            initialDelaySeconds: 20
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 6
+          volumeMounts:
+            - name: iggy-data
+              mountPath: /local_data
+          securityContext:
+            capabilities:
+              add:
+                - SYS_NICE
+      volumes:
+        - name: iggy-data
+          persistentVolumeClaim:
+            claimName: iggy-data
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: iggy
+  namespace: pub-sub
+spec:
+  selector:
+    app: iggy
+  ports:
+    - name: tcp
+      port: 8090
+      targetPort: 8090
+      protocol: TCP

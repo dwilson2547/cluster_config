@@ -1,3 +1,18 @@
+## 2026-05-25 - Pub-sub namespace and Iggy ArgoCD app
+
+### Added
+
+- Added `pub-sub/deployment.yml` with a dedicated `pub-sub` namespace, PVC-backed single-node Iggy deployment, internal Service, and config wiring
+- Added `argocd/pub-sub.yaml` so ArgoCD can manage the new pub-sub stack
+- Added `example-secrets/pub-sub/secret.yml` as the pre-provisioned template for the Iggy root password
+
+### Notes
+
+- The initial cluster shape keeps Iggy in `cluster_config` as dedicated shared infrastructure under `pub-sub`, while staying small enough to avoid a separate chart for now
+- Real `iggy-secret` values are still expected to be created manually before or shortly after the ArgoCD application is applied
+
+---
+
 ## 2026-05-25 - Todo Store ingress sync fix
 
 ### Fixed
