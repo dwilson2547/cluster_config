@@ -216,6 +216,12 @@ data:
             description: Shared lightweight task backlog for agents
             icon: si-todoist
 
+    - Pub/Sub:
+        - Iggy Web UI:
+            href: http://iggy-web.pub-sub.local
+            description: Inspect streams, topics, partitions, and broker state
+            icon: si-apachekafka
+
     - Cluster:
         - ArgoCD:
             href: http://argocd.local

@@ -58,6 +58,12 @@ data:
         errors
     }
 
+    pub-sub.local:53 {
+        file /etc/coredns/db.pub-sub.local
+        log
+        errors
+    }
+
     cluster.local:53 {
         file /etc/coredns/db.cluster.local
         log
@@ -224,6 +230,25 @@ data:
 
     ; UDP receiver LoadBalancer
     kreceiver IN A 192.168.0.70
+
+  db.pub-sub.local: |
+    $ORIGIN pub-sub.local.
+    $TTL 300
+
+    @   IN  SOA  ns1.pub-sub.local. admin.pub-sub.local. (
+                    2026052501 ; serial
+                    3600       ; refresh
+                    900        ; retry
+                    86400      ; expire
+                    300        ; minimum TTL
+                 )
+
+    @   IN  NS   ns1.pub-sub.local.
+    ns1 IN  A    192.168.0.61
+
+    ; Pub-sub hosts → Traefik ingress controller
+    @         IN  A    192.168.0.60
+    *         IN  A    192.168.0.60
 
   db.cluster.local: |
     $ORIGIN cluster.local.
