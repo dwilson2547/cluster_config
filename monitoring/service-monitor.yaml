@@ -13,3 +13,22 @@ spec:
     - port: prometheus
       path: /metrics
       interval: 15s
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: iggy
+  namespace: monitoring
+  labels:
+    release: prometheus
+spec:
+  namespaceSelector:
+    matchNames:
+      - pub-sub
+  selector:
+    matchLabels:
+      app: iggy
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 15s

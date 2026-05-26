@@ -140,6 +140,8 @@ kind: Service
 metadata:
   name: iggy
   namespace: pub-sub
+  labels:
+    app: iggy
 spec:
   selector:
     app: iggy
