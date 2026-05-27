@@ -1,3 +1,11 @@
+## 2026-05-27 - microk8s node runtime failure and postgres NFS fsGroup fix
+
+### Fixed
+- Documented recurring microk8s containerd failure on k8s-main (node appears Ready but silently drops all new pods); fix is `microk8s stop && microk8s start` — see [docs/issues/2026_05_27_microk8s_main_node_runtime_failure.md](docs/issues/2026_05_27_microk8s_main_node_runtime_failure.md)
+- Removed `fsGroup: 999` from all four postgres StatefulSets — NFS root_squash prevents kubelet from chowning volumes at pod start, breaking postgres when rescheduled to a new node
+
+---
+
 ## 2026-05-25 - Iggy Web UI probe path fix
 
 ### Fixed
