@@ -242,7 +242,7 @@ data:
     $TTL 300
 
     @   IN  SOA  ns1.robo-services.local. admin.robo-services.local. (
-                    2026052501 ; serial
+                    2026052601 ; serial
                     3600       ; refresh
                     900        ; retry
                     86400      ; expire
@@ -254,6 +254,9 @@ data:
 
     ; UDP receiver LoadBalancer
     kreceiver IN A 192.168.0.70
+
+    ; MQTT broker LoadBalancer
+    mqtt      IN A 192.168.0.71
 
   db.pub-sub.local: |
     $ORIGIN pub-sub.local.
