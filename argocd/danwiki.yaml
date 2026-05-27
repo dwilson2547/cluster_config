@@ -1,0 +1,20 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: danwiki
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/dwilson2547/DanWiki.git
+    targetRevision: main
+    path: helm/danwiki
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: danwiki
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
