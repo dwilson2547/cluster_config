@@ -326,7 +326,7 @@ metadata:
   name: coredns-local
   namespace: dns
   annotations:
-    configmap.reloader.stakater.com/reload: "coredns-local-config"
+    reloader.stakater.com/auto: "true"
 spec:
   replicas: 1
   selector:
