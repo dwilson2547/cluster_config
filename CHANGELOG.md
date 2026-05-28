@@ -1,7 +1,15 @@
+## 2026-05-27 - playbooks directory and microk8s node runtime failure
+
+### Added
+- Created `playbooks/` directory for procedural runbooks; added `playbooks/pods-stuck-container-creating.md` — step-by-step diagnosis and fix for pods stuck in ContainerCreating on k8s-main, covering bad cached manifests, hanging image pulls, and broken containerd
+
+---
+
 ## 2026-05-27 - microk8s node runtime failure and postgres NFS fsGroup fix
 
 ### Fixed
 - Documented recurring microk8s containerd failure on k8s-main (node appears Ready but silently drops all new pods); fix is `microk8s stop && microk8s start` — see [docs/issues/2026_05_27_microk8s_main_node_runtime_failure.md](docs/issues/2026_05_27_microk8s_main_node_runtime_failure.md)
+- Added syslog analysis section to microk8s issue doc: root cause for this specific incident was Docker Hub connectivity failures (HTML error responses cached as manifests, then EOF on pulls — 0 bytes read over 12+ min), NOT broken containerd sandbox creation; containerd was creating sandboxes successfully throughout
 - Removed `fsGroup: 999` from all four postgres StatefulSets — NFS root_squash prevents kubelet from chowning volumes at pod start, breaking postgres when rescheduled to a new node
 
 ---

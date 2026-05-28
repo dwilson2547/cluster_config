@@ -6,6 +6,85 @@
 
 ---
 
+## Syslog analysis — revised root cause for this incident
+
+**Source:** `~/documents/k8s_nfs_death.log` (78,500 lines, May 24–27 syslog from k8s-main)
+
+The syslog analysis significantly revises the initial root cause hypothesis for this specific incident. The original write-up assumed containerd's sandbox creation was broken; the syslog proves otherwise.
+
+### What the syslog shows
+
+**containerd was creating sandboxes successfully throughout the failure window.** Every `RunPodSandbox` call returned a sandbox ID within ~700ms. CNI/Calico IPAM assigned IPs normally. The sandbox layer was not broken.
+
+The actual failure was at the **image pull layer**: Docker Hub was either returning HTML error pages (rate limiting responses) or dropping connections mid-stream.
+
+**Concrete evidence (timestamps UTC):**
+
+| Time | Event |
+|------|-------|
+| 04:28:26 | RunPodSandbox succeeds for danwiki-backend and danwiki-frontend |
+| 04:28:27 | `PullImage "dwilson2547/danwiki-backend:latest"` starts |
+| 04:28:28 | Pull fails: `unexpected media type text/html for sha256:0e024625...` — Docker Hub returned an HTML error page instead of a manifest; containerd cached this as the manifest |
+| 04:28:28 | Same failure for danwiki-frontend. Both pods enter ImagePullBackOff. |
+| 05:05:04 | New danwiki-frontend and embedding-service pods: RunPodSandbox succeeds again |
+| 05:05:04 | `PullImage` starts for both — pull hangs (no bytes flowing) |
+| 05:51:25 | RunPodSandbox for busybox-test succeeds, `PullImage "busybox:latest"` starts |
+| 05:59:39 | User kills busybox after 8 min — pull had been hanging 8+ minutes, 0 bytes read |
+| 06:02:23 | Second busybox attempt: RunPodSandbox succeeds, `PullImage "busybox:latest"` starts again |
+| 06:15:01 | All three hanging pulls (frontend, embedding-service, busybox) fail simultaneously: `ErrImagePull: rpc error: code = Unavailable desc = error reading from server: EOF` — Docker Hub connection dropped after ~12-13 minutes |
+
+**Key quote from containerd log at 06:15:01:**
+```
+stop pulling image docker.io/library/busybox:latest: active requests=0, bytes read=0
+```
+Zero bytes read in 12+ minutes. Docker Hub was not responding.
+
+### Why pods appeared to have "no events"
+
+The pods were NOT stuck before the image pull stage (the classic broken-containerd symptom). They were stuck DURING the image pull:
+- Sandbox was created → kubelet should have logged a "Pulling" event
+- BUT if the gRPC stream to Docker Hub hung immediately (before any data), containerd may have appeared unresponsive to the kubelet's event system
+- OR events were generated but the kubectl check happened in the brief window before they appeared
+- The "zero events" appearance was a Docker Hub connection hang, not a sandbox failure
+
+### Why busybox also failed
+
+busybox is a public image with no auth requirements. Its pull also returned 0 bytes over 12+ minutes, confirming Docker Hub itself had a connectivity problem — this was not a private registry auth issue.
+
+### Why workers were unaffected
+
+Worker nodes (k8s-worker1, k8s-worker2) had the danwiki images cached from previous runs. With `pullPolicy: IfNotPresent`, they never contacted Docker Hub. k8s-main needed to pull fresh copies (the images were rebuilt and pushed that session, and k8s-main may not have had them cached, or `pullPolicy: Always` was set).
+
+### What microk8s restart actually fixed
+
+The restart cleared:
+1. Bad cached manifests — the HTML page that was cached as `dwilson2547/danwiki-backend:latest`'s manifest
+2. Hung gRPC connections to Docker Hub
+3. In-flight pull state in containerd
+
+After the restart, Docker Hub had recovered and pulls succeeded normally.
+
+### Chronic background noise (not the cause)
+
+Two patterns that appear alarming but are normal background behavior on this node:
+- **kine.sock errors** (`grpc: addrConn.createTransport failed`): ~240/hour every hour since May 24, continuous. Normal gRPC reconnect cadence — kine is working fine.
+- **"Liveness probe already exists for csi-nfs-node-87zr7"**: ~1140/day since May 24. A known microk8s bug where the kubelet registers duplicate liveness probes on pod restart; harmless.
+
+### Revised diagnosis distinction
+
+The syslog reveals two distinct failure modes that look similar from `kubectl`:
+
+| Symptom | Cause | Diagnostic |
+|---------|-------|-----------|
+| ContainerCreating, zero events, PodReadyToStartContainers: False | **containerd sandbox broken** (previous sessions) | `crictl info` times out |
+| ContainerCreating, zero events, 8+ minutes | **Image pull hanging on Docker Hub EOF** (this session) | `crictl info` succeeds; `crictl ps -a` shows sandbox but no container |
+
+The `crictl info` one-liner distinguishes them:
+- Responsive → containerd is fine, image pull is stuck → check Docker Hub connectivity
+- Unresponsive → containerd is broken → `microk8s stop && microk8s start`
+
+---
+
 ## Observed symptom
 
 Pods scheduled to k8s-main become permanently stuck in `ContainerCreating` with no events and `PodReadyToStartContainers: False`. The node reports `Ready=True` in `kubectl get nodes` with all conditions normal. The failure is completely silent — no warnings, no error events, no alerts. Worker nodes (k8s-worker1, k8s-worker2) are unaffected.
@@ -127,6 +206,74 @@ kubectl uncordon k8s-main
 This works because microk8s stop shuts down all snap-managed services in dependency order (kubelet, then containerd, then CNI), fully releasing all in-memory state, stale goroutines, and socket connections. On restart, containerd initialises from a clean state, re-scans its on-disk state for consistency, and CNI re-registers. Any stale kernel NFS mounts that were blocking containerd bind mounts are also released when containerd stops and its bind-mount subtree is cleaned up by the kernel.
 
 A plain `microk8s restart` may not be sufficient if there are goroutines in uninterruptible kernel wait — a stop followed by a start ensures a clean process boundary.
+
+### Preferred fix: clear bad image cache without restarting microk8s
+
+When the cause is Docker Hub rate-limiting or a cached bad manifest (the `unexpected media type text/html` symptom), a full microk8s restart is unnecessary. The following sequence fixes it without disruption:
+
+**Step 1 — Confirm containerd is responsive** (SSH to k8s-main):
+```bash
+timeout 5 sudo microk8s ctr version && echo "containerd OK" || echo "containerd UNRESPONSIVE → need full restart"
+```
+If this returns OK, you do NOT need to restart microk8s.
+
+**Step 2 — Remove bad cached image entries** (SSH to k8s-main):
+```bash
+# For each image that failed with "unexpected media type text/html":
+sudo microk8s ctr images rm docker.io/dwilson2547/danwiki-backend:latest
+sudo microk8s ctr images rm docker.io/dwilson2547/danwiki-frontend:latest
+# Generic form: sudo microk8s ctr images rm docker.io/<user>/<image>:tag
+```
+This removes the HTML page that was cached as a manifest. On next pull, containerd fetches fresh.
+
+**Step 3 — Abort hanging pulls** (from management machine):
+```bash
+# Force-delete pods stuck in ContainerCreating — this triggers StopPodSandbox
+# in containerd, which aborts any in-progress image pull for that sandbox.
+kubectl delete pod <stuck-pod> -n <namespace> --force --grace-period=0
+```
+Kubernetes recreates the pod immediately. If Docker Hub has recovered, the new pull succeeds.
+
+**Step 4 — Verify** (from management machine):
+```bash
+# Watch for new pod to start pulling
+kubectl get pods -n <namespace> -w
+# Should see: ContainerCreating → Running within 30-60s (or ErrImagePull if Docker Hub still down)
+```
+
+### Detection script
+
+Run this from the management machine to identify stuck pods and their event count (0 events = hung pull or broken sandbox):
+
+```bash
+#!/bin/bash
+kubectl get pods -A -o wide --no-headers \
+  | awk '$4 == "ContainerCreating" && $8 == "k8s-main"' \
+  | while read ns pod ready status restarts age node rest; do
+      age_mins=$(echo "$age" | grep -oP '^\d+(?=m)' || echo 0)
+      events=$(kubectl get events -n "$ns" \
+        --field-selector="involvedObject.name=$pod" --no-headers 2>/dev/null | wc -l)
+      if [ "${age_mins:-0}" -ge 3 ]; then
+        echo "STUCK: $pod (ns=$ns, age=$age, events=$events, node=$node)"
+      fi
+    done
+```
+
+Then SSH to k8s-main and check:
+```bash
+# Are there bad cached images? (look for unexpected digest types or zero-size manifests)
+sudo microk8s ctr images ls | grep <image-name>
+
+# Are pulls hanging? (sandboxes exist but no containers for them)
+sudo microk8s ctr containers ls
+sudo /var/snap/microk8s/current/bin/crictl \
+  --runtime-endpoint unix:///var/snap/microk8s/common/run/containerd.sock pods
+```
+
+### When a full microk8s restart IS still needed
+
+- `timeout 5 sudo microk8s ctr version` times out → containerd is truly unresponsive (goroutine deadlock)
+- Stale NFS kernel mounts are blocking containerd bind mounts (pods fail at volume mount stage, not image pull stage — look for `FailedMount` events rather than `ErrImagePull`)
 
 ### Files changed
 
