@@ -1,0 +1,76 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pvc-influxdb
+  namespace: grafana
+spec:
+  storageClassName: nfs-csi
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: 20Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: influxdb-app
+  namespace: grafana
+spec:
+  selector:
+    matchLabels:
+      app: influxdb-app
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: influxdb-app
+    spec:
+      securityContext:
+        runAsUser: 99
+      containers:
+      - image: influxdb
+        name: influxdb
+        ports:
+        - containerPort: 8086
+          name: influx-api
+        volumeMounts:
+        - name: influxdb-persistent-storage
+          mountPath: /var/lib/influxdb2
+      volumes:
+      - name: influxdb-persistent-storage
+        persistentVolumeClaim:
+          claimName: pvc-influxdb
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: svc-influxdb
+  namespace: grafana
+spec:
+  type: NodePort
+  selector:
+    app: influxdb-app
+  ports:
+  - port: 8086
+    targetPort: 8086
+    protocol: TCP
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ingress-influxdb
+  namespace: grafana
+spec:
+  rules:
+  - host: influxdb.monitoring.danwils.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: svc-influxdb
+            port:
+              number: 8086
+  ingressClassName: nginx

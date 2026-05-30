@@ -244,6 +244,12 @@ data:
             description: Inspect streams, topics, partitions, and broker state
             icon: si-apachekafka
 
+    - Robo Services:
+        - Registry:
+            href: http://registry.robo-services.local
+            description: Device, user, track, and profile management
+            icon: si-fastapi
+
     - Cluster:
         - ArgoCD:
             href: http://argocd.local

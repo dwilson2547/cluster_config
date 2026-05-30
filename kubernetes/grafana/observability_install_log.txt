@@ -1,0 +1,71 @@
+deployment.apps/hostpath-provisioner created
+storageclass.storage.k8s.io/microk8s-hostpath created
+serviceaccount/microk8s-hostpath created
+clusterrole.rbac.authorization.k8s.io/microk8s-hostpath created
+clusterrolebinding.rbac.authorization.k8s.io/microk8s-hostpath created
+Storage will be available soon.
+Enabling observability
+Release "kube-prom-stack" does not exist. Installing it now.
+W0906 20:30:17.457358  872142 warnings.go:70] v1 Endpoints is deprecated in v1.33+; use discovery.k8s.io/v1 EndpointSlice
+W0906 20:30:17.462801  872142 warnings.go:70] v1 Endpoints is deprecated in v1.33+; use discovery.k8s.io/v1 EndpointSlice
+W0906 20:30:31.577590  872142 warnings.go:70] v1 Endpoints is deprecated in v1.33+; use discovery.k8s.io/v1 EndpointSlice
+W0906 20:30:31.607888  872142 warnings.go:70] v1 Endpoints is deprecated in v1.33+; use discovery.k8s.io/v1 EndpointSlice
+NAME: kube-prom-stack
+LAST DEPLOYED: Sat Sep  6 20:30:06 2025
+NAMESPACE: observability
+STATUS: deployed
+REVISION: 1
+NOTES:
+kube-prometheus-stack has been installed. Check its status by running:
+  kubectl --namespace observability get pods -l "release=kube-prom-stack"
+
+Get Grafana 'admin' user password by running:
+
+  kubectl --namespace observability get secrets kube-prom-stack-grafana -o jsonpath="{.data.admin-password}" | base64 -d ; echo
+
+Access Grafana local instance:
+
+  export POD_NAME=$(kubectl --namespace observability get pod -l "app.kubernetes.io/name=grafana,app.kubernetes.io/instance=kube-prom-stack" -oname)
+  kubectl --namespace observability port-forward $POD_NAME 3000
+
+Visit https://github.com/prometheus-operator/kube-prometheus for instructions on how to create & configure Alertmanager and Prometheus instances using the Operator.
+Release "loki" does not exist. Installing it now.
+NAME: loki
+LAST DEPLOYED: Sat Sep  6 20:30:51 2025
+NAMESPACE: observability
+STATUS: deployed
+REVISION: 1
+NOTES:
+The Loki stack has been deployed to your cluster. Loki can now be added as a datasource in Grafana.
+
+See http://docs.grafana.org/features/datasources/loki/ for more detail.
+Release "tempo" does not exist. Installing it now.
+NAME: tempo
+LAST DEPLOYED: Sat Sep  6 20:30:55 2025
+NAMESPACE: observability
+STATUS: deployed
+REVISION: 1
+TEST SUITE: None
+Adding argument --authentication-kubeconfig to nodes.
+Adding argument --authorization-kubeconfig to nodes.
+Restarting nodes.
+The connection to the server 127.0.0.1:16443 was refused - did you specify the right host or port?
+Failed to list nodes (try 1): Command '['/snap/microk8s/8205/microk8s-kubectl.wrapper', 'get', 'node', '-o', 'json']' returned non-zero exit status 1.
+Adding argument --authentication-kubeconfig to nodes.
+Adding argument --authorization-kubeconfig to nodes.
+Restarting nodes.
+The connection to the server 127.0.0.1:16443 was refused - did you specify the right host or port?
+Failed to list nodes (try 1): Command '['/snap/microk8s/8205/microk8s-kubectl.wrapper', 'get', 'node', '-o', 'json']' returned non-zero exit status 1.
+Adding argument --metrics-bind-address to nodes.
+Restarting nodes.
+The connection to the server 127.0.0.1:16443 was refused - did you specify the right host or port?
+Failed to list nodes (try 1): Command '['/snap/microk8s/8205/microk8s-kubectl.wrapper', 'get', 'node', '-o', 'json']' returned non-zero exit status 1.
+
+Note: the observability stack is setup to monitor only the current nodes of the MicroK8s cluster.
+For any nodes joining the cluster at a later stage this addon will need to be set up again.
+
+Observability has been enabled (user/pass: admin/prom-operator)
+
+
+app.kubernetes.io/instance: kube-prom-stack
+app.kubernetes.io/name: grafana

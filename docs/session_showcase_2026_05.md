@@ -40,6 +40,8 @@ Six distinct blockers were diagnosed and fixed in sequence:
 
 5. **fsGroup NFS incompatibility** — PostgreSQL pod failed to start with permission denied on `/var/lib/postgresql/data` after being rescheduled to a different node. Root cause: NFS server has `root_squash` enabled, so the kubelet (running as root) gets mapped to `nobody` (UID 65534) when trying to `chown` the pgdata directory. Removed `fsGroup: 999` from all four Postgres StatefulSets (`postgres-pgvector`, `postgres-pgvector-dev`, and their respective prod/dev variants). PostgreSQL initialises its own data directory permissions at startup without needing kubelet assistance.
 
+> Minor error, nfs server does not have root_squash enabled, it's an open acl but chown fails. solution is to run image as its own built-in user so chown does not change file permissions, or disable the chown.
+
 6. **Pod sandbox failure on k8s-main** — New DanWiki pods scheduled to k8s-main sat in `ContainerCreating` indefinitely with zero events. This triggered a full node investigation (see Task 2).
 
 **Outcome:** DanWiki fully operational — backend, frontend, embedding service, and worker all running; semantic search functional.

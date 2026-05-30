@@ -1,0 +1,344 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: immich
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: immich-db-pvc
+  namespace: immich
+  labels:
+    app: immich
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 20Gi  # Match or be less than the PV's capacity
+  storageClassName: nfs-crucial
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: immich-library-pvc
+  namespace: immich
+  labels:
+    app: immich
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 200Gi  # Match or be less than the PV's capacity
+  storageClassName: nfs-crucial
+---
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: immich-env
+  namespace: immich
+  labels:
+    app: immich
+data:
+  DB_DATABASE_NAME: "immich"
+  DB_HOSTNAME: "immich-database"
+  DB_USERNAME: "immich"
+  IMMICH_MACHINE_LEARNING_URL: "http://immich-machine-learning:3003"
+  REDIS_HOSTNAME: "redis-server.redis-server.svc.cluster.local"
+  REDIS_PORT: "6379"
+  REDIS_DBINDEX: "0"
+  REDIS_PASSWORD: ""
+  DISABLE_REVERSE_GEOCODING: "false"
+  REVERSE_GEOCODING_PRECISION: "2"
+  PUBLIC_LOGIN_PAGE_MESSAGE: ""
+  PUID: "0"
+  PGID: "0"
+  DB_PASSWORD: "password"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: immich-database
+  namespace: immich
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: immich-database
+  template:
+    metadata:
+      labels:
+        app: immich-database
+    spec:
+      securityContext:
+        fsGroup: 100
+      containers:
+        - name: immich-postgres
+          image: "docker.io/tensorchord/pgvecto-rs:pg14-v0.2.0@sha256:90724186f0a3517cf6914295b5ab410db9ce23190a2d9d0b9dd6463e3fa298f0"
+          imagePullPolicy: Always
+          securityContext:
+            runAsGroup: 100
+            runAsUser: 4000
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_USER
+              valueFrom:
+                configMapKeyRef:
+                  name: immich-env
+                  key: DB_USERNAME
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                configMapKeyRef:
+                  name: immich-env
+                  key: DB_PASSWORD
+            - name: POSTGRES_DB
+              valueFrom:
+                configMapKeyRef:
+                  name: immich-env
+                  key: DB_DATABASE_NAME
+          volumeMounts:
+            - name: pgdata
+              mountPath: /var/lib/postgresql/data
+              subPath: postgres
+          resources: {}
+      volumes:
+        - name: pgdata
+          persistentVolumeClaim:
+            claimName: immich-db-pvc
+---
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: immich-server
+  namespace: immich
+  labels:
+    app: immich-server
+spec:
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: immich-server
+  template:
+    metadata:
+      labels:
+        app: immich-server
+    spec:
+      securityContext:
+        fsGroup: 100
+      serviceAccountName: default
+      dnsPolicy: ClusterFirst
+      initContainers:
+        - name: postgresql-isready
+          image: "docker.io/tensorchord/pgvecto-rs:pg14-v0.2.0@sha256:90724186f0a3517cf6914295b5ab410db9ce23190a2d9d0b9dd6463e3fa298f0"
+          imagePullPolicy: Always
+          securityContext:
+            runAsGroup: 100
+            runAsUser: 4000
+          env:
+            - name: POSTGRES_USER
+              valueFrom:
+                configMapKeyRef:
+                  name: immich-env
+                  key: DB_USERNAME
+            - name: POSTGRES_DB
+              valueFrom:
+                configMapKeyRef:
+                  name: immich-env
+                  key: DB_DATABASE_NAME
+          command:
+            - /bin/sh
+            - -c
+            - until pg_isready -U "${POSTGRES_USER}" -d "dbname=${POSTGRES_DB}"
+              -h immich-database -p 5432 ; do sleep 2 ; done
+      containers:
+        - name: immich-server
+          image: "ghcr.io/immich-app/immich-server:release"
+          imagePullPolicy: Always
+          securityContext:
+            runAsGroup: 100
+            runAsUser: 4000
+          ports:
+            - containerPort: 3001
+          env:
+            - name: DB_PASSWORD
+              valueFrom:
+                configMapKeyRef:
+                  name: immich-env
+                  key: DB_PASSWORD
+          envFrom:
+            - configMapRef:
+                name: immich-env
+                optional: false
+          livenessProbe:
+            failureThreshold: 120
+            httpGet:
+              path: /server/ping
+              port: 2283
+            initialDelaySeconds: 10
+            periodSeconds: 120
+            timeoutSeconds: 1
+          readinessProbe:
+            failureThreshold: 120
+            httpGet:
+              path: /server/ping
+              port: 2283
+            initialDelaySeconds: 10
+            periodSeconds: 120
+            timeoutSeconds: 1
+          volumeMounts:
+            - name: library
+              mountPath: /usr/src/app/upload
+              subPath: library
+      volumes:
+        - name: library
+          persistentVolumeClaim:
+            claimName: immich-library-pvc
+---
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: immich-machine-learning
+  namespace: immich
+  labels:
+    app: immich-machine-learning
+spec:
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: immich-machine-learning
+  template:
+    metadata:
+      labels:
+        app: immich-machine-learning
+    spec:
+      serviceAccountName: default
+      automountServiceAccountToken: true
+      dnsPolicy: ClusterFirst
+      enableServiceLinks: true
+      containers:
+        - name: immich-machine-learning
+          image: "ghcr.io/immich-app/immich-machine-learning:release"
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 3003
+          env:
+            - name: DB_PASSWORD
+              valueFrom:
+                configMapKeyRef:
+                  name: immich-env
+                  key: DB_PASSWORD
+            - name: TRANSFORMERS_CACHE
+              value: /cache
+          envFrom:
+            - configMapRef:
+                name: immich-env
+                optional: false
+          livenessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /ping
+              port: 3003
+            initialDelaySeconds: 0
+            periodSeconds: 10
+            timeoutSeconds: 1
+          readinessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /ping
+              port: 3003
+            initialDelaySeconds: 0
+            periodSeconds: 10
+            timeoutSeconds: 1
+          volumeMounts:
+            - name: cache
+              mountPath: /cache
+          resources: {}
+      volumes:
+        - name: cache
+          emptyDir: {}
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: immich-database
+  namespace: immich
+  labels:
+    app: immich-database
+spec:
+  type: ClusterIP
+  selector:
+    app: immich-database
+  ports:
+    - name: tcp-postgresql
+      port: 5432
+      targetPort: 5432
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: immich-machine-learning
+  namespace: immich
+  labels:
+    app: immich-machine-learning
+spec:
+  type: ClusterIP
+  selector:
+    app: immich-machine-learning
+  ports:
+    - port: 3003
+      targetPort: 3003
+      protocol: TCP
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: immich-server
+  namespace: immich
+  labels:
+    app: immich-server
+spec:
+  type: ClusterIP
+  selector:
+    app: immich-server
+  ports:
+    - port: 2283
+      targetPort: 2283
+      protocol: TCP
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: immich-private
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-cluster-issuer
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: 10g
+  namespace: immich
+  labels:
+    app: immich
+spec:
+  rules:
+  - host: immich.danwils.com
+    http:
+      paths:
+      - pathType: Prefix
+        path: "/"
+        backend:
+          service:
+            name: immich-server
+            port:
+              number: 2283
+  tls:
+  - hosts:
+    - immich.danwils.com
+    secretName: immich-tls
+  ingressClassName: nginx
+---
+
+
+

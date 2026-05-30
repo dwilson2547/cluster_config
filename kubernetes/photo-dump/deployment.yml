@@ -1,0 +1,180 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: photo-dump
+  labels:
+    name: photo-dump
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: photo-dump-api-deployment
+  namespace: photo-dump
+  labels:
+    app: photo-dump-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: photo-dump-api
+  template:
+    metadata:
+      labels:
+        app: photo-dump-api
+    spec:
+      containers:
+        - name: photo-dump-api-container
+          image: dwilson2547/photo-dump-api:2.12
+          imagePullPolicy: Always
+          ports:
+          - containerPort: 8080
+          resources:
+            limits:
+              cpu: 2
+              memory: 4Gi
+          env:
+          - name: db_url
+            valueFrom:
+              secretKeyRef:
+                name: mysql-credentials-photo-dump
+                key: dburl
+          - name: db_pass
+            valueFrom:
+              secretKeyRef:
+                name: mysql-credentials-photo-dump
+                key: password
+          - name: db_user
+            valueFrom:
+              secretKeyRef:
+                name: mysql-credentials-photo-dump
+                key: username
+          - name: MONGO_URL
+            valueFrom:
+              secretKeyRef:
+                name: mongodb-credentials-photo-dump
+                key: url
+          - name: MONGO_DB
+            valueFrom:
+              secretKeyRef:
+                name: mongodb-credentials-photo-dump
+                key: database
+          - name: MONGO_USER
+            valueFrom:
+              secretKeyRef:
+                name: mongodb-credentials-photo-dump
+                key: rootUsername
+          - name: MONGO_PASS
+            valueFrom:
+              secretKeyRef:
+                name: mongodb-credentials-photo-dump
+                key: rootPassword
+          - name: bucket
+            value: ${bucket}
+          - name: BUCKET_SECRET
+            valueFrom:
+              secretKeyRef:
+                name: bucket-credentials-photo-dump
+                key: secret
+          - name: BUCKET_URL
+            valueFrom:
+              secretKeyRef:
+                name: bucket-credentials-photo-dump
+                key: url
+          - name: BUCKET_ACCESS
+            valueFrom:
+              secretKeyRef:
+                name: bucket-credentials-photo-dump
+                key: access
+          - name: jwt_key
+            valueFrom:
+              secretKeyRef:
+                name: jwt-credentials-photo-dump
+                key: key
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: photo-dump-deployment
+  namespace: photo-dump
+  labels:
+    app: photo-dump
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: photo-dump
+  template:
+    metadata:
+      labels:
+        app: photo-dump
+    spec:
+      containers:
+        - name: photo-dump-container
+          image: dwilson2547/photo-dump-ui:2.7
+          imagePullPolicy: Always
+          ports:
+          - containerPort: 80
+          resources:
+            limits:
+              cpu: 500m
+              memory: 2Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: photo-dump-api-entrypoint
+  namespace: photo-dump
+spec:
+  type: NodePort
+  selector:
+    app: photo-dump-api
+  ports:
+  - port: 8080
+    targetPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: photo-dump-entrypoint
+  namespace: photo-dump
+spec:
+  type: NodePort
+  selector:
+    app: photo-dump
+  ports:
+  - port: 80
+    targetPort: 80
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ingress-photo-dump
+  namespace: photo-dump
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-cluster-issuer
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: 10g
+spec:
+  rules:
+  - host: photo-dump.danwils.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: photo-dump-entrypoint
+            port:
+              number: 80
+      - path: /api
+        pathType: Prefix
+        backend:
+          service:
+            name: photo-dump-api-entrypoint
+            port:
+              number: 8080
+  tls:
+  - hosts:
+    - photo-dump.danwils.com
+    secretName: photo-dump-tls
+  ingressClassName: nginx
