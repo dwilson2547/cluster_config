@@ -88,6 +88,18 @@ data:
       Scrape Stack Dev:
         style: row
         columns: 3
+      DanWiki:
+        style: row
+        columns: 2
+      DanWiki Dev:
+        style: row
+        columns: 2
+      Photo Dump:
+        style: row
+        columns: 2
+      Photo Dump Dev:
+        style: row
+        columns: 2
       AI Services:
         style: row
         columns: 2
@@ -202,6 +214,46 @@ data:
         - Filecache API (dev):
             href: http://filecache.scrapestack-dev.local/docs
             description: File cache service — dev
+            icon: si-fastapi
+
+    - DanWiki:
+        - Wiki:
+            href: http://danwiki.local
+            description: AI-powered wiki with semantic search
+            icon: si-gitbook
+        - API:
+            href: http://danwiki.local/api/health
+            description: DanWiki Flask REST API
+            icon: si-flask
+
+    - DanWiki Dev:
+        - Wiki (dev):
+            href: http://danwiki-dev.local
+            description: DanWiki dev environment
+            icon: si-gitbook
+        - API (dev):
+            href: http://danwiki-dev.local/api/health
+            description: DanWiki Flask REST API — dev
+            icon: si-flask
+
+    - Photo Dump:
+        - App:
+            href: http://photo-dump.local
+            description: Photo gallery and album manager
+            icon: si-googlephotos
+        - API:
+            href: http://photo-dump.local/api/docs
+            description: Photo Dump REST API
+            icon: si-fastapi
+
+    - Photo Dump Dev:
+        - App (dev):
+            href: http://photo-dump-dev.local
+            description: Photo Dump dev environment
+            icon: si-googlephotos
+        - API (dev):
+            href: http://photo-dump-dev.local/api/docs
+            description: Photo Dump REST API — dev
             icon: si-fastapi
 
     - AI Services:
