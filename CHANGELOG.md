@@ -1,3 +1,11 @@
+## 2026-05-30 - Registry DNS and homepage entry
+
+### Added
+- Added `registry IN A 192.168.0.60` to `db.robo-services.local` zone in `dns/dns.yaml` — routes `registry.robo-services.local` to the Nginx ingress controller
+- Added "Robo Services" group to `homepage/homepage.yaml` with a Registry entry pointing at `http://registry.robo-services.local`
+
+---
+
 ## 2026-05-27 - playbooks directory and microk8s node runtime failure
 
 ### Added
