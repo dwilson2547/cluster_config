@@ -11,6 +11,12 @@ spec:
     path: helm/robo-services
     helm:
       values: |
+        receiver:
+          namespace: pub-sub
+        config:
+          mqttHost: mosquitto.pub-sub.svc.cluster.local
+        mosquitto:
+          namespace: pub-sub
         secret:
           create: false
   destination:

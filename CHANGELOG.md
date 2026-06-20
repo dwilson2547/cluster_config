@@ -1,3 +1,16 @@
+## 2026-06-20 - Move kreceiver and mqtt DNS placement to pub-sub
+
+### Changed
+- Moved `kreceiver` and `mqtt` DNS records from `db.robo-services.local` to `db.pub-sub.local` in `dns/dns.yaml`.
+- Updated `argocd/robo-services.yaml` Helm overrides so `kreceiver` and `mosquitto` deploy into the `pub-sub` namespace while the rest of robo-services remains in `robo-services`.
+- Kept `ntrip` and `registry` records in `db.robo-services.local`.
+- Bumped SOA serials for both affected zones.
+
+### Added
+- Added `example-secrets/pub-sub/kreceiver-secret.yml` as the `pub-sub` namespace template for `kreceiver-secret`.
+
+---
+
 ## 2026-06-20 - RTK caster service for base-station corrections
 
 ### Added

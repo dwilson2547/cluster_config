@@ -278,7 +278,7 @@ data:
     $TTL 300
 
     @   IN  SOA  ns1.robo-services.local. admin.robo-services.local. (
-                    2026062001 ; serial
+                    2026062002 ; serial
                     3600       ; refresh
                     900        ; retry
                     86400      ; expire
@@ -287,12 +287,6 @@ data:
 
     @   IN  NS   ns1.robo-services.local.
     ns1 IN  A    192.168.0.61
-
-    ; UDP receiver LoadBalancer
-    kreceiver IN A 192.168.0.70
-
-    ; MQTT broker LoadBalancer
-    mqtt      IN A 192.168.0.71
 
     ; NTRIP caster LoadBalancer
     ntrip     IN A 192.168.0.72
@@ -305,7 +299,7 @@ data:
     $TTL 300
 
     @   IN  SOA  ns1.pub-sub.local. admin.pub-sub.local. (
-                    2026052501 ; serial
+                    2026062001 ; serial
                     3600       ; refresh
                     900        ; retry
                     86400      ; expire
@@ -318,6 +312,12 @@ data:
     ; Pub-sub hosts → Traefik ingress controller
     @         IN  A    192.168.0.60
     *         IN  A    192.168.0.60
+
+    ; UDP receiver LoadBalancer
+    kreceiver IN A 192.168.0.70
+
+    ; MQTT broker LoadBalancer
+    mqtt      IN A 192.168.0.71
 
   db.cluster.local: |
     $ORIGIN cluster.local.
