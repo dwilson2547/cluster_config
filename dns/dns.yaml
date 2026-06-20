@@ -278,7 +278,7 @@ data:
     $TTL 300
 
     @   IN  SOA  ns1.robo-services.local. admin.robo-services.local. (
-                    2026053001 ; serial
+                    2026062001 ; serial
                     3600       ; refresh
                     900        ; retry
                     86400      ; expire
@@ -293,6 +293,9 @@ data:
 
     ; MQTT broker LoadBalancer
     mqtt      IN A 192.168.0.71
+
+    ; NTRIP caster LoadBalancer
+    ntrip     IN A 192.168.0.72
 
     ; Registry UI/API — Nginx ingress
     registry  IN A 192.168.0.60

@@ -27,6 +27,7 @@ Most services are plain Kubernetes manifests tracked directly in this repo. Argo
 | postgres | `postgres/` | `argocd/postgres.yaml` |
 | homepage | `homepage/` | `argocd/homepage.yaml` |
 | dns | `dns/` | `argocd/dns.yaml` |
+| rtk-caster | `rtk-caster/` | `argocd/rtk-caster.yaml` |
 | vpn | `vpn/` | `argocd/vpn.yaml` |
 | searxng | `searxng/` | `argocd/searxng.yaml` |
 | ingress + argocd ingress | `argocd/ingress.yaml` | (applied manually) |

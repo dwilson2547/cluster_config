@@ -1,0 +1,300 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: rtk-caster
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rtk-caster-config
+  namespace: rtk-caster
+data:
+  caster.py: |
+    import base64
+    import os
+    import socket
+    import threading
+    from typing import Dict, Optional, Set, Tuple
+
+    HOST = "0.0.0.0"
+    PORT = int(os.environ.get("NTRIP_PORT", "2101"))
+    MOUNTPOINT = os.environ.get("NTRIP_MOUNTPOINT", "BASE1").strip("/")
+    SOURCE_PASSWORD = os.environ.get("NTRIP_SOURCE_PASSWORD", "")
+    CLIENT_USERNAME = os.environ.get("NTRIP_CLIENT_USERNAME", "")
+    CLIENT_PASSWORD = os.environ.get("NTRIP_CLIENT_PASSWORD", "")
+
+    _clients: Set[socket.socket] = set()
+    _clients_lock = threading.Lock()
+    _source_lock = threading.Lock()
+    _active_source: Optional[Tuple[str, int]] = None
+
+
+    def _read_headers(conn: socket.socket) -> Tuple[str, Dict[str, str]]:
+      data = b""
+      while b"\r\n\r\n" not in data and len(data) < 16384:
+        chunk = conn.recv(1024)
+        if not chunk:
+          break
+        data += chunk
+      text = data.decode("utf-8", errors="replace")
+      lines = text.split("\r\n")
+      request_line = lines[0] if lines else ""
+      headers: Dict[str, str] = {}
+      for line in lines[1:]:
+        if not line:
+          break
+        if ":" not in line:
+          continue
+        key, value = line.split(":", 1)
+        headers[key.strip().lower()] = value.strip()
+      return request_line, headers
+
+
+    def _send(conn: socket.socket, body: str) -> None:
+      conn.sendall(body.encode("utf-8"))
+
+
+    def _send_sourcetable(conn: socket.socket) -> None:
+      table = (
+        "SOURCETABLE 200 OK\r\n"
+        "Server: rtk-caster/0.1\r\n"
+        "Content-Type: text/plain\r\n"
+        "\r\n"
+        f"STR;{MOUNTPOINT};Rooftop RTK base;RTCM 3.3;1005(10),1077(1),1087(1),1097(1),1127(1),1230(10);2;GPS+GLO+GAL+BDS;N;NONE;N;0;0;1;0;none;B;N;0;\r\n"
+        "ENDSOURCETABLE\r\n"
+      )
+      _send(conn, table)
+
+
+    def _parse_basic_auth(headers: Dict[str, str]) -> Tuple[str, str]:
+      auth = headers.get("authorization", "")
+      if not auth.lower().startswith("basic "):
+        return "", ""
+      try:
+        decoded = base64.b64decode(auth.split(" ", 1)[1]).decode("utf-8")
+      except Exception:
+        return "", ""
+      if ":" not in decoded:
+        return "", ""
+      return decoded.split(":", 1)
+
+
+    def _authorize_client(headers: Dict[str, str]) -> bool:
+      if not CLIENT_USERNAME and not CLIENT_PASSWORD:
+        return True
+      user, password = _parse_basic_auth(headers)
+      return user == CLIENT_USERNAME and password == CLIENT_PASSWORD
+
+
+    def _broadcast(payload: bytes) -> None:
+      stale = []
+      with _clients_lock:
+        for client in list(_clients):
+          try:
+            client.sendall(payload)
+          except Exception:
+            stale.append(client)
+        for client in stale:
+          _clients.discard(client)
+          try:
+            client.close()
+          except Exception:
+            pass
+
+
+    def _handle_source(conn: socket.socket, request_line: str, peer: Tuple[str, int]) -> None:
+      global _active_source
+      parts = request_line.split(" ")
+      if len(parts) < 3:
+        _send(conn, "HTTP/1.0 400 Bad Request\r\n\r\n")
+        return
+      supplied_password = parts[1]
+      path = parts[2].lstrip("/")
+      if path != MOUNTPOINT:
+        _send(conn, "HTTP/1.0 404 Not Found\r\n\r\n")
+        return
+      if not SOURCE_PASSWORD or supplied_password != SOURCE_PASSWORD:
+        _send(conn, "HTTP/1.0 401 Unauthorized\r\n\r\n")
+        return
+
+      with _source_lock:
+        if _active_source is not None:
+          _send(conn, "HTTP/1.0 409 Conflict\r\n\r\n")
+          return
+        _active_source = peer
+
+      _send(conn, "ICY 200 OK\r\n\r\n")
+      try:
+        while True:
+          chunk = conn.recv(4096)
+          if not chunk:
+            break
+          _broadcast(chunk)
+      finally:
+        with _source_lock:
+          if _active_source == peer:
+            _active_source = None
+
+
+    def _handle_client(conn: socket.socket, headers: Dict[str, str]) -> None:
+      if not _authorize_client(headers):
+        _send(conn, "HTTP/1.0 401 Unauthorized\r\n\r\n")
+        return
+
+      _send(conn, "ICY 200 OK\r\nNtrip-Version: Ntrip/2.0\r\n\r\n")
+      conn.settimeout(30.0)
+      with _clients_lock:
+        _clients.add(conn)
+      try:
+        while True:
+          try:
+            data = conn.recv(1024)
+          except socket.timeout:
+            continue
+          if not data:
+            break
+      finally:
+        with _clients_lock:
+          _clients.discard(conn)
+
+
+    def _handle_connection(conn: socket.socket, peer: Tuple[str, int]) -> None:
+      try:
+        request_line, headers = _read_headers(conn)
+        if not request_line:
+          return
+        if request_line == "GET / HTTP/1.0" or request_line == "GET / HTTP/1.1":
+          _send_sourcetable(conn)
+          return
+        if request_line.startswith("GET /"):
+          path = request_line.split(" ")[1].lstrip("/")
+          if path != MOUNTPOINT:
+            _send(conn, "HTTP/1.0 404 Not Found\r\n\r\n")
+            return
+          _handle_client(conn, headers)
+          return
+        if request_line.startswith("SOURCE "):
+          _handle_source(conn, request_line, peer)
+          return
+        _send(conn, "HTTP/1.0 400 Bad Request\r\n\r\n")
+      finally:
+        try:
+          conn.close()
+        except Exception:
+          pass
+
+
+    def main() -> None:
+      server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+      server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+      server.bind((HOST, PORT))
+      server.listen(64)
+      print(f"rtk-caster listening on {HOST}:{PORT} mountpoint={MOUNTPOINT}", flush=True)
+      while True:
+        conn, peer = server.accept()
+        t = threading.Thread(target=_handle_connection, args=(conn, peer), daemon=True)
+        t.start()
+
+
+    if __name__ == "__main__":
+      main()
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rtk-caster
+  namespace: rtk-caster
+  annotations:
+    reloader.stakater.com/auto: "true"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: rtk-caster
+  template:
+    metadata:
+      labels:
+        app: rtk-caster
+    spec:
+      containers:
+        - name: caster
+          image: python:3.11-slim
+          imagePullPolicy: IfNotPresent
+          command: ["/bin/sh", "-c"]
+          args:
+            - python -u /app/caster.py
+          env:
+            - name: NTRIP_PORT
+              value: "2101"
+            - name: NTRIP_MOUNTPOINT
+              valueFrom:
+                configMapKeyRef:
+                  name: rtk-caster-runtime
+                  key: mountpoint
+            - name: NTRIP_CLIENT_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: rtk-caster-secret
+                  key: client_username
+            - name: NTRIP_CLIENT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: rtk-caster-secret
+                  key: client_password
+            - name: NTRIP_SOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: rtk-caster-secret
+                  key: source_password
+          ports:
+            - name: ntrip
+              containerPort: 2101
+              protocol: TCP
+          volumeMounts:
+            - name: app
+              mountPath: /app
+          readinessProbe:
+            tcpSocket:
+              port: ntrip
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: ntrip
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "256Mi"
+      volumes:
+        - name: app
+          configMap:
+            name: rtk-caster-config
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rtk-caster-runtime
+  namespace: rtk-caster
+data:
+  mountpoint: BASE1
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rtk-caster
+  namespace: rtk-caster
+spec:
+  type: LoadBalancer
+  loadBalancerIP: 192.168.0.72
+  selector:
+    app: rtk-caster
+  ports:
+    - name: ntrip
+      protocol: TCP
+      port: 2101
+      targetPort: ntrip

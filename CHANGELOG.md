@@ -1,3 +1,18 @@
+## 2026-06-20 - RTK caster service for base-station corrections
+
+### Added
+- Added `rtk-caster/deployment.yml` with a dedicated `rtk-caster` namespace, a lightweight in-cluster NTRIP caster, runtime config map (`BASE1` mountpoint), and a TCP `LoadBalancer` service on `192.168.0.72:2101`.
+- Added `argocd/rtk-caster.yaml` so ArgoCD manages the new caster service.
+- Added `example-secrets/rtk-caster/secret.yml` template for source and client credentials.
+- Added `ntrip.robo-services.local -> 192.168.0.72` to `dns/dns.yaml`.
+- Added an "NTRIP Caster" entry under "Robo Services" in `homepage/homepage.yaml`.
+
+### Notes
+- The caster expects the base station to push using NTRIP SOURCE auth to mountpoint `BASE1`.
+- ArgoCD `Application` manifests still require manual apply: `kubectl apply -f argocd/rtk-caster.yaml`.
+
+---
+
 ## 2026-05-30 - Registry DNS and homepage entry
 
 ### Added

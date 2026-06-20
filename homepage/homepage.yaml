@@ -301,6 +301,10 @@ data:
             href: http://registry.robo-services.local
             description: Device, user, track, and profile management
             icon: si-fastapi
+        - NTRIP Caster:
+            href: http://ntrip.robo-services.local:2101
+            description: RTK correction caster sourcetable and mountpoint host
+            icon: si-gps
 
     - Cluster:
         - ArgoCD:
