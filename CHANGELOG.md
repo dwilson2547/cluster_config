@@ -2,11 +2,12 @@
 
 ### Changed
 - Moved `kreceiver` and `mqtt` DNS records from `db.robo-services.local` to `db.pub-sub.local` in `dns/dns.yaml`.
-- Updated `argocd/robo-services.yaml` Helm overrides so `kreceiver` and `mosquitto` deploy into the `pub-sub` namespace while the rest of robo-services remains in `robo-services`.
+- Updated `argocd/robo-services.yaml` to disable `receiver` and `mosquitto` in the robo-services Helm release.
 - Kept `ntrip` and `registry` records in `db.robo-services.local`.
 - Bumped SOA serials for both affected zones.
 
 ### Added
+- Added `kreceiver` and `mosquitto` manifests directly to `pub-sub/deployment.yml` (ConfigMap, Deployment, and LoadBalancer Services in `pub-sub` namespace).
 - Added `example-secrets/pub-sub/kreceiver-secret.yml` as the `pub-sub` namespace template for `kreceiver-secret`.
 
 ---

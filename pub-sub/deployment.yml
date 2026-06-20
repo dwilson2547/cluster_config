@@ -155,6 +155,142 @@ spec:
       targetPort: 8090
       protocol: TCP
 ---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kreceiver-config
+  namespace: pub-sub
+data:
+  KRECEIVER_BIND_HOST: "0.0.0.0"
+  KRECEIVER_BIND_PORT: "5514"
+  KRECEIVER_IGGY_STREAM: "can-pub-sub-probe"
+  KRECEIVER_DIAGNOSTICS_TOPIC: "telemetry.diagnostics.ingest"
+  KRECEIVER_GPS_TOPIC: "telemetry.raw.gps"
+  KRECEIVER_IMU_TOPIC: "telemetry.raw.imu"
+  KRECEIVER_RTK_TOPIC: "telemetry.raw.rtk"
+  KRECEIVER_CAN_TOPIC: "telemetry.raw.can"
+  KRECEIVER_TRANSPORT: "both"
+  KRECEIVER_MQTT_HOST: "mosquitto.pub-sub.svc.cluster.local"
+  KRECEIVER_MQTT_PORT: "1883"
+  KRECEIVER_MQTT_TOPIC: "telemetry/ingest"
+  KRECEIVER_REGISTRY_URL: "http://robo-registry.robo-services.svc.cluster.local"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kreceiver
+  namespace: pub-sub
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kreceiver
+  template:
+    metadata:
+      labels:
+        app: kreceiver
+    spec:
+      containers:
+        - name: kreceiver
+          image: dwilson2547/kreceiver-proto:20260611-msgpack-v1
+          imagePullPolicy: IfNotPresent
+          command:
+            - python
+            - -m
+            - kreceiver_proto.receiver_app
+          ports:
+            - name: udp-ingest
+              containerPort: 5514
+              protocol: UDP
+          envFrom:
+            - configMapRef:
+                name: kreceiver-config
+            - secretRef:
+                name: kreceiver-secret
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kreceiver
+  namespace: pub-sub
+  annotations:
+    metallb.universe.tf/loadBalancerIPs: 192.168.0.70
+spec:
+  type: LoadBalancer
+  selector:
+    app: kreceiver
+  ports:
+    - name: udp-ingest
+      port: 5514
+      targetPort: 5514
+      protocol: UDP
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mosquitto-config
+  namespace: pub-sub
+data:
+  mosquitto.conf: |
+    listener 1883 0.0.0.0
+    allow_anonymous true
+    persistence false
+    log_dest stdout
+    connection_messages true
+    log_type error
+    log_type warning
+    log_type notice
+    log_type information
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mosquitto
+  namespace: pub-sub
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mosquitto
+  template:
+    metadata:
+      labels:
+        app: mosquitto
+    spec:
+      containers:
+        - name: mosquitto
+          image: eclipse-mosquitto:2
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: mqtt
+              containerPort: 1883
+              protocol: TCP
+          volumeMounts:
+            - name: config
+              mountPath: /mosquitto/config/mosquitto.conf
+              subPath: mosquitto.conf
+      volumes:
+        - name: config
+          configMap:
+            name: mosquitto-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mosquitto
+  namespace: pub-sub
+  annotations:
+    metallb.universe.tf/loadBalancerIPs: 192.168.0.71
+spec:
+  type: LoadBalancer
+  selector:
+    app: mosquitto
+  ports:
+    - name: mqtt
+      port: 1883
+      targetPort: 1883
+      protocol: TCP
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:

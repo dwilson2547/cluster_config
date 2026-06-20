@@ -12,11 +12,9 @@ spec:
     helm:
       values: |
         receiver:
-          namespace: pub-sub
-        config:
-          mqttHost: mosquitto.pub-sub.svc.cluster.local
+          enabled: false
         mosquitto:
-          namespace: pub-sub
+          enabled: false
         secret:
           create: false
   destination:
