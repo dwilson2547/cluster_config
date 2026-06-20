@@ -25,6 +25,7 @@ Most services are plain Kubernetes manifests tracked directly in this repo. Argo
 | ai-services | `ai-services/` | `argocd/ai-services.yaml` |
 | monitoring | `monitoring/` | `argocd/monitoring.yaml` |
 | postgres | `postgres/` | `argocd/postgres.yaml` |
+| timescaledb | `timescaledb/` | `argocd/timescaledb.yaml` |
 | homepage | `homepage/` | `argocd/homepage.yaml` |
 | dns | `dns/` | `argocd/dns.yaml` |
 | rtk-caster | `rtk-caster/` | `argocd/rtk-caster.yaml` |

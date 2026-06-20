@@ -1,3 +1,15 @@
+## 2026-06-20 - Add TimescaleDB service
+
+### Added
+- Added `timescaledb/` manifests with a dedicated `timescaledb` namespace, single-replica StatefulSet (`timescale/timescaledb:2.16.1-pg16`), PVC-backed storage on `nfs-dataset`, and internal service on port 5432.
+- Added `argocd/timescaledb.yaml` to register TimescaleDB with ArgoCD, including `ignoreDifferences` for StatefulSet `volumeClaimTemplates`.
+- Added `example-secrets/timescaledb/secret.yml` template for `timescaledb-credentials`.
+
+### Notes
+- TimescaleDB follows the same stateful sync posture as postgres (no automated prune/self-heal in the ArgoCD app spec).
+
+---
+
 ## 2026-06-20 - Move kreceiver and mqtt DNS placement to pub-sub
 
 ### Changed
