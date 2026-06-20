@@ -2,13 +2,15 @@
 
 ### Added
 - Added `rtk-caster/deployment.yml` with a dedicated `rtk-caster` namespace, a lightweight in-cluster NTRIP caster, runtime config map (`BASE1` mountpoint), and a TCP `LoadBalancer` service on `192.168.0.72:2101`.
+- Added `rtk2go-relay` deployment in `rtk-caster/deployment.yml` to relay the local `BASE1` stream to RTK2Go as an NTRIP SOURCE client with automatic reconnect.
 - Added `argocd/rtk-caster.yaml` so ArgoCD manages the new caster service.
-- Added `example-secrets/rtk-caster/secret.yml` template for source and client credentials.
+- Added `example-secrets/rtk-caster/secret.yml` template for source/client credentials and RTK2Go relay credentials.
 - Added `ntrip.robo-services.local -> 192.168.0.72` to `dns/dns.yaml`.
 - Added an "NTRIP Caster" entry under "Robo Services" in `homepage/homepage.yaml`.
 
 ### Notes
 - The caster expects the base station to push using NTRIP SOURCE auth to mountpoint `BASE1`.
+- The RTK2Go relay consumes the local mountpoint and publishes upstream; set `rtk2go_mountpoint` and `rtk2go_source_password` in the secret to activate successful upstream publishing.
 - ArgoCD `Application` manifests still require manual apply: `kubectl apply -f argocd/rtk-caster.yaml`.
 
 ---

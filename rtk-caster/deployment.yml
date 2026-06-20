@@ -198,6 +198,105 @@ data:
 
     if __name__ == "__main__":
       main()
+  relay.py: |
+    import base64
+    import os
+    import socket
+    import time
+
+    LOCAL_HOST = os.environ.get("LOCAL_CASTER_HOST", "rtk-caster.rtk-caster.svc.cluster.local")
+    LOCAL_PORT = int(os.environ.get("LOCAL_CASTER_PORT", "2101"))
+    LOCAL_MOUNTPOINT = os.environ.get("LOCAL_MOUNTPOINT", "BASE1").strip("/")
+    LOCAL_USERNAME = os.environ.get("LOCAL_CLIENT_USERNAME", "")
+    LOCAL_PASSWORD = os.environ.get("LOCAL_CLIENT_PASSWORD", "")
+
+    RTK2GO_HOST = os.environ.get("RTK2GO_HOST", "rtk2go.com")
+    RTK2GO_PORT = int(os.environ.get("RTK2GO_PORT", "2101"))
+    RTK2GO_MOUNTPOINT = os.environ.get("RTK2GO_MOUNTPOINT", "").strip("/")
+    RTK2GO_SOURCE_PASSWORD = os.environ.get("RTK2GO_SOURCE_PASSWORD", "")
+
+    RECONNECT_SECONDS = int(os.environ.get("RELAY_RECONNECT_SECONDS", "5"))
+
+
+    def _auth_header(user: str, password: str) -> str:
+      token = base64.b64encode(f"{user}:{password}".encode("utf-8")).decode("ascii")
+      return f"Authorization: Basic {token}\r\n"
+
+
+    def _connect_local() -> socket.socket:
+      sock = socket.create_connection((LOCAL_HOST, LOCAL_PORT), timeout=15)
+      request = (
+        f"GET /{LOCAL_MOUNTPOINT} HTTP/1.0\r\n"
+        f"Host: {LOCAL_HOST}\r\n"
+        f"Ntrip-Version: Ntrip/2.0\r\n"
+      )
+      if LOCAL_USERNAME or LOCAL_PASSWORD:
+        request += _auth_header(LOCAL_USERNAME, LOCAL_PASSWORD)
+      request += "\r\n"
+      sock.sendall(request.encode("utf-8"))
+      resp = sock.recv(1024).decode("utf-8", errors="replace")
+      if "200 OK" not in resp:
+        sock.close()
+        raise RuntimeError(f"local caster rejected relay connection: {resp[:200]}")
+      sock.settimeout(30.0)
+      return sock
+
+
+    def _connect_rtk2go() -> socket.socket:
+      if not RTK2GO_MOUNTPOINT:
+        raise RuntimeError("RTK2GO_MOUNTPOINT is empty")
+      if not RTK2GO_SOURCE_PASSWORD:
+        raise RuntimeError("RTK2GO_SOURCE_PASSWORD is empty")
+      sock = socket.create_connection((RTK2GO_HOST, RTK2GO_PORT), timeout=15)
+      request = (
+        f"SOURCE {RTK2GO_SOURCE_PASSWORD} /{RTK2GO_MOUNTPOINT}\r\n"
+        "Source-Agent: rtk-caster-relay/0.1\r\n"
+        "\r\n"
+      )
+      sock.sendall(request.encode("utf-8"))
+      resp = sock.recv(1024).decode("utf-8", errors="replace")
+      if "200 OK" not in resp:
+        sock.close()
+        raise RuntimeError(f"rtk2go rejected SOURCE connection: {resp[:200]}")
+      sock.settimeout(30.0)
+      return sock
+
+
+    def main() -> None:
+      while True:
+        local_sock = None
+        upstream_sock = None
+        try:
+          local_sock = _connect_local()
+          upstream_sock = _connect_rtk2go()
+          print(
+            f"relay connected local={LOCAL_HOST}:{LOCAL_PORT}/{LOCAL_MOUNTPOINT} "
+            f"-> rtk2go={RTK2GO_HOST}:{RTK2GO_PORT}/{RTK2GO_MOUNTPOINT}",
+            flush=True,
+          )
+          while True:
+            chunk = local_sock.recv(4096)
+            if not chunk:
+              raise RuntimeError("local caster stream closed")
+            upstream_sock.sendall(chunk)
+        except Exception as exc:
+          print(f"relay error: {exc}", flush=True)
+          time.sleep(RECONNECT_SECONDS)
+        finally:
+          if local_sock is not None:
+            try:
+              local_sock.close()
+            except Exception:
+              pass
+          if upstream_sock is not None:
+            try:
+              upstream_sock.close()
+            except Exception:
+              pass
+
+
+    if __name__ == "__main__":
+      main()
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -270,6 +369,87 @@ spec:
             limits:
               cpu: "500m"
               memory: "256Mi"
+      volumes:
+        - name: app
+          configMap:
+            name: rtk-caster-config
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rtk2go-relay
+  namespace: rtk-caster
+  annotations:
+    reloader.stakater.com/auto: "true"
+spec:
+  replicas: 0
+  selector:
+    matchLabels:
+      app: rtk2go-relay
+  template:
+    metadata:
+      labels:
+        app: rtk2go-relay
+    spec:
+      containers:
+        - name: relay
+          image: python:3.11-slim
+          imagePullPolicy: IfNotPresent
+          command: ["/bin/sh", "-c"]
+          args:
+            - python -u /app/relay.py
+          env:
+            - name: LOCAL_CASTER_HOST
+              value: rtk-caster.rtk-caster.svc.cluster.local
+            - name: LOCAL_CASTER_PORT
+              value: "2101"
+            - name: LOCAL_MOUNTPOINT
+              valueFrom:
+                configMapKeyRef:
+                  name: rtk-caster-runtime
+                  key: mountpoint
+            - name: LOCAL_CLIENT_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: rtk-caster-secret
+                  key: client_username
+            - name: LOCAL_CLIENT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: rtk-caster-secret
+                  key: client_password
+            - name: RTK2GO_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: rtk-caster-secret
+                  key: rtk2go_host
+            - name: RTK2GO_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: rtk-caster-secret
+                  key: rtk2go_port
+            - name: RTK2GO_MOUNTPOINT
+              valueFrom:
+                secretKeyRef:
+                  name: rtk-caster-secret
+                  key: rtk2go_mountpoint
+            - name: RTK2GO_SOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: rtk-caster-secret
+                  key: rtk2go_source_password
+            - name: RELAY_RECONNECT_SECONDS
+              value: "5"
+          volumeMounts:
+            - name: app
+              mountPath: /app
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "64Mi"
+            limits:
+              cpu: "250m"
+              memory: "128Mi"
       volumes:
         - name: app
           configMap:
