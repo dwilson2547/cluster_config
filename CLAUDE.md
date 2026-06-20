@@ -68,6 +68,16 @@ Each service directory contains a `secret.yml` (gitignored if it has real values
 
 The `example-secrets/` directory at the repo root has templates for services whose secrets aren't co-located.
 
+### Required pre-push secret gate
+
+Before **every push**, scan staged changes for secret-like values and stop if any real credential appears.
+
+```bash
+git --no-pager diff --cached | grep -nE '(^|[[:space:]])(password|passwd|secret|token|api[_-]?key)[^#\n]*[:=]'
+```
+
+If output includes non-placeholder values, do not push. Placeholders must remain placeholders (for example: `replace-me`, `your-password-here`, `CHANGE_ME_*`).
+
 ## Adding a New Service
 
 1. Create a directory for the manifests (e.g. `my-service/`)
