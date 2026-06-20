@@ -192,7 +192,7 @@ spec:
     spec:
       containers:
         - name: kreceiver
-          image: dwilson2547/kreceiver-proto:20260611-msgpack-v1
+          image: dwilson2547/kreceiver-proto:20260620-proto-v2
           imagePullPolicy: IfNotPresent
           command:
             - python
