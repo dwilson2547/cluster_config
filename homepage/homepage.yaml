@@ -306,6 +306,16 @@ data:
             description: RTK correction caster sourcetable and mountpoint host
             icon: si-gps
 
+    - Tools:
+        - DXF Converter:
+            href: http://dxf-converter.local
+            description: Scanned pen tracing to clean, to-scale DXF
+            icon: mdi-vector-polyline
+        - Drone Build Sim:
+            href: http://build-sim.local
+            description: Drone build AUW / thrust / flight-time modeling
+            icon: mdi-quadcopter
+
     - Cluster:
         - ArgoCD:
             href: http://argocd.local

@@ -1,0 +1,20 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: dxf-converter
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/dwilson2547/dxf-converter.git
+    targetRevision: main
+    path: helm/dxf-converter
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: dxf-converter
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

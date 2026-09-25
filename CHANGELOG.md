@@ -1,3 +1,16 @@
+## 2026-09-25 - Deploy dxf-converter and build-sim
+
+### Added
+- Added `argocd/dxf-converter.yaml` (chart `helm/dxf-converter` in `dwilson2547/dxf-converter`, namespace `dxf-converter`) and `argocd/build-sim.yaml` (chart `helm/build-sim` in `dwilson2547/drone-build-sim`, namespace `build-sim`).
+- Added `dxf-converter.local` and `build-sim.local` zones to `dns/dns.yaml` (apex + wildcard → Traefik at 192.168.0.60).
+- Added a `Tools` group to the homepage with both UIs.
+
+### Notes
+- Images are public on Docker Hub (`dwilson2547/dxf-converter`, `dwilson2547/build-sim-{backend,frontend}`), `:latest` with `pullPolicy: Always`.
+- build-sim keeps its SQLite database on a 1Gi `nfs-dataset` PVC.
+
+---
+
 ## 2026-06-20 - Add TimescaleDB service
 
 ### Added
