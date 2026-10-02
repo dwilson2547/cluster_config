@@ -1,3 +1,16 @@
+## 2026-10-02 - dxf-converter v2 bucket credentials template
+
+### Added
+- Added `example-secrets/dxf-converter/secret.yml`: template for `dxf-converter-bucket-credentials`
+  (namespace `dxf-converter`) with the access/secret key for the `dxf-converter` bucket on AIStor.
+
+### Notes
+- AIStor's S3 API is `http://192.168.0.10:30320` (plain HTTP); `:30321` is the web console. Both
+  were reachable from a pod in the `dxf-converter` namespace on 2026-10-02.
+- Not yet consumed by the chart; dxf-converter v2 (saved scans) will read it.
+
+---
+
 ## 2026-09-25 - Deploy dxf-converter and build-sim
 
 ### Added
