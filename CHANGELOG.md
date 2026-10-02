@@ -1,3 +1,16 @@
+## 2026-10-02 - dxf-converter v2: database
+
+### Added
+- `dxfconv` role and database on the cluster postgres (namespace `postgres`), owned by `dxfconv`.
+- Secret `dxf-converter-db` (namespace `dxf-converter`, key `DATABASE_URL`), applied by hand;
+  template added to `example-secrets/dxf-converter/secret.yml`.
+
+### Notes
+- Consumed by dxf-converter 2.0.0's chart (`accounts.*` in `helm/dxf-converter/values.yaml`),
+  together with `dxf-converter-bucket-credentials`.
+
+---
+
 ## 2026-10-02 - dxf-converter v2 bucket credentials template
 
 ### Added
