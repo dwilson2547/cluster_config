@@ -4,15 +4,22 @@ Kubernetes manifests and ArgoCD application definitions for the home cluster.
 
 ## How ArgoCD Works Here
 
-ArgoCD watches this repo (and a few external repos) and automatically syncs changes to the cluster. All ArgoCD `Application` resources live in `argocd/` and **must be applied manually** — ArgoCD can't bootstrap itself:
+Every ArgoCD `Application` lives in `argocd/` in this repo, including those whose Helm chart lives in
+another repo (gyopart, scrape-stack, danwiki, ...). The chart belongs to the app; the decision to
+deploy it belongs here. Do not put Application manifests in other repos.
+
+`argocd/` is synced by the app-of-apps root `bootstrap/apps.yaml`, the only Application applied by
+hand (once, or after editing it):
 
 ```bash
-kubectl apply -f argocd/ai-services.yaml
-kubectl apply -f argocd/monitoring.yaml
-# etc.
+kubectl apply -f bootstrap/apps.yaml
 ```
 
-Once applied, ArgoCD takes over. All apps are configured with `automated` sync (`prune: true`, `selfHeal: true`), so pushing to `main` in this repo is all that's needed to deploy changes.
+Adding or editing a file in `argocd/` is just a push. The root has `prune: false`: removing a file
+does **not** remove the Application; also run `kubectl delete application <name> -n argocd` (child
+apps have no resources-finalizer, so their workloads are orphaned, not deleted).
+
+Once registered, each app syncs its own source. All apps are configured with `automated` sync (`prune: true`, `selfHeal: true`), so pushing to `main` in this repo is all that's needed to deploy changes.
 
 ## microk8s addons: never disable ingress, metallb or cert-manager
 
@@ -54,7 +61,7 @@ Most services are plain Kubernetes manifests tracked directly in this repo. Argo
 | rtk-caster | `rtk-caster/` | `argocd/rtk-caster.yaml` |
 | vpn | `vpn/` | `argocd/vpn.yaml` |
 | searxng | `searxng/` | `argocd/searxng.yaml` |
-| ingress + argocd ingress | `argocd/ingress.yaml` | (applied manually) |
+| argocd-server ingress + `server.insecure` | `argocd-server/ingress.yaml` | (applied manually) |
 | reloader | — (Helm chart, stakater) | `argocd/reloader.yaml` |
 | cert-manager | `cert-manager/` (Helm values + `issuers/`) | `argocd/cert-manager.yaml` |
 | traefik (ingress, LB 192.168.0.60) | `traefik/values.yaml` (Helm values) | `argocd/traefik.yaml` |
@@ -62,18 +69,20 @@ Most services are plain Kubernetes manifests tracked directly in this repo. Argo
 | metallb (LB IP pool) | `metallb/` (upstream manifest + `pool.yaml`) | `argocd/metallb.yaml` |
 | flink-operator | `flink-operator/` (Helm values) | `argocd/flink-operator.yaml` |
 
-### 2. Self-managed Helm (external repos)
+### 2. Helm charts in external repos
 
-**gyopart** and **scrape-stack** manage their own Helm charts and use a `main`/`dev` branch strategy for prod vs dev environments:
+The chart lives in the app's own repo (`helm/<service>/`), with a `main`/`dev` branch strategy for
+prod vs dev; the Application lives in `argocd/` here. Chart changes are pushed to the app repo and
+picked up automatically.
 
 | App | Repo | Branch | Namespace | Values |
 |---|---|---|---|---|
-| gyopart | `dwilson2547/gyopart` | `main` | `gyopart` | `values.yaml` |
 | gyopart-dev | `dwilson2547/gyopart` | `dev` | `gyopart-dev` | `values-dev.yaml` |
-| scrape-stack | `dwilson2547/scrape-stack` | `main` | `scrape-stack` | — |
-| scrape-stack-dev | `dwilson2547/scrape-stack` | `dev` | `scrape-stack-dev` | — |
-
-For these services, changes are made and committed in their own repos — ArgoCD picks them up automatically. The Helm chart lives at `helm/<service>/` in each repo.
+| scrape-stack | `dwilson2547/scrape_stack` | `main` | `scrape-stack` | `values.yaml` |
+| scrape-stack-dev | `dwilson2547/scrape_stack` | `dev` | `scrapestack-dev` | `values-dev.yaml` |
+| danwiki | `dwilson2547/DanWiki` | `main` | `danwiki` | `values.yaml` |
+| photo-dump-dev | `dwilson2547/photo_dump` | `dev` | `photo-dump-dev` | `values-dev.yaml` |
+| robo-services, build-sim, dxf-converter | own repos | `main` | own | see `argocd/` |
 
 ## Secret Management
 
@@ -87,8 +96,7 @@ kubectl create namespace <namespace>
 # 2. Apply the secret
 kubectl apply -f <service>/secret.yml
 
-# 3. Apply the ArgoCD app (or push to main if it's already registered)
-kubectl apply -f argocd/<service>.yaml
+# 3. Push the Application manifest in argocd/ — the root app registers it
 ```
 
 Each service directory contains a `secret.yml` (gitignored if it has real values) and/or an `example_secret.yml` / `example-secrets/` template showing the required keys. Fill in real values and apply — never commit real secrets.
@@ -111,8 +119,7 @@ If output includes non-placeholder values, do not push. Placeholders must remain
 2. Add a `deployment.yml` (or split into separate files — ArgoCD syncs the whole directory)
 3. If secrets are needed, add a `secret.yml` with placeholder values and apply the real version manually
 4. Create an `Application` in `argocd/my-service.yaml` pointing at `path: my-service`
-5. `kubectl apply -f argocd/my-service.yaml` — ArgoCD handles the rest from here
-6. Push to `main` for any subsequent changes
+5. Push to `main` — the root app registers it and ArgoCD handles the rest
 
 ## `kubernetes/` Directory
 
@@ -131,6 +138,6 @@ Contains legacy and one-off manifests that predate the ArgoCD setup (postgres, b
 
 ## Notes
 
-- ArgoCD is configured with `server.insecure: true` (in `argocd/ingress.yaml`) so Traefik can proxy plain HTTP — no cert needed on the ArgoCD side.
+- ArgoCD is configured with `server.insecure: true` (in `argocd-server/ingress.yaml`) so Traefik can proxy plain HTTP — no cert needed on the ArgoCD side.
 - postgres `Application` has `ignoreDifferences` on `StatefulSet.spec.volumeClaimTemplates` to prevent ArgoCD from fighting over immutable PVC template fields.
 - Reloader (stakater) watches for ConfigMap/Secret changes and triggers rolling restarts on affected Deployments.

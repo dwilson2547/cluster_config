@@ -1,17 +1,20 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: gyopart
+  name: scrape-stack
   namespace: argocd
 spec:
   project: default
   source:
-    repoURL: https://github.com/dwilson2547/gyopart.git
+    repoURL: git@github.com:dwilson2547/scrape_stack.git
     targetRevision: main
-    path: helm/gyopart
+    path: helm/scrape-stack
+    helm:
+      valueFiles:
+        - values.yaml
   destination:
     server: https://kubernetes.default.svc
-    namespace: gyopart
+    namespace: scrape-stack
   syncPolicy:
     automated:
       prune: true

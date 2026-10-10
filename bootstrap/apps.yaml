@@ -1,0 +1,30 @@
+# App-of-apps root. The only Application applied by hand:
+#   kubectl apply -f bootstrap/apps.yaml
+# It syncs every Application manifest in argocd/, so adding, changing or
+# removing a file there is just a git push.
+#
+# prune is off on purpose: deleting a file from argocd/ leaves the child
+# Application (and its workloads) running until it is removed deliberately with
+# `kubectl delete application <name> -n argocd`. Child Applications have no
+# resources-finalizer, so that delete orphans the workloads rather than
+# removing them.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: apps
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: git@github.com:dwilson2547/cluster_config.git
+    targetRevision: main
+    path: argocd
+    directory:
+      include: '*.yaml'
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: false
+      selfHeal: true

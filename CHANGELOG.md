@@ -1,3 +1,23 @@
+## 2026-10-10 - All ArgoCD Applications centralized; app-of-apps root
+
+### Added
+- `bootstrap/apps.yaml`: app-of-apps root `apps` syncing `argocd/` (`selfHeal`, `prune: false`). Adding or
+  editing an Application is now a git push; only the root is applied by hand.
+- `argocd/scrape-stack.yaml`, `argocd/scrape-stack-dev.yaml`: moved from the scrape_stack repo. All
+  Applications now live here; charts stay in their app repos. scrape-stack-dev is unchanged live.
+- scrape-stack prod (namespace `scrape-stack`) is deployed for the first time. Empty databases
+  `request_auth`, `webcache`, `imgcache`, `filecache`, `vidcache` created on prod `postgres` (services
+  create their own tables). Needs the `postgres-credentials` secret in `scrape-stack`.
+
+### Removed
+- `argocd/gyopart.yaml`, `argocd/danwiki-dev.yaml`, `argocd/photo-dump.yaml`: never applied, so nothing
+  was running; deleted rather than auto-deployed by the root app.
+
+### Changed
+- `argocd/ingress.yaml` → `argocd-server/ingress.yaml`. It holds argocd-server's ingress and
+  `server.insecure` ConfigMap, not an Application, so it stays out of the root app's path and is still
+  applied by hand.
+
 ## 2026-10-10 - canvas-viewer published at canvas-viewer.danwils.com
 
 ### Added
