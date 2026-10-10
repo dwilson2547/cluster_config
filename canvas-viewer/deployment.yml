@@ -18,7 +18,7 @@ spec:
     spec:
       containers:
         - name: canvas-viewer
-          image: dwilson2547/canvas-viewer:1.0.0
+          image: dwilson2547/canvas-viewer:1.1.0
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
@@ -56,6 +56,37 @@ spec:
   ingressClassName: nginx
   rules:
     - host: canvas-viewer.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: canvas-viewer
+                port:
+                  name: http
+---
+# Public host, kept separate: the entrypoints annotation applies to every rule in an
+# Ingress, so adding it to the one above would drop canvas-viewer.local from the LAN.
+# CSP (connect-src 'self') is set by nginx in the image, so ?src= can't load other origins.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: canvas-viewer-public
+  labels:
+    dns.danwils.com/public: "true"
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    traefik.ingress.kubernetes.io/router.entrypoints: pubsecure
+    external-dns.alpha.kubernetes.io/target: danwils.com
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts:
+        - canvas-viewer.danwils.com
+      secretName: canvas-viewer-danwils-tls
+  rules:
+    - host: canvas-viewer.danwils.com
       http:
         paths:
           - path: /

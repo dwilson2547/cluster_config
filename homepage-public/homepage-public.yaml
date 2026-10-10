@@ -20,7 +20,11 @@ data:
     disableUpdateCheck: true
 
   services.yaml: |
-    []
+    - Tools:
+        - Canvas Viewer:
+            href: https://canvas-viewer.danwils.com
+            description: View and edit JSON Canvas (.canvas) files in the browser
+            icon: mdi-vector-square
 
   bookmarks.yaml: |
     - Links:

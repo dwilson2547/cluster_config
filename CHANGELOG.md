@@ -1,3 +1,17 @@
+## 2026-10-10 - canvas-viewer published at canvas-viewer.danwils.com
+
+### Added
+- `canvas-viewer/deployment.yml`: separate `canvas-viewer-public` Ingress (pubsecure, letsencrypt-prod,
+  external-dns label + target `danwils.com`). The `.local` Ingress is unchanged.
+- Public homepage: Tools group with Canvas Viewer.
+
+### Changed
+- Image 1.0.0 -> 1.1.0: nginx now sends `Content-Security-Policy` (`default-src 'none'`, inline
+  script/style only, `connect-src 'self'`, `frame-ancestors 'none'`), `nosniff` and `no-referrer`.
+  `connect-src 'self'` stops `?src=` links from loading another origin's content into the viewer.
+
+---
+
 ## 2026-10-10 - external-dns for public danwils.com records
 
 ### Added
