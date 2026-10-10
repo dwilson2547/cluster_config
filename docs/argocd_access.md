@@ -23,8 +23,13 @@ Application. Everything under `argocd-server/` is applied by hand:
 | `argocd-server/argocd-rbac-cm-patch.yaml` | group → role mapping | `kubectl -n argocd patch cm argocd-rbac-cm --type merge --patch-file` |
 
 The configmaps are merge-patched rather than applied whole, because the upstream install owns
-their default keys. argocd-server reloads them without a restart (its log says "oidc config
-modified. restarting", followed by harmless "server closed" errors).
+their default keys. argocd-server reloads most settings live (its log says "oidc config modified.
+restarting", followed by harmless "server closed" errors), **but after changing `oidc.config` you must
+also run `kubectl -n argocd rollout restart deploy/argocd-server`**. The session manager builds the HTTP
+client it uses for OIDC discovery once, at startup (`NewSessionManager` → `OIDCTLSConfig()`, v3.4.2).
+If OIDC was not configured then, that client trusts only ArgoCD's own self-signed certificate. The login
+callback still succeeds, because it uses a client that is rebuilt on reload, but every session check
+fails with `x509: certificate signed by unknown authority` and the UI bounces back to `/login`.
 
 The authentik side is Argo-managed (`argocd/authentik.yaml`):
 
@@ -94,4 +99,22 @@ curl -s -o /dev/null -w '%{http_code}\n' --resolve argocd.local:80:192.168.0.60 
   only trigger refreshes.
 - Keep ArgoCD current: it runs with cluster-admin, and its unauthenticated surface (login page, API)
   is now on the internet. MFA on accounts in `argocd-admins` matters for the same reason.
-- **Login loops back to `/login`** although authentik shows it authorized: argocd-server cannot resolve/reach `auth.danwils.com` for session verification. See `docs/issues/2026_10_10_coredns_stale_upstream_bind.md`.
+## Troubleshooting: login loops back to `/login`
+
+authentik shows the login as authorized and argocd-server logs `Web login successful`, but the session check
+fails (`Failed to verify session token ... failed to query provider`). Read the end of that log line:
+
+- `x509: certificate signed by unknown authority`: argocd-server was not restarted after `oidc.config`
+  changed (see above).
+- `no such host` / IPv6 `network is unreachable`: cluster DNS cannot resolve `auth.danwils.com` over IPv4.
+  See `docs/issues/2026_10_10_coredns_stale_upstream_bind.md`.
+
+To reproduce without a browser, send a dummy JWT with authentik's issuer; it forces the same discovery.
+A healthy server fails only on the signature (`failed to verify id token signature`):
+
+```bash
+b64(){ printf '%s' "$1" | base64 -w0 | tr '+/' '-_' | tr -d '='; }; NOW=$(date +%s)
+T="$(b64 '{"alg":"RS256"}').$(b64 "{\"iss\":\"https://auth.danwils.com/application/o/argocd/\",\"aud\":\"argocd\",\"exp\":$((NOW+600))}").c2ln"
+curl -s -o /dev/null -H "Cookie: argocd.token=$T" https://argocd.danwils.com/api/v1/session/userinfo
+kubectl -n argocd logs deploy/argocd-server --since=30s | grep "verify session"
+```

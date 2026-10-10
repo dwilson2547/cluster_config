@@ -1,6 +1,7 @@
 # Merge patch for argocd-cm (owned by the upstream install, so not applied whole). Apply by hand:
 #   kubectl -n argocd patch cm argocd-cm --type merge --patch-file argocd-server/argocd-cm-patch.yaml
-# argocd-server picks it up without a restart. Full layout: docs/argocd_access.md.
+# Then, if oidc.config changed: kubectl -n argocd rollout restart deploy/argocd-server
+# (the OIDC discovery client is built once at startup; see docs/argocd_access.md). Full layout: docs/argocd_access.md.
 data:
   url: https://argocd.danwils.com
   # LAN host; ArgoCD builds the OIDC redirect from whichever URL the request came in on.

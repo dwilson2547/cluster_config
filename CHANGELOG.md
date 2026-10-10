@@ -1,3 +1,12 @@
+## 2026-10-10 - ArgoCD: restart argocd-server after enabling OIDC
+
+### Fixed
+- SSO login looped back to `/login` with `x509: certificate signed by unknown authority`. The session
+  manager's OIDC discovery client is built once at startup and trusted only ArgoCD's self-signed
+  certificate, because OIDC was not configured then. Restarted argocd-server; `docs/argocd_access.md` and
+  `argocd-server/argocd-cm-patch.yaml` now say to restart after any `oidc.config` change, and the doc has
+  a troubleshooting section.
+
 ## 2026-10-10 - Cluster DNS: CoreDNS restarted to drop stale upstream 192.168.0.30
 
 ### Fixed
