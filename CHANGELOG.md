@@ -1,3 +1,22 @@
+## 2026-10-10 - ArgoCD public at argocd.danwils.com, sign-in through authentik
+
+### Added
+- `authentik/blueprints/argocd.yaml`: confidential OIDC provider + application `argocd` (client id
+  `argocd`, redirects `https://argocd.danwils.com/auth/callback` and `http://argocd.local/auth/callback`),
+  groups `argocd-admins` (role:admin) / `argocd-viewers` (role:readonly), application bound to both.
+  Client secret from the hand-applied `authentik-argocd-oidc` Secret via `!Env`; ArgoCD reads the same
+  value from `argocd-oidc-authentik` (argocd ns, `part-of: argocd` label). Templates in `example-secrets/`.
+- `argocd-server/ingress-public.yaml` (applied by hand): `argocd.danwils.com` on pubsecure with
+  letsencrypt-prod + external-dns, and a `deny-all` Middleware returning 403 for the password-login
+  endpoints (`/api/v1/session`, `/session.SessionService/Create`) on the public host only.
+- `argocd-server/argocd-cm-patch.yaml`, `argocd-rbac-cm-patch.yaml` (merge-patched by hand): `url`,
+  `additionalUrls`, `oidc.config`, group-to-role mapping.
+- `docs/argocd_access.md`: where every piece lives, and how to re-verify the login block after upgrades.
+- Public homepage: ArgoCD.
+
+### Changed
+- The local `admin` account stays enabled as a LAN-only break-glass login (`argocd.local`).
+
 ## 2026-10-10 - Public homepage: GitHub and registry links
 
 ### Changed

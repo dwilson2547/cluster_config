@@ -61,7 +61,7 @@ Most services are plain Kubernetes manifests tracked directly in this repo. Argo
 | rtk-caster | `rtk-caster/` | `argocd/rtk-caster.yaml` |
 | vpn | `vpn/` | `argocd/vpn.yaml` |
 | searxng | `searxng/` | `argocd/searxng.yaml` |
-| argocd-server ingress + `server.insecure` | `argocd-server/ingress.yaml` | (applied manually) |
+| argocd-server ingresses (LAN + public), `argocd-cm` / `argocd-rbac-cm` patches (authentik SSO, LAN-only admin) | `argocd-server/` — layout in `docs/argocd_access.md` | (applied manually) |
 | reloader | — (Helm chart, stakater) | `argocd/reloader.yaml` |
 | cert-manager | `cert-manager/` (Helm values + `issuers/`) | `argocd/cert-manager.yaml` |
 | traefik (ingress, LB 192.168.0.60) | `traefik/values.yaml` (Helm values) | `argocd/traefik.yaml` |
@@ -131,7 +131,8 @@ Contains legacy and one-off manifests that predate the ArgoCD setup (postgres, b
 
 | Host | Service |
 |---|---|
-| `argocd.local` | ArgoCD UI |
+| `argocd.local` | ArgoCD UI (LAN; SSO or local admin break-glass) |
+| `argocd.danwils.com` | ArgoCD UI (public; authentik SSO only, see `docs/argocd_access.md`) |
 | `notes.ai-services.local` | AI Notes |
 | `playbooks.ai-services.local` | AI Playbooks |
 | `docs.ai-services.local` | AI Tool Docs |
@@ -141,5 +142,6 @@ Contains legacy and one-off manifests that predate the ArgoCD setup (postgres, b
 ## Notes
 
 - ArgoCD is configured with `server.insecure: true` (in `argocd-server/ingress.yaml`) so Traefik can proxy plain HTTP — no cert needed on the ArgoCD side.
+- ArgoCD sign-in: authentik SSO (groups `argocd-admins`/`argocd-viewers`); the local `admin` password works only on `argocd.local` because the public ingress returns 403 on the session endpoints. Everything about it, including where each file lives and how to re-verify the block after an upgrade, is in `docs/argocd_access.md`.
 - postgres `Application` has `ignoreDifferences` on `StatefulSet.spec.volumeClaimTemplates` to prevent ArgoCD from fighting over immutable PVC template fields.
 - Reloader (stakater) watches for ConfigMap/Secret changes and triggers rolling restarts on affected Deployments.

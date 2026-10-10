@@ -37,6 +37,10 @@ data:
             href: https://grafana.danwils.com
             description: Cluster metrics, logs and traces
             icon: grafana
+        - ArgoCD:
+            href: https://argocd.danwils.com
+            description: GitOps deployments and cluster health
+            icon: argocd
 
   bookmarks.yaml: |
     - GitHub:
