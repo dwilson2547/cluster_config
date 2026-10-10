@@ -1,0 +1,158 @@
+# Public landing page at https://danwils.com. Separate from the internal
+# homepage on purpose: no ServiceAccount token, no kubernetes mode, no widgets
+# (homepage proxies widget API calls server-side, so any widget here would be a
+# public door into whatever it talks to). Only list services that are meant to
+# be public, and link them by their danwils.com names, never .local.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: homepage-public
+  namespace: homepage-public
+  labels:
+    app.kubernetes.io/name: homepage-public
+data:
+  settings.yaml: |
+    title: danwils
+    theme: dark
+    color: slate
+    headerStyle: clean
+    hideVersion: true
+    disableUpdateCheck: true
+
+  services.yaml: |
+    []
+
+  bookmarks.yaml: |
+    - Links:
+        - GitHub:
+            - href: https://github.com/dwilson2547
+              icon: github
+
+  widgets.yaml: |
+    []
+
+  kubernetes.yaml: ""
+  docker.yaml: ""
+  custom.css: ""
+  custom.js: ""
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: homepage-public
+  namespace: homepage-public
+  labels:
+    app.kubernetes.io/name: homepage-public
+  annotations:
+    reloader.stakater.com/auto: "true"
+spec:
+  revisionHistoryLimit: 3
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: homepage-public
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: homepage-public
+    spec:
+      automountServiceAccountToken: false
+      containers:
+        - name: homepage
+          image: ghcr.io/gethomepage/homepage:v2.4.0
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: MY_POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            # Pod IP is for the kubelet probe's Host header.
+            - name: HOMEPAGE_ALLOWED_HOSTS
+              value: "$(MY_POD_IP):3000,danwils.com"
+          ports:
+            - name: http
+              containerPort: 3000
+          livenessProbe:
+            httpGet:
+              path: /api/healthcheck
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 15
+          resources:
+            requests:
+              cpu: 10m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          volumeMounts:
+            - name: config
+              mountPath: /app/config/settings.yaml
+              subPath: settings.yaml
+            - name: config
+              mountPath: /app/config/services.yaml
+              subPath: services.yaml
+            - name: config
+              mountPath: /app/config/bookmarks.yaml
+              subPath: bookmarks.yaml
+            - name: config
+              mountPath: /app/config/widgets.yaml
+              subPath: widgets.yaml
+            - name: config
+              mountPath: /app/config/kubernetes.yaml
+              subPath: kubernetes.yaml
+            - name: config
+              mountPath: /app/config/docker.yaml
+              subPath: docker.yaml
+            - name: config
+              mountPath: /app/config/custom.css
+              subPath: custom.css
+            - name: config
+              mountPath: /app/config/custom.js
+              subPath: custom.js
+            - name: logs
+              mountPath: /app/config/logs
+      volumes:
+        - name: config
+          configMap:
+            name: homepage-public
+        - name: logs
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: homepage-public
+  namespace: homepage-public
+spec:
+  selector:
+    app.kubernetes.io/name: homepage-public
+  ports:
+    - name: http
+      port: 3000
+      targetPort: http
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: homepage-public
+  namespace: homepage-public
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts:
+        - danwils.com
+      secretName: danwils-com-tls
+  rules:
+    - host: danwils.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: homepage-public
+                port:
+                  name: http

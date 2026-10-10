@@ -1,3 +1,16 @@
+## 2026-10-10 - Public landing page at danwils.com
+
+### Added
+- `homepage-public/` + `argocd/homepage-public.yaml`: a second homepage instance (pinned v2.4.0) at
+  `https://danwils.com`, IngressClass `traefik`, TLS from `letsencrypt-prod` (secret `danwils-com-tls`).
+- Deliberately bare: no ServiceAccount token, no kubernetes mode, no widgets. Services are added to it
+  one at a time as they are made public; the internal homepage (dev instances, .local) stays internal.
+
+### Notes
+- Reached via the Cloudflare-proxied `danwils.com` A record (ddclient) → router 80/443 → Traefik 192.168.0.60.
+
+---
+
 ## 2026-10-10 - Adopt Traefik and MetalLB into ArgoCD
 
 ### Added
