@@ -1,0 +1,11 @@
+# Merge patch for argocd-rbac-cm (owned by the upstream install). Apply by hand:
+#   kubectl -n argocd patch cm argocd-rbac-cm --type merge --patch-file argocd-server/argocd-rbac-cm-patch.yaml
+# Roles come from authentik groups (blueprints/argocd.yaml). The local admin account is
+# role:admin built in and is not affected. Full layout: docs/argocd_access.md.
+data:
+  # SSO users in neither group get no permissions (authentik refuses them first anyway).
+  policy.default: ""
+  scopes: "[groups]"
+  policy.csv: |
+    g, argocd-admins, role:admin
+    g, argocd-viewers, role:readonly

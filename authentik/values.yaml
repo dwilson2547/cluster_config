@@ -71,6 +71,12 @@ global:
         secretKeyRef:
           name: authentik-danwiki-oidc
           key: client_secret
+    # ArgoCD OIDC client secret, read by blueprints/argocd.yaml.
+    - name: AUTHENTIK_ARGOCD_CLIENT_SECRET
+      valueFrom:
+        secretKeyRef:
+          name: authentik-argocd-oidc
+          key: client_secret
   envFrom:
     # optional: authentik still starts (without mail) before the Secret exists.
     - secretRef:

@@ -1,0 +1,14 @@
+# argocd-oidc-authentik: ArgoCD's OIDC client secret for authentik. Never commit real values.
+# Same value as `authentik-argocd-oidc` in the authentik namespace
+# (example-secrets/authentik/smtp-and-google.yml). ArgoCD only reads secrets referenced from
+# argocd-cm ($argocd-oidc-authentik:client_secret) if they carry the part-of label below.
+apiVersion: v1
+kind: Secret
+metadata:
+  name: argocd-oidc-authentik
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: argocd
+type: Opaque
+stringData:
+  client_secret: replace-me

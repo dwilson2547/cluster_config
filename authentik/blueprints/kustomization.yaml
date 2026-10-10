@@ -10,5 +10,6 @@ configMapGenerator:
       - photo-dump.yaml
       - grafana.yaml
       - danwiki.yaml
+      - argocd.yaml
 generatorOptions:
   disableNameSuffixHash: true

@@ -58,3 +58,14 @@ metadata:
 type: Opaque
 stringData:
   client_secret: replace-me
+---
+# authentik-argocd-oidc: ArgoCD's OIDC client secret (any random string).
+# The same value goes in `argocd-oidc-authentik` (argocd ns), see example-secrets/argocd/argocd-oidc.yml.
+apiVersion: v1
+kind: Secret
+metadata:
+  name: authentik-argocd-oidc
+  namespace: authentik
+type: Opaque
+stringData:
+  client_secret: replace-me

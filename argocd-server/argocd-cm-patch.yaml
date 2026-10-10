@@ -1,0 +1,21 @@
+# Merge patch for argocd-cm (owned by the upstream install, so not applied whole). Apply by hand:
+#   kubectl -n argocd patch cm argocd-cm --type merge --patch-file argocd-server/argocd-cm-patch.yaml
+# argocd-server picks it up without a restart. Full layout: docs/argocd_access.md.
+data:
+  url: https://argocd.danwils.com
+  # LAN host; ArgoCD builds the OIDC redirect from whichever URL the request came in on.
+  additionalUrls: |
+    - http://argocd.local
+  # admin stays enabled as a LAN-only break-glass login; ingress-public.yaml refuses
+  # password logins on argocd.danwils.com.
+  admin.enabled: "true"
+  oidc.config: |
+    name: authentik
+    issuer: https://auth.danwils.com/application/o/argocd/
+    clientID: argocd
+    # Secret argocd-oidc-authentik (argocd ns, label app.kubernetes.io/part-of: argocd),
+    # same value as authentik-argocd-oidc in the authentik ns.
+    clientSecret: $argocd-oidc-authentik:client_secret
+    requestedScopes: ["openid", "profile", "email"]
+    enablePKCEAuthentication: true
+    logoutURL: https://auth.danwils.com/application/o/argocd/end-session/
