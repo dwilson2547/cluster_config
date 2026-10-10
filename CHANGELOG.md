@@ -1,3 +1,13 @@
+## 2026-10-10 - ddclient restarts on secret change
+
+### Changed
+- `dns/ddclient.yml`: Reloader annotation for `ddclient-secret`. linuxserver/ddclient reads
+  `/defaults/ddclient.conf` only at container start, so a hand-applied secret edit previously sat unused
+  (the pod ran 140 days on a config whose token had expired).
+- `ddclient-secret` (hand-applied) now updates only `danwils.com`.
+
+---
+
 ## 2026-10-10 - cert-manager under ArgoCD
 
 ### Added

@@ -3,6 +3,9 @@ kind: Deployment
 metadata:
   name: ddclient-deployment
   namespace: dns
+  annotations:
+    # The image copies /defaults/ddclient.conf only at startup, so Secret edits need a restart.
+    secret.reloader.stakater.com/reload: ddclient-secret
   labels:
     app: ddclient
 spec:
