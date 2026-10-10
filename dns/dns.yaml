@@ -52,12 +52,6 @@ data:
         errors
     }
 
-    photo-dump.local:53 {
-        file /etc/coredns/db.photo-dump.local
-        log
-        errors
-    }
-
     gyopart.local:53 {
         file /etc/coredns/db.gyopart.local
         log
@@ -243,24 +237,6 @@ data:
 
     @   IN  SOA  ns1.scrapestack.local. admin.scrapestack.local. (
                     2026052601 ; serial
-                    3600       ; refresh
-                    900        ; retry
-                    86400      ; expire
-                    300        ; minimum TTL
-                 )
-
-    @   IN  NS   ns1.scrapestack.local.
-
-    ; All subdomains → Traefik ingress controller
-    @   IN  A    192.168.0.60
-    *   IN  A    192.168.0.60
-
-  db.photo-dump.local: |
-    $ORIGIN photo-dump.local.
-    $TTL 300
-
-    @   IN  SOA  ns1.scrapestack.local. admin.scrapestack.local. (
-                    2026053001 ; serial
                     3600       ; refresh
                     900        ; retry
                     86400      ; expire

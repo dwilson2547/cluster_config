@@ -1,21 +1,31 @@
 # photo-dump as an OIDC client of authentik.
 #
-# photo-dump keeps its own users, roles and per-space permissions; authentik only
-# answers "who is this". The app links an authentik user to its local account by
-# `sub` (first login: by email, then the link is stored) and issues its own token.
-# Admin role in photo-dump follows membership of `photo-dump-admins` (groups claim
-# from the profile scope).
+# photo-dump keeps its own users and per-space permissions; authentik answers
+# "who is this" and owns the app-wide role. The app links an authentik user to its
+# local account by `sub` (first login: by email) and issues its own token.
 #
-# Client secret: hand-applied Secret `authentik-photo-dump-oidc` (authentik ns),
-# same value in `photo-dump-dev-oidc-creds` (photo-dump-dev ns) for the app.
+# Role = highest of these groups at each sign-in (groups claim, profile scope);
+# none = Viewer. Moving someone between groups takes effect at their next sign-in.
+#   photo-dump-admins   -> Admin
+#   photo-dump-editors  -> Moderator
+#   photo-dump-creators -> User (create spaces, upload, share)
+#
+# Client secret: hand-applied Secret `authentik-photo-dump-oidc` (authentik ns);
+# the app reads the same value from `photo-dump-oidc-creds` (photo-dump ns) and
+# `photo-dump-dev-oidc-creds` (photo-dump-dev ns).
 version: 1
 metadata:
   name: danwils - photo-dump OIDC application
 entries:
   - model: authentik_core.group
-    id: admins
     identifiers:
       name: photo-dump-admins
+  - model: authentik_core.group
+    identifiers:
+      name: photo-dump-editors
+  - model: authentik_core.group
+    identifiers:
+      name: photo-dump-creators
 
   - model: authentik_providers_oauth2.oauth2provider
     id: provider
@@ -31,6 +41,9 @@ entries:
       client_id: photo-dump
       client_secret: !Env [AUTHENTIK_PHOTO_DUMP_CLIENT_SECRET, ""]
       redirect_uris:
+        - matching_mode: strict
+          url: https://photo-dump.danwils.com/api/auth/oidc/callback
+        # dev (scaled to zero; kept so it can be brought back)
         - matching_mode: strict
           url: http://photo-dump-dev.local/api/auth/oidc/callback
       property_mappings:
@@ -50,5 +63,5 @@ entries:
     attrs:
       name: Photo Dump
       provider: !KeyOf provider
-      meta_launch_url: http://photo-dump-dev.local
+      meta_launch_url: https://photo-dump.danwils.com
       meta_description: Photo sharing spaces

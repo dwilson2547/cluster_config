@@ -238,23 +238,9 @@ data:
 
     - Photo Dump:
         - App:
-            href: http://photo-dump.local
-            description: Photo gallery and album manager
+            href: https://photo-dump.danwils.com
+            description: Photo sharing spaces (public; sign in via authentik)
             icon: si-googlephotos
-        - API:
-            href: http://photo-dump.local/api/docs
-            description: Photo Dump REST API
-            icon: si-fastapi
-
-    - Photo Dump Dev:
-        - App (dev):
-            href: http://photo-dump-dev.local
-            description: Photo Dump dev environment
-            icon: si-googlephotos
-        - API (dev):
-            href: http://photo-dump-dev.local/api/docs
-            description: Photo Dump REST API — dev
-            icon: si-fastapi
 
     - AI Services:
         - AI Notes:

@@ -82,7 +82,8 @@ picked up automatically.
 | scrape-stack | `dwilson2547/scrape_stack` | `main` | `scrape-stack` | `values.yaml` |
 | scrape-stack-dev | `dwilson2547/scrape_stack` | `dev` | `scrapestack-dev` | `values-dev.yaml` |
 | danwiki | `dwilson2547/DanWiki` | `main` | `danwiki` | `values.yaml` |
-| photo-dump-dev | `dwilson2547/photo_dump` | `dev` | `photo-dump-dev` | `values-dev.yaml` |
+| photo-dump (https://photo-dump.danwils.com) | `dwilson2547/photo_dump` | `main` | `photo-dump` | `values-prod.yaml` |
+| photo-dump-dev (0 replicas) | `dwilson2547/photo_dump` | `dev` | `photo-dump-dev` | `values-dev.yaml` |
 | robo-services, build-sim, dxf-converter | own repos | `main` | own | see `argocd/` |
 
 ## Secret Management

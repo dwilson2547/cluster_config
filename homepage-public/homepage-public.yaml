@@ -25,6 +25,10 @@ data:
             href: https://canvas-viewer.danwils.com
             description: View and edit JSON Canvas (.canvas) files in the browser
             icon: mdi-vector-square
+        - Photo Dump:
+            href: https://photo-dump.danwils.com
+            description: Photo sharing spaces
+            icon: si-googlephotos
 
   bookmarks.yaml: |
     - Links:

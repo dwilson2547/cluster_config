@@ -1,3 +1,24 @@
+## 2026-10-10 - photo-dump prod at photo-dump.danwils.com
+
+### Added
+- `argocd/photo-dump.yaml`: photo-dump prod from the app repo's `main`, `values-prod.yaml`, namespace
+  `photo-dump`. Public (pubsecure, letsencrypt-prod, external-dns). Sign-in only through authentik.
+- Prod data starts empty: database + role `photo_dump` on prod `postgres` (role owns the database,
+  password from the secret over stdin) and a new private bucket `photo-dump-prod` on the object store
+  (192.168.0.15:9768); images reach the browser as presigned links from the API. Hand-applied secrets
+  in `photo-dump`: `postgres-photo-dump-creds`, `photo-dump-bucket-creds`, `jwt-photo-dump-creds`,
+  `photo-dump-oidc-creds`.
+- `authentik/blueprints/photo-dump.yaml`: groups `photo-dump-editors` and `photo-dump-creators` beside
+  `photo-dump-admins`; the app sets each user's role from them at every sign-in (Admin / Moderator /
+  User, none = Viewer). Prod redirect URI added; dev's kept.
+- Public homepage: Photo Dump.
+
+### Changed
+- Internal homepage: Photo Dump links to prod; dev entries removed.
+
+### Removed
+- `dns/dns.yaml`: the `photo-dump.local` zone, which no Ingress served.
+
 ## 2026-10-10 - authentik: photo-dump OIDC application
 
 ### Added
