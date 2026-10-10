@@ -18,6 +18,77 @@ updateStrategy:
     maxUnavailable: 1
     maxSurge: 0
 extraObjects:
+# Public-entrypoint middlewares (pubweb/pubsecure defaults above). Every public
+# router gets them, in order: lockdown, concurrency cap, rate limit.
+# Origin lockdown: WAN 80/443 is forwarded here, so without this anyone who finds
+# the home IP skips Cloudflare. ipAllowList checks the TCP peer (not X-Forwarded-For),
+# which is a Cloudflare edge for real visitors. LAN stays allowed (hairpin, admin), and
+# so do pods: DanWiki/photo-dump/dxf-converter reach authentik through this service
+# via hostAliases. Keep the Cloudflare ranges in sync with forwardedHeaders.trustedIPs.
+- apiVersion: traefik.io/v1alpha1
+  kind: Middleware
+  metadata:
+    name: public-origin-lockdown
+    namespace: ingress
+  spec:
+    ipAllowList:
+      sourceRange:
+        - 173.245.48.0/20
+        - 103.21.244.0/22
+        - 103.22.200.0/22
+        - 103.31.4.0/22
+        - 141.101.64.0/18
+        - 108.162.192.0/18
+        - 190.93.240.0/20
+        - 188.114.96.0/20
+        - 197.234.240.0/22
+        - 198.41.128.0/17
+        - 162.158.0.0/15
+        - 104.16.0.0/13
+        - 104.24.0.0/14
+        - 172.64.0.0/13
+        - 131.0.72.0/22
+        - 2400:cb00::/32
+        - 2606:4700::/32
+        - 2803:f800::/32
+        - 2405:b500::/32
+        - 2405:8100::/32
+        - 2a06:98c0::/29
+        - 2c0f:f248::/32
+        - 192.168.0.0/24    # LAN (nodes .35-.37, router hairpin)
+        - 10.1.0.0/16       # pod CIDR (calico default-ipv4-ippool)
+# Per-visitor limits. depth: 1 is the rightmost X-Forwarded-For entry: Cloudflare appends
+# the real visitor there, and Traefik strips the header from untrusted peers, so it
+# can't be spoofed (LAN/pod traffic has none and shares one "" bucket). The default
+# (TCP peer) would put every visitor behind one Cloudflare edge in the same bucket.
+# Generous on purpose: a flood guard, not a quota. Apps add stricter limits on
+# expensive routes (e.g. dxf-converter's uploads).
+- apiVersion: traefik.io/v1alpha1
+  kind: Middleware
+  metadata:
+    name: public-inflight
+    namespace: ingress
+  spec:
+    inFlightReq:
+      amount: 100
+      sourceCriterion:
+        ipStrategy:
+          depth: 1
+          ipv6Subnet: 64
+- apiVersion: traefik.io/v1alpha1
+  kind: Middleware
+  metadata:
+    name: public-ratelimit
+    namespace: ingress
+  spec:
+    rateLimit:
+      average: 100
+      period: 1s
+      burst: 300
+      sourceCriterion:
+        ipStrategy:
+          depth: 1
+          ipv6Subnet: 64
 - apiVersion: networking.k8s.io/v1
   kind: IngressClass
   metadata:
@@ -77,6 +148,11 @@ ports:
         to: pubsecure
         scheme: https
         permanent: true
+    # Edge protection for everything public (docs/public_edge_protection.md).
+    middlewares: &publicMiddlewares
+      - ingress-public-origin-lockdown@kubernetescrd
+      - ingress-public-inflight@kubernetescrd
+      - ingress-public-ratelimit@kubernetescrd
     # Behind Cloudflare: trust X-Forwarded-For only from Cloudflare's edge, so
     # backends see the visitor's IP rather than a node or edge address (authentik's
     # per-IP login reputation needs it). Ranges: https://www.cloudflare.com/ips/
@@ -117,6 +193,7 @@ ports:
       enabled: true
     forwardedHeaders:
       trustedIPs: *cloudflare
+    middlewares: *publicMiddlewares
 providers:
   kubernetesGateway:
     enabled: true
