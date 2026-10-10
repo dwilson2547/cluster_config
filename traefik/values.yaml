@@ -9,6 +9,14 @@
 # nginx (nginx-annotation compatibility via the kubernetesIngressNginx provider).
 deployment:
   kind: DaemonSet
+# hostPorts 80/443 mean a surge pod can never schedule next to the old one, so
+# the chart default (maxSurge 1, maxUnavailable 0) wedges every rollout Pending.
+# Replace one node at a time instead; the LB keeps routing to the other pods.
+updateStrategy:
+  type: RollingUpdate
+  rollingUpdate:
+    maxUnavailable: 1
+    maxSurge: 0
 extraObjects:
 - apiVersion: networking.k8s.io/v1
   kind: IngressClass

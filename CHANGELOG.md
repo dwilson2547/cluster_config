@@ -11,6 +11,8 @@
   second LoadBalancer Service `traefik-public` pinned to 192.168.0.65. `web`/`websecure` are now
   `asDefault`, so Ingresses that name no entrypoint stay on .60 / LAN only.
 - `homepage-public` Ingress opts in with `router.entrypoints: pubsecure`.
+- Traefik DaemonSet `updateStrategy` maxSurge 0 / maxUnavailable 1: with hostPorts 80/443 the chart
+  default (surge 1) left the first new pod Pending ("didn't have free ports"); any Traefik change would.
 
 ---
 
