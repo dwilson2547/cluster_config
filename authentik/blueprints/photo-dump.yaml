@@ -1,0 +1,49 @@
+# photo-dump as an OIDC client of authentik.
+#
+# photo-dump keeps its own users, roles and per-space permissions; authentik only
+# answers "who is this". The app links an authentik user to its local account by
+# `sub` (first login: by email, then the link is stored) and issues its own token.
+# Admin role in photo-dump follows membership of `photo-dump-admins` (groups claim
+# from the profile scope).
+#
+# Client secret: hand-applied Secret `authentik-photo-dump-oidc` (authentik ns),
+# same value in `photo-dump-dev-oidc-creds` (photo-dump-dev ns) for the app.
+version: 1
+metadata:
+  name: danwils - photo-dump OIDC application
+entries:
+  - model: authentik_core.group
+    id: admins
+    identifiers:
+      name: photo-dump-admins
+
+  - model: authentik_providers_oauth2.oauth2provider
+    id: provider
+    identifiers:
+      name: photo-dump
+    attrs:
+      client_type: confidential
+      client_id: photo-dump
+      client_secret: !Env [AUTHENTIK_PHOTO_DUMP_CLIENT_SECRET, ""]
+      redirect_uris:
+        - matching_mode: strict
+          url: http://photo-dump-dev.local/api/auth/oidc/callback
+      property_mappings:
+        - !Find [authentik_providers_oauth2.scopemapping, [managed, goauthentik.io/providers/oauth2/scope-openid]]
+        - !Find [authentik_providers_oauth2.scopemapping, [managed, goauthentik.io/providers/oauth2/scope-email]]
+        - !Find [authentik_providers_oauth2.scopemapping, [managed, goauthentik.io/providers/oauth2/scope-profile]]
+      # RS256 with a published JWKS, so the app verifies ID tokens without the secret.
+      signing_key: !Find [authentik_crypto.certificatekeypair, [name, authentik Self-signed Certificate]]
+      authorization_flow: !Find [authentik_flows.flow, [slug, default-provider-authorization-implicit-consent]]
+      invalidation_flow: !Find [authentik_flows.flow, [slug, default-provider-invalidation-flow]]
+      sub_mode: hashed_user_id
+      issuer_mode: per_provider
+
+  - model: authentik_core.application
+    identifiers:
+      slug: photo-dump
+    attrs:
+      name: Photo Dump
+      provider: !KeyOf provider
+      meta_launch_url: http://photo-dump-dev.local
+      meta_description: Photo sharing spaces

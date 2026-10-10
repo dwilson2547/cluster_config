@@ -7,5 +7,6 @@ configMapGenerator:
     files:
       - signup.yaml
       - notify-new-users.yaml
+      - photo-dump.yaml
 generatorOptions:
   disableNameSuffixHash: true

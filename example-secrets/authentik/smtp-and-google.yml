@@ -25,3 +25,14 @@ type: Opaque
 stringData:
   client_id: replace-me
   client_secret: replace-me
+---
+# authentik-photo-dump-oidc: photo-dump's OIDC client secret (any random string).
+# The same value goes in photo-dump-dev's `photo-dump-dev-oidc-creds` Secret.
+apiVersion: v1
+kind: Secret
+metadata:
+  name: authentik-photo-dump-oidc
+  namespace: authentik
+type: Opaque
+stringData:
+  client_secret: replace-me

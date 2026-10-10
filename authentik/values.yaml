@@ -53,6 +53,12 @@ global:
         secretKeyRef:
           name: authentik-google-oauth
           key: client_secret
+    # photo-dump OIDC client secret, read by blueprints/photo-dump.yaml.
+    - name: AUTHENTIK_PHOTO_DUMP_CLIENT_SECRET
+      valueFrom:
+        secretKeyRef:
+          name: authentik-photo-dump-oidc
+          key: client_secret
   envFrom:
     # optional: authentik still starts (without mail) before the Secret exists.
     - secretRef:

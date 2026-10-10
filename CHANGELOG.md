@@ -1,3 +1,12 @@
+## 2026-10-10 - authentik: photo-dump OIDC application
+
+### Added
+- `authentik/blueprints/photo-dump.yaml`: confidential OIDC provider + application `photo-dump`
+  (client id `photo-dump`, scopes openid/email/profile, RS256 signed, per-provider issuer
+  `https://auth.danwils.com/application/o/photo-dump/`), redirect URI
+  `http://photo-dump-dev.local/api/auth/oidc/callback`, and group `photo-dump-admins`. Client secret from
+  the hand-applied `authentik-photo-dump-oidc` Secret via `!Env`.
+
 ## 2026-10-10 - authentik: Google sign-up with admin approval, mail, real client IPs
 
 ### Added
