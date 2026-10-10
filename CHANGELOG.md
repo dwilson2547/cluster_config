@@ -1,3 +1,18 @@
+## 2026-10-10 - Deploy canvas-viewer
+
+### Added
+- `canvas-viewer/` (Deployment, Service, Ingress `canvas-viewer.local`) and `argocd/canvas-viewer.yaml`
+  (namespace `canvas-viewer`). Image `dwilson2547/canvas-viewer:1.0.0`, built from the workspace's
+  `meta/canvas-viewer/Dockerfile` (nginx-unprivileged serving the single `index.html`).
+- DNS zone `canvas-viewer.local` → Traefik (192.168.0.60).
+- Homepage entry under Tools.
+
+### Notes
+- Manifests live here rather than in a project chart: canvas-viewer is a plain folder in the
+  workspace repo, not its own repo. Release = rebuild/push a new tag and bump it in `deployment.yml`.
+
+---
+
 ## 2026-10-02 - dxf-converter v2: database
 
 ### Added

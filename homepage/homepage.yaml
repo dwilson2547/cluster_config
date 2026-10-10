@@ -315,6 +315,10 @@ data:
             href: http://build-sim.local
             description: Drone build AUW / thrust / flight-time modeling
             icon: mdi-quadcopter
+        - Canvas Viewer:
+            href: http://canvas-viewer.local
+            description: View/edit JSON Canvas (.canvas) files, export PNG/PDF
+            icon: mdi-graph-outline
 
     - Cluster:
         - ArgoCD:

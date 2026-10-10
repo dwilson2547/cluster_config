@@ -1,0 +1,67 @@
+# Static JSON Canvas viewer. Source + Dockerfile: workspace meta/canvas-viewer.
+# Bump the tag here to release a new build.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: canvas-viewer
+  labels:
+    app: canvas-viewer
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: canvas-viewer
+  template:
+    metadata:
+      labels:
+        app: canvas-viewer
+    spec:
+      containers:
+        - name: canvas-viewer
+          image: dwilson2547/canvas-viewer:1.0.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8080
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              cpu: 200m
+              memory: 64Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: canvas-viewer
+spec:
+  selector:
+    app: canvas-viewer
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: canvas-viewer
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: canvas-viewer.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: canvas-viewer
+                port:
+                  name: http
