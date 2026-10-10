@@ -1,7 +1,8 @@
 # Publishes Cloudflare records for opted-in Ingresses. An Ingress is published only if it
 # carries the label below; its record is a proxied CNAME to the target annotation:
 #   metadata.labels:      dns.danwils.com/public: "true"
-#   metadata.annotations: external-dns.alpha.kubernetes.io/target: danwils.com
+#   metadata.annotations: external-dns.kubernetes.io/target: danwils.com
+# (not external-dns.alpha.kubernetes.io/: v0.23 ignores the legacy prefix by default)
 # The danwils.com apex A record belongs to ddclient; never label the apex Ingress.
 provider:
   name: cloudflare

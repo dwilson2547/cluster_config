@@ -78,7 +78,7 @@ metadata:
   annotations:
     cert-manager.io/cluster-issuer: letsencrypt-prod
     traefik.ingress.kubernetes.io/router.entrypoints: pubsecure
-    external-dns.alpha.kubernetes.io/target: danwils.com
+    external-dns.kubernetes.io/target: danwils.com
 spec:
   ingressClassName: traefik
   tls:

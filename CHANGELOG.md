@@ -5,6 +5,12 @@
   external-dns label + target `danwils.com`). The `.local` Ingress is unchanged.
 - Public homepage: Tools group with Canvas Viewer.
 
+### Fixed
+- external-dns v0.23 reads annotations under `external-dns.kubernetes.io/` only (legacy
+  `external-dns.alpha.` prefix disabled by default). The alpha target annotation was ignored, the target
+  fell back to the Ingress IP .60, and exclude-target-net dropped it, so no record was created and nothing
+  was logged. Switched the annotation and the docs (CLAUDE.md, values comment, k8s-argocd skill).
+
 ### Changed
 - Image 1.0.0 -> 1.1.0: nginx now sends `Content-Security-Policy` (`default-src 'none'`, inline
   script/style only, `connect-src 'self'`, `frame-ancestors 'none'`), `nosniff` and `no-referrer`.

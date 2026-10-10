@@ -32,7 +32,8 @@ router at .60: every internal Ingress would be reachable from the internet by Ho
 
 DNS for public hosts is automatic: external-dns (`external-dns/`) creates a proxied CNAME
 `<name>.danwils.com → danwils.com` for any Ingress labelled `dns.danwils.com/public: "true"` with
-annotation `external-dns.alpha.kubernetes.io/target: danwils.com`, and deletes it with the Ingress. It only
+annotation `external-dns.kubernetes.io/target: danwils.com` (v0.23 ignores the old
+`external-dns.alpha.` prefix; the target then falls back to .60 and is silently excluded), and deletes it with the Ingress. It only
 touches records it owns (TXT `_extdns-cname.<name>`); the apex A record is ddclient's.
 
 ## Two Deployment Patterns
