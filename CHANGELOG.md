@@ -7,6 +7,9 @@
     the default login page. New Google users go through `danwils-source-enrollment`, which creates them
     **inactive** and ends on a "waiting for approval" page; approve by activating the user. Matching is
     by Google identifier, so no existing account is linked by email.
+    Fixed the same day: the pending page was a Deny stage, which aborts the flow before authentik's
+    appended PostSourceStage saves the user's Google link, so an approved user could never sign in with
+    Google again. It is now an info prompt; the flow completes and the user stays inactive.
   - `notify-new-users.yaml`: every created user notifies the `authentik Admins` group by email and in
     the UI.
 - Gmail SMTP (`smtp.gmail.com:587`, TLS). Username, app password and From are in the hand-applied

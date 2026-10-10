@@ -21,6 +21,15 @@ notifications as blueprints, mounted via `blueprints.configMaps`).
 - Check results through the ORM (`ak shell`), not raw SQL: the table layout uses multi-table
   inheritance and the join columns are not obvious.
 
+## Source enrollment flows
+
+- **Never end a source (Google/OAuth) enrollment flow with a Deny stage.** authentik appends
+  `PostSourceStage` after the flow's own stages; it is what saves the user-to-Google connection
+  (`core/sources/flow_manager.py`, `get_stages_to_append`). A Deny stage aborts before it, so the
+  user exists but no connection does, and with `user_matching_mode: identifier` the next Google
+  sign-in cannot find them. To stop without signing in, let the flow complete and simply omit the
+  User Login stage; an info prompt (`alert_info` field) can carry the message.
+
 ## Client IPs behind Cloudflare
 
 Two layers both have to trust the hop in front of them, or authentik logs the wrong address:

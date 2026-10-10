@@ -4,6 +4,13 @@
 # an inactive user cannot sign in to authentik or any app behind it. Approve by
 # activating the user (Directory > Users), which notify-new-users.yaml prompts.
 #
+# The flow must COMPLETE, not end in a Deny stage: authentik appends its own
+# stage after these (PostSourceStage) that saves the user's link to the Google
+# identity. A Deny stage aborts before it, leaving an account Google can never
+# sign in to again (matching is by identifier). The pending page is therefore an
+# informational prompt with a Continue button, after which the user lands on the
+# login page, still inactive.
+#
 # Matching is by Google identifier, not email: an existing account (akadmin
 # included) is never taken over by a Google login with the same address.
 version: 1
@@ -66,15 +73,35 @@ entries:
       user_creation_mode: always_create
       create_users_as_inactive: true
 
-  # Ends the flow without logging in; the account exists but is inactive.
+  # Removed: a Deny stage here dropped the Google link (see header).
   - model: authentik_stages_deny.denystage
-    id: pending
+    state: absent
     identifiers:
       name: danwils-source-enrollment-pending
+
+  - model: authentik_stages_prompt.prompt
+    id: field-pending
+    identifiers:
+      name: danwils-source-enrollment-field-pending
     attrs:
-      deny_message: >-
+      field_key: pending_notice
+      label: Waiting for approval
+      type: alert_info
+      required: false
+      initial_value: >-
         Thanks for signing up. Your account is waiting for approval; you will be
         able to sign in once it has been approved.
+      order: 0
+
+  # No User Login stage follows: the flow completes (saving the Google link)
+  # without signing the user in.
+  - model: authentik_stages_prompt.promptstage
+    id: pending
+    identifiers:
+      name: danwils-source-enrollment-pending-notice
+    attrs:
+      fields:
+        - !KeyOf field-pending
 
   - model: authentik_flows.flowstagebinding
     id: prompt-binding
