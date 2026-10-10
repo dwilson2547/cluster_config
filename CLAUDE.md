@@ -37,6 +37,11 @@ a service, give its Ingress a `*.danwils.com` host, TLS via `cert-manager.io/clu
 letsencrypt-prod`, and `traefik.ingress.kubernetes.io/router.entrypoints: pubsecure`. Never point the
 router at .60: every internal Ingress would be reachable from the internet by Host header.
 
+Every router on the public entrypoints automatically gets an origin lockdown (only Cloudflare, the
+LAN and pods may connect) plus per-visitor rate and concurrency limits. Apps add stricter limits on
+expensive routes themselves. See `docs/public_edge_protection.md`, including how to key a limit:
+`ipStrategy.depth: 1`, never the default, which is the Cloudflare edge.
+
 DNS for public hosts is automatic: external-dns (`external-dns/`) creates a proxied CNAME
 `<name>.danwils.com → danwils.com` for any Ingress labelled `dns.danwils.com/public: "true"` with
 annotation `external-dns.kubernetes.io/target: danwils.com` (v0.23 ignores the old
