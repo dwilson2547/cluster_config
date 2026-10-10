@@ -11,5 +11,6 @@ configMapGenerator:
       - grafana.yaml
       - danwiki.yaml
       - argocd.yaml
+      - dxf-converter.yaml
 generatorOptions:
   disableNameSuffixHash: true

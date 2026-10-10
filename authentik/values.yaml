@@ -77,6 +77,12 @@ global:
         secretKeyRef:
           name: authentik-argocd-oidc
           key: client_secret
+    # dxf-converter OIDC client secret, read by blueprints/dxf-converter.yaml.
+    - name: AUTHENTIK_DXF_CONVERTER_CLIENT_SECRET
+      valueFrom:
+        secretKeyRef:
+          name: authentik-dxf-converter-oidc
+          key: client_secret
   envFrom:
     # optional: authentik still starts (without mail) before the Secret exists.
     - secretRef:

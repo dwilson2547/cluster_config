@@ -294,7 +294,7 @@ data:
 
     - Tools:
         - DXF Converter:
-            href: http://dxf-converter.local
+            href: https://dxf-converter.danwils.com
             description: Scanned pen tracing to clean, to-scale DXF
             icon: mdi-vector-polyline
         - Drone Build Sim:

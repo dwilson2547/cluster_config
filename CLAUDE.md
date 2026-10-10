@@ -84,7 +84,8 @@ picked up automatically.
 | danwiki (https://danwiki.danwils.com) | `dwilson2547/DanWiki` | `main` | `danwiki` | `values.yaml` |
 | photo-dump (https://photo-dump.danwils.com) | `dwilson2547/photo_dump` | `main` | `photo-dump` | `values-prod.yaml` |
 | photo-dump-dev (0 replicas) | `dwilson2547/photo_dump` | `dev` | `photo-dump-dev` | `values-dev.yaml` |
-| robo-services, build-sim, dxf-converter | own repos | `main` | own | see `argocd/` |
+| dxf-converter (https://dxf-converter.danwils.com) | `dwilson2547/dxf-converter` | `main` | `dxf-converter` | `values.yaml` |
+| robo-services, build-sim | own repos | `main` | own | see `argocd/` |
 
 ## Secret Management
 
@@ -138,6 +139,7 @@ Contains legacy and one-off manifests that predate the ArgoCD setup (postgres, b
 | `docs.ai-services.local` | AI Tool Docs |
 | `home.cluster.local` | Homepage dashboard (internal) |
 | `danwils.com` | Public landing page (homepage-public, cert-manager TLS) |
+| `dxf-converter.danwils.com` | DXF converter (public; anonymous use, sign-in via authentik only) |
 
 ## Notes
 

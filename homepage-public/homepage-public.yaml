@@ -33,6 +33,10 @@ data:
             href: https://danwiki.danwils.com
             description: Wiki with semantic search
             icon: si-gitbook
+        - DXF Converter:
+            href: https://dxf-converter.danwils.com
+            description: Scanned pen tracing to clean, to-scale DXF
+            icon: mdi-vector-polyline
         - Grafana:
             href: https://grafana.danwils.com
             description: Cluster metrics, logs and traces
