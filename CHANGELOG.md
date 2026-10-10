@@ -1,3 +1,12 @@
+## 2026-10-10 - Real client IPs on the public entrypoints
+
+### Changed
+- `traefik/values.yaml`: `traefik-public` (192.168.0.65) uses `externalTrafficPolicy: Local`, and
+  `pubweb`/`pubsecure` trust `X-Forwarded-For` from Cloudflare's published ranges only. Before this,
+  every public request reached backends with a node IP (192.168.0.35) as its source — measured in
+  authentik's request log — so per-IP features (authentik's login reputation) would treat all
+  visitors as one. LAN entrypoints unchanged.
+
 ## 2026-10-10 - authentik identity provider at auth.danwils.com
 
 ### Added

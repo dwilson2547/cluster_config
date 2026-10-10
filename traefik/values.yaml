@@ -77,6 +77,35 @@ ports:
         to: pubsecure
         scheme: https
         permanent: true
+    # Behind Cloudflare: trust X-Forwarded-For only from Cloudflare's edge, so
+    # backends see the visitor's IP rather than a node or edge address (authentik's
+    # per-IP login reputation needs it). Ranges: https://www.cloudflare.com/ips/
+    # (fetched 2026-10-10). Needs externalTrafficPolicy: Local on `public` below,
+    # or the source arrives SNATed to a node IP and matches none of these.
+    forwardedHeaders:
+      trustedIPs: &cloudflare
+        - 173.245.48.0/20
+        - 103.21.244.0/22
+        - 103.22.200.0/22
+        - 103.31.4.0/22
+        - 141.101.64.0/18
+        - 108.162.192.0/18
+        - 190.93.240.0/20
+        - 188.114.96.0/20
+        - 197.234.240.0/22
+        - 198.41.128.0/17
+        - 162.158.0.0/15
+        - 104.16.0.0/13
+        - 104.24.0.0/14
+        - 172.64.0.0/13
+        - 131.0.72.0/22
+        - 2400:cb00::/32
+        - 2606:4700::/32
+        - 2803:f800::/32
+        - 2405:b500::/32
+        - 2405:8100::/32
+        - 2a06:98c0::/29
+        - 2c0f:f248::/32
   pubsecure:
     port: 8444
     exposedPort: 443
@@ -86,6 +115,8 @@ ports:
       public: true
     tls:
       enabled: true
+    forwardedHeaders:
+      trustedIPs: *cloudflare
 providers:
   kubernetesGateway:
     enabled: true
@@ -103,6 +134,10 @@ service:
       single: true
       annotations:
         metallb.universe.tf/loadBalancerIPs: 192.168.0.65
+      spec:
+        # Keep the client source IP (a Cloudflare edge address) instead of SNATing
+        # it to the node; safe because the DaemonSet has a pod on every node.
+        externalTrafficPolicy: Local
   annotations:
     # Pinned so the ingress IP can't move: dns.yaml's zones and the router's 80/443
     # forward point here. (Was a hand-run `kubectl annotate` before 2026-10-10.)
