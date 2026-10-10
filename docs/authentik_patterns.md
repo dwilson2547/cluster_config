@@ -21,6 +21,11 @@ notifications as blueprints, mounted via `blueprints.configMaps`).
 - Check results through the ORM (`ak shell`), not raw SQL: the table layout uses multi-table
   inheritance and the join columns are not obvious.
 
+- **OAuth2 providers need `grant_types` set.** In 2026.8 it defaults to an empty list, which rejects
+  every authorize request as `invalid_request` ("The request is otherwise malformed"); the server
+  log says "Invalid grant_type for provider". List `authorization_code` (plus `refresh_token` if the
+  app refreshes).
+
 ## Source enrollment flows
 
 - **Never end a source (Google/OAuth) enrollment flow with a Deny stage.** authentik appends

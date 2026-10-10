@@ -23,6 +23,11 @@ entries:
       name: photo-dump
     attrs:
       client_type: confidential
+      # Defaults to [] in 2026.8, which refuses every request ("Invalid grant_type
+      # for provider"). Code flow only: the app issues its own session token and
+      # never refreshes authentik's.
+      grant_types:
+        - authorization_code
       client_id: photo-dump
       client_secret: !Env [AUTHENTIK_PHOTO_DUMP_CLIENT_SECRET, ""]
       redirect_uris:
