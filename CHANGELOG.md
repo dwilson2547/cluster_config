@@ -6,6 +6,8 @@
 - `argocd/metallb.yaml` + `metallb/`: unmodified upstream `metallb-native` v0.15.2 manifest plus
   `pool.yaml` (IPAddressPool `192.168.0.60-192.168.0.85`, L2Advertisement), via kustomize.
 - `Prune=false,Delete=false` on MetalLB CRDs, namespace, pool and L2Advertisement.
+- Traefik's IP `192.168.0.60` pinned in `traefik/values.yaml` (`service.annotations`); it had been set by
+  a hand-run `kubectl annotate` on 2026-05-10 and existed nowhere in git.
 
 ### Notes
 - Adopted in place: `kubectl diff` of both renders against the live cluster was empty apart from the

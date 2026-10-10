@@ -4,7 +4,7 @@
 # these Argo-managed resources.
 #
 # DaemonSet on every node with hostPorts 80/443, plus the LoadBalancer service
-# (MetalLB, 192.168.0.60). Serves IngressClasses traefik, public (default) and
+# (MetalLB, 192.168.0.60, pinned below). Serves IngressClasses traefik, public (default) and
 # nginx (nginx-annotation compatibility via the kubernetesIngressNginx provider).
 deployment:
   kind: DaemonSet
@@ -59,3 +59,8 @@ providers:
       enabled: true
   kubernetesIngressNginx:
     enabled: true
+service:
+  annotations:
+    # Pinned so the ingress IP can't move: dns.yaml's zones and the router's 80/443
+    # forward point here. (Was a hand-run `kubectl annotate` before 2026-10-10.)
+    metallb.universe.tf/loadBalancerIPs: 192.168.0.60
