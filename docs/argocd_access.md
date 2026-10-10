@@ -94,3 +94,4 @@ curl -s -o /dev/null -w '%{http_code}\n' --resolve argocd.local:80:192.168.0.60 
   only trigger refreshes.
 - Keep ArgoCD current: it runs with cluster-admin, and its unauthenticated surface (login page, API)
   is now on the internet. MFA on accounts in `argocd-admins` matters for the same reason.
+- **Login loops back to `/login`** although authentik shows it authorized: argocd-server cannot resolve/reach `auth.danwils.com` for session verification. See `docs/issues/2026_10_10_coredns_stale_upstream_bind.md`.

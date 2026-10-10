@@ -1,3 +1,11 @@
+## 2026-10-10 - Cluster DNS: CoreDNS restarted to drop stale upstream 192.168.0.30
+
+### Fixed
+- `kube-system/coredns` was still forwarding to 192.168.0.30 (from its resolv.conf at pod creation, 136
+  days ago), a BIND server with an old `danwils.com` zone that returns NXDOMAIN for `auth.danwils.com`.
+  This broke ArgoCD SSO session verification and could intermittently break any in-cluster client of
+  `*.danwils.com`. Restarted; see `docs/issues/2026_10_10_coredns_stale_upstream_bind.md`.
+
 ## 2026-10-10 - ArgoCD public at argocd.danwils.com, sign-in through authentik
 
 ### Added
