@@ -66,6 +66,7 @@ Most services are plain Kubernetes manifests tracked directly in this repo. Argo
 | cert-manager | `cert-manager/` (Helm values + `issuers/`) | `argocd/cert-manager.yaml` |
 | traefik (ingress, LB 192.168.0.60) | `traefik/values.yaml` (Helm values) | `argocd/traefik.yaml` |
 | external-dns (Cloudflare records) | `external-dns/values.yaml` (Helm values) | `argocd/external-dns.yaml` |
+| authentik (SSO/OIDC, https://auth.danwils.com) | `authentik/values.yaml` (Helm values) | `argocd/authentik.yaml` |
 | metallb (LB IP pool) | `metallb/` (upstream manifest + `pool.yaml`) | `argocd/metallb.yaml` |
 | flink-operator | `flink-operator/` (Helm values) | `argocd/flink-operator.yaml` |
 

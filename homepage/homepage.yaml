@@ -325,6 +325,10 @@ data:
             href: http://argocd.local
             description: GitOps continuous delivery
             icon: argocd
+        - Authentik:
+            href: https://auth.danwils.com/if/admin/
+            description: Identity provider (SSO) admin
+            icon: authentik
         - Grafana:
             href: http://monitoring.local
             description: Metrics and dashboards

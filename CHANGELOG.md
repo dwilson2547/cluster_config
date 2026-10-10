@@ -1,3 +1,16 @@
+## 2026-10-10 - authentik identity provider at auth.danwils.com
+
+### Added
+- `authentik/values.yaml`, `argocd/authentik.yaml`: authentik 2026.8.3 (Helm chart), namespace
+  `authentik`, public at `auth.danwils.com` (pubsecure, letsencrypt-prod, external-dns). Central
+  sign-in for cluster services over OIDC; apps keep their own sessions and permissions.
+- Uses the shared `postgres/postgres`: database + role `authentik` created by hand (role password
+  from the secret over stdin, role owns the database). No Redis: authentik dropped it in 2025.10.
+- `example-secrets/authentik/secret.yml`: `authentik-secrets` (secret key, DB password, bootstrap
+  admin). Bootstrap creates `akadmin` on first start so the initial-setup flow is never exposed on
+  the public hostname.
+- Homepage: Authentik admin link in the Cluster group.
+
 ## 2026-10-10 - All ArgoCD Applications centralized; app-of-apps root
 
 ### Added

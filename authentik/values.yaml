@@ -1,0 +1,51 @@
+# authentik: central identity provider (OIDC/SSO) for cluster services.
+# Chart: https://charts.goauthentik.io (authentik). No Redis: as of 2025.10 authentik
+# runs on Postgres alone, and the chart has no Redis dependency.
+#
+# Secrets come from the hand-applied `authentik-secrets` Secret (template:
+# example-secrets/authentik/secret.yml). With existingSecret set the chart renders
+# no secret of its own and ignores every authentik.* value, so non-secret config
+# goes in global.env below rather than under `authentik:`.
+
+authentik:
+  existingSecret:
+    secretName: authentik-secrets
+
+global:
+  env:
+    # Shared cluster Postgres; database + role `authentik` created by hand
+    # (role password = AUTHENTIK_POSTGRESQL__PASSWORD in the secret).
+    - name: AUTHENTIK_POSTGRESQL__HOST
+      value: postgres.postgres.svc.cluster.local
+    - name: AUTHENTIK_POSTGRESQL__NAME
+      value: authentik
+    - name: AUTHENTIK_POSTGRESQL__USER
+      value: authentik
+    - name: AUTHENTIK_POSTGRESQL__PORT
+      value: "5432"
+    - name: AUTHENTIK_LOG_LEVEL
+      value: info
+    - name: AUTHENTIK_ERROR_REPORTING__ENABLED
+      value: "false"
+
+postgresql:
+  enabled: false
+
+server:
+  ingress:
+    enabled: true
+    ingressClassName: traefik
+    # Public: served on the pubsecure entrypoint (traefik-public, 192.168.0.65);
+    # external-dns creates the proxied auth.danwils.com CNAME from the label.
+    labels:
+      dns.danwils.com/public: "true"
+    annotations:
+      cert-manager.io/cluster-issuer: letsencrypt-prod
+      traefik.ingress.kubernetes.io/router.entrypoints: pubsecure
+      external-dns.kubernetes.io/target: danwils.com
+    hosts:
+      - auth.danwils.com
+    tls:
+      - secretName: auth-danwils-tls
+        hosts:
+          - auth.danwils.com
