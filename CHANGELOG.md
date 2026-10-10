@@ -1,3 +1,24 @@
+## 2026-10-10 - cert-manager under ArgoCD
+
+### Added
+- `argocd/cert-manager.yaml`: jetstack chart v1.21.2 (values `cert-manager/values.yaml`, CRDs installed
+  and kept on delete) plus `cert-manager/issuers/` in one multi-source app, namespace `cert-manager`.
+- ClusterIssuers `letsencrypt-staging` and `letsencrypt-prod`: ACME DNS-01 via Cloudflare for
+  `danwils.com`. Token secret `cloudflare-api-token` (key `api-token`) applied by hand; template in
+  `example-secrets/cert-manager/secret.yml`.
+
+### Removed
+- The microk8s cert-manager addon and its namespaced `default/letsencrypt` Issuer (HTTP-01) were disabled
+  by hand before this; the stale `cert-manager-webhook-ca` secret it left behind was deleted.
+
+### Notes
+- Traefik (LB `192.168.0.60`, namespace `ingress`) is the microk8s ingress addon's Helm release
+  (chart 37.4.0, Traefik v3.6.2), not managed here. The `public` (default) and `nginx` IngressClasses
+  come from that addon.
+- `kubernetes/cert manager/` is the legacy, unsynced predecessor; superseded by the above.
+
+---
+
 ## 2026-10-10 - Deploy canvas-viewer
 
 ### Added

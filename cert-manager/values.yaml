@@ -1,0 +1,13 @@
+crds:
+  enabled: true
+  # Deleting the app must not delete CRDs (that would delete every Certificate).
+  keep: true
+
+# Check DNS-01 propagation against public resolvers, not the cluster's DNS, so
+# a future LAN override for danwils.com can't make the self-check lie.
+extraArgs:
+  - --dns01-recursive-nameservers=1.1.1.1:53,8.8.8.8:53
+  - --dns01-recursive-nameservers-only
+
+prometheus:
+  enabled: true
