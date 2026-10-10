@@ -1,0 +1,11 @@
+# grafana-oidc: Grafana's OIDC client secret for authentik. Never commit real values.
+# Same value as `authentik-grafana-oidc` in the authentik namespace
+# (example-secrets/authentik/smtp-and-google.yml).
+apiVersion: v1
+kind: Secret
+metadata:
+  name: grafana-oidc
+  namespace: monitoring
+type: Opaque
+stringData:
+  client_secret: replace-me

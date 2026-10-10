@@ -29,6 +29,10 @@ data:
             href: https://photo-dump.danwils.com
             description: Photo sharing spaces
             icon: si-googlephotos
+        - Grafana:
+            href: https://grafana.danwils.com
+            description: Cluster metrics, logs and traces
+            icon: grafana
 
   bookmarks.yaml: |
     - Links:

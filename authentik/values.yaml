@@ -59,6 +59,12 @@ global:
         secretKeyRef:
           name: authentik-photo-dump-oidc
           key: client_secret
+    # Grafana OIDC client secret, read by blueprints/grafana.yaml.
+    - name: AUTHENTIK_GRAFANA_CLIENT_SECRET
+      valueFrom:
+        secretKeyRef:
+          name: authentik-grafana-oidc
+          key: client_secret
   envFrom:
     # optional: authentik still starts (without mail) before the Secret exists.
     - secretRef:

@@ -1,22 +1,24 @@
+# Public only: Grafana's root_url and OIDC redirect are https://grafana.danwils.com,
+# so a .local host would bounce there on sign-in anyway. Sign-in is through authentik.
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: grafana
   namespace: monitoring
+  labels:
+    dns.danwils.com/public: "true"
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    traefik.ingress.kubernetes.io/router.entrypoints: pubsecure
+    external-dns.kubernetes.io/target: danwils.com
 spec:
-  ingressClassName: nginx
+  ingressClassName: traefik
+  tls:
+    - hosts:
+        - grafana.danwils.com
+      secretName: grafana-danwils-tls
   rules:
-    - host: monitoring.local
-      http:
-        paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: prometheus-grafana
-                port:
-                  number: 80
-    - host: grafana.scrapestack.local
+    - host: grafana.danwils.com
       http:
         paths:
           - path: /

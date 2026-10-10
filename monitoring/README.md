@@ -59,9 +59,12 @@ For the current cluster migration, `monitoring/helm-values/prometheus-values.yam
 
 ## Access
 
-- Grafana: http://monitoring.local
-- Grafana (alternate host): http://grafana.scrapestack.local
-- Admin password: `kubectl get secret prometheus-grafana -n monitoring -o jsonpath="{.data.admin-password}" | base64 -d`
+- Grafana: https://grafana.danwils.com (public). Sign-in only through authentik; there is no login
+  form. Role comes from authentik groups at every sign-in: `grafana-admins` (server admin),
+  `grafana-editors`, `grafana-viewers`; anyone in none of them is refused. See
+  `authentik/blueprints/grafana.yaml`.
+- The local `admin` account (password in secret `prometheus-grafana`) is API-only (basic auth),
+  kept because the datasource sidecar uses it to reload provisioning.
 
 ## App integration
 

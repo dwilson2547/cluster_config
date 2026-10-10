@@ -316,7 +316,7 @@ data:
             description: Identity provider (SSO) admin
             icon: authentik
         - Grafana:
-            href: http://monitoring.local
+            href: https://grafana.danwils.com
             description: Metrics and dashboards
             icon: grafana
         - SearXNG:

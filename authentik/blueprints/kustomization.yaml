@@ -8,5 +8,6 @@ configMapGenerator:
       - signup.yaml
       - notify-new-users.yaml
       - photo-dump.yaml
+      - grafana.yaml
 generatorOptions:
   disableNameSuffixHash: true

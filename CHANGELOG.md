@@ -1,3 +1,23 @@
+## 2026-10-10 - Grafana public at grafana.danwils.com, sign-in through authentik
+
+### Added
+- `authentik/blueprints/grafana.yaml`: confidential OIDC provider + application `grafana` (client id
+  `grafana`, code + refresh grants, redirect `https://grafana.danwils.com/login/generic_oauth`) and
+  groups `grafana-admins` / `grafana-editors` / `grafana-viewers`. The application is bound to the three
+  groups, so anyone in none of them is refused by authentik. Client secret from the hand-applied
+  `authentik-grafana-oidc` Secret via `!Env`; Grafana reads the same value from `grafana-oidc`
+  (monitoring ns). Templates in `example-secrets/authentik/` and `example-secrets/monitoring/`.
+- Public homepage: Grafana.
+
+### Changed
+- `monitoring/helm-values/prometheus-values.yaml`: Grafana `generic_oauth` against authentik, auto
+  sign-in, login form disabled, anonymous off, `root_url` https://grafana.danwils.com. Role from groups at
+  every sign-in (admins -> GrafanaAdmin, editors -> Editor, viewers -> Viewer), strict. Basic auth left on
+  for the API: the datasource sidecar reloads with the chart's admin credentials.
+- `monitoring/manifests/ingress.yaml`: Grafana served only at grafana.danwils.com (pubsecure,
+  letsencrypt-prod, external-dns). `monitoring.local` and `grafana.scrapestack.local` dropped.
+- Internal homepage: Grafana links to grafana.danwils.com.
+
 ## 2026-10-10 - photo-dump prod at photo-dump.danwils.com
 
 ### Added

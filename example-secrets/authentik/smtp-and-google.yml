@@ -1,4 +1,4 @@
-# Two more hand-applied secrets for authentik. Never commit real values.
+# More hand-applied secrets for authentik. Never commit real values.
 #
 # authentik-smtp: Gmail SMTP for sign-up/approval mail. The password is a Google
 # *app password* (Account > Security > App passwords; needs 2-Step Verification).
@@ -32,6 +32,17 @@ apiVersion: v1
 kind: Secret
 metadata:
   name: authentik-photo-dump-oidc
+  namespace: authentik
+type: Opaque
+stringData:
+  client_secret: replace-me
+---
+# authentik-grafana-oidc: Grafana's OIDC client secret (any random string).
+# The same value goes in `grafana-oidc` (monitoring ns), see example-secrets/monitoring/.
+apiVersion: v1
+kind: Secret
+metadata:
+  name: authentik-grafana-oidc
   namespace: authentik
 type: Opaque
 stringData:
