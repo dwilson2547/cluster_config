@@ -27,6 +27,43 @@ global:
       value: info
     - name: AUTHENTIK_ERROR_REPORTING__ENABLED
       value: "false"
+    # Defaults plus Cloudflare's edge ranges (https://www.cloudflare.com/ips/,
+    # fetched 2026-10-10). Traefik forwards "X-Forwarded-For: <visitor>, <edge>";
+    # authentik walks it right to left past trusted hops, so without Cloudflare
+    # here it stops at the edge address and every visitor shares a handful of IPs.
+    - name: AUTHENTIK_LISTEN__TRUSTED_PROXY_CIDRS
+      value: "127.0.0.0/8,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,fe80::/10,::1/128,173.245.48.0/20,103.21.244.0/22,103.22.200.0/22,103.31.4.0/22,141.101.64.0/18,108.162.192.0/18,190.93.240.0/20,188.114.96.0/20,197.234.240.0/22,198.41.128.0/17,162.158.0.0/15,104.16.0.0/13,104.24.0.0/14,172.64.0.0/13,131.0.72.0/22,2400:cb00::/32,2606:4700::/32,2803:f800::/32,2405:b500::/32,2405:8100::/32,2a06:98c0::/29,2c0f:f248::/32"
+    # Gmail SMTP. Username, app password and From live in the hand-applied
+    # `authentik-smtp` Secret (envFrom below), not here: this repo is public.
+    - name: AUTHENTIK_EMAIL__HOST
+      value: smtp.gmail.com
+    - name: AUTHENTIK_EMAIL__PORT
+      value: "587"
+    - name: AUTHENTIK_EMAIL__USE_TLS
+      value: "true"
+    # Google OAuth client, read by blueprints/signup.yaml via !Env. The Secret is
+    # applied by hand; see example-secrets/authentik/.
+    - name: AUTHENTIK_GOOGLE_CLIENT_ID
+      valueFrom:
+        secretKeyRef:
+          name: authentik-google-oauth
+          key: client_id
+    - name: AUTHENTIK_GOOGLE_CLIENT_SECRET
+      valueFrom:
+        secretKeyRef:
+          name: authentik-google-oauth
+          key: client_secret
+  envFrom:
+    # optional: authentik still starts (without mail) before the Secret exists.
+    - secretRef:
+        name: authentik-smtp
+        optional: true
+
+# Blueprints from blueprints/ (ConfigMap built by blueprints/kustomization.yaml,
+# a second source of the Argo app), mounted where authentik discovers them.
+blueprints:
+  configMaps:
+    - authentik-blueprints-danwils
 
 postgresql:
   enabled: false

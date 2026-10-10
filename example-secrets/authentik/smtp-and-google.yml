@@ -1,0 +1,27 @@
+# Two more hand-applied secrets for authentik. Never commit real values.
+#
+# authentik-smtp: Gmail SMTP for sign-up/approval mail. The password is a Google
+# *app password* (Account > Security > App passwords; needs 2-Step Verification).
+# Optional: authentik starts without it, it just cannot send mail.
+apiVersion: v1
+kind: Secret
+metadata:
+  name: authentik-smtp
+  namespace: authentik
+type: Opaque
+stringData:
+  AUTHENTIK_EMAIL__USERNAME: replace-me@gmail.com
+  AUTHENTIK_EMAIL__PASSWORD: replace-me
+  AUTHENTIK_EMAIL__FROM: "authentik <replace-me@gmail.com>"
+---
+# authentik-google-oauth: Google Cloud OAuth client (Web application) with
+# redirect URI https://auth.danwils.com/source/oauth/callback/google/
+apiVersion: v1
+kind: Secret
+metadata:
+  name: authentik-google-oauth
+  namespace: authentik
+type: Opaque
+stringData:
+  client_id: replace-me
+  client_secret: replace-me

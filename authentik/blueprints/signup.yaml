@@ -1,0 +1,130 @@
+# Open sign-up with Google, held for admin approval.
+#
+# A new Google user is created INACTIVE and shown a "waiting for approval" page;
+# an inactive user cannot sign in to authentik or any app behind it. Approve by
+# activating the user (Directory > Users), which notify-new-users.yaml prompts.
+#
+# Matching is by Google identifier, not email: an existing account (akadmin
+# included) is never taken over by a Google login with the same address.
+version: 1
+metadata:
+  name: danwils - Google sign-up with approval
+entries:
+  - model: authentik_flows.flow
+    id: flow
+    identifiers:
+      slug: danwils-source-enrollment
+    attrs:
+      designation: enrollment
+      name: Sign up
+      title: Create your account
+      authentication: none
+
+  # Only reachable from an external IdP (the Google source), never directly.
+  - model: authentik_policies_expression.expressionpolicy
+    id: if-sso
+    identifiers:
+      name: danwils-source-enrollment-if-sso
+    attrs:
+      expression: |
+        return ak_is_sso_flow
+
+  # Ask for a username only if Google did not supply one.
+  - model: authentik_policies_expression.expressionpolicy
+    id: if-no-username
+    identifiers:
+      name: danwils-source-enrollment-if-no-username
+    attrs:
+      expression: |
+        return 'username' not in context.get('prompt_data', {})
+
+  - model: authentik_stages_prompt.prompt
+    id: field-username
+    identifiers:
+      name: danwils-source-enrollment-field-username
+    attrs:
+      field_key: username
+      label: Username
+      type: username
+      required: true
+      placeholder: Username
+      order: 100
+
+  - model: authentik_stages_prompt.promptstage
+    id: prompt
+    identifiers:
+      name: danwils-source-enrollment-prompt
+    attrs:
+      fields:
+        - !KeyOf field-username
+
+  - model: authentik_stages_user_write.userwritestage
+    id: write
+    identifiers:
+      name: danwils-source-enrollment-write-inactive
+    attrs:
+      user_creation_mode: always_create
+      create_users_as_inactive: true
+
+  # Ends the flow without logging in; the account exists but is inactive.
+  - model: authentik_stages_deny.denystage
+    id: pending
+    identifiers:
+      name: danwils-source-enrollment-pending
+    attrs:
+      deny_message: >-
+        Thanks for signing up. Your account is waiting for approval; you will be
+        able to sign in once it has been approved.
+
+  - model: authentik_flows.flowstagebinding
+    id: prompt-binding
+    identifiers:
+      target: !KeyOf flow
+      stage: !KeyOf prompt
+      order: 0
+    attrs:
+      re_evaluate_policies: true
+  - model: authentik_flows.flowstagebinding
+    identifiers:
+      target: !KeyOf flow
+      stage: !KeyOf write
+      order: 10
+  - model: authentik_flows.flowstagebinding
+    identifiers:
+      target: !KeyOf flow
+      stage: !KeyOf pending
+      order: 20
+
+  - model: authentik_policies.policybinding
+    identifiers:
+      target: !KeyOf flow
+      policy: !KeyOf if-sso
+      order: 0
+  - model: authentik_policies.policybinding
+    identifiers:
+      target: !KeyOf prompt-binding
+      policy: !KeyOf if-no-username
+      order: 0
+
+  - model: authentik_sources_oauth.oauthsource
+    id: google
+    identifiers:
+      slug: google
+    attrs:
+      name: Google
+      provider_type: google
+      enabled: true
+      consumer_key: !Env [AUTHENTIK_GOOGLE_CLIENT_ID, ""]
+      consumer_secret: !Env [AUTHENTIK_GOOGLE_CLIENT_SECRET, ""]
+      user_matching_mode: identifier
+      authentication_flow: !Find [authentik_flows.flow, [slug, default-source-authentication]]
+      enrollment_flow: !KeyOf flow
+
+  # "Sign in with Google" on the default login page. Only `sources` is set, so
+  # the default blueprint's own attrs (user_fields) are left as they are.
+  - model: authentik_stages_identification.identificationstage
+    identifiers:
+      name: default-authentication-identification
+    attrs:
+      sources:
+        - !KeyOf google

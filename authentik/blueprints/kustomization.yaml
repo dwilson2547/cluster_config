@@ -1,0 +1,11 @@
+# Builds the ConfigMap that authentik/values.yaml mounts as blueprints.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: authentik
+configMapGenerator:
+  - name: authentik-blueprints-danwils
+    files:
+      - signup.yaml
+      - notify-new-users.yaml
+generatorOptions:
+  disableNameSuffixHash: true

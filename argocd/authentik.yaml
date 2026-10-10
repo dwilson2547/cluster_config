@@ -16,6 +16,10 @@ spec:
     - repoURL: git@github.com:dwilson2547/cluster_config.git
       targetRevision: main
       ref: values
+    # Blueprints ConfigMap (kustomize), mounted via blueprints.configMaps.
+    - repoURL: git@github.com:dwilson2547/cluster_config.git
+      targetRevision: main
+      path: authentik/blueprints
   destination:
     server: https://kubernetes.default.svc
     namespace: authentik

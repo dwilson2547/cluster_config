@@ -1,3 +1,22 @@
+## 2026-10-10 - authentik: Google sign-up with admin approval, mail, real client IPs
+
+### Added
+- `authentik/blueprints/` (kustomize ConfigMap, third source of `argocd/authentik.yaml`, mounted via
+  `blueprints.configMaps`):
+  - `signup.yaml`: Google OAuth source (`/source/oauth/callback/google/`) with "Sign in with Google" on
+    the default login page. New Google users go through `danwils-source-enrollment`, which creates them
+    **inactive** and ends on a "waiting for approval" page; approve by activating the user. Matching is
+    by Google identifier, so no existing account is linked by email.
+  - `notify-new-users.yaml`: every created user notifies the `authentik Admins` group by email and in
+    the UI.
+- Gmail SMTP (`smtp.gmail.com:587`, TLS). Username, app password and From are in the hand-applied
+  `authentik-smtp` Secret (optional; mail is off until it exists). Google client in
+  `authentik-google-oauth`. Templates: `example-secrets/authentik/smtp-and-google.yml`.
+
+### Changed
+- `AUTHENTIK_LISTEN__TRUSTED_PROXY_CIDRS`: defaults plus Cloudflare's ranges. With only the Traefik
+  change, authentik logged the Cloudflare edge IP (104.22.62.62, 172.70.50.41) as the client.
+
 ## 2026-10-10 - Real client IPs on the public entrypoints
 
 ### Changed
