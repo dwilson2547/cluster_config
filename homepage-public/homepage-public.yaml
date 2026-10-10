@@ -66,9 +66,10 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: status.podIP
-            # Pod IP is for the kubelet probe's Host header.
+            # Pod IP is for the kubelet probe's Host header; behind Traefik the
+            # host arrives as danwils.com:443, which must be listed explicitly.
             - name: HOMEPAGE_ALLOWED_HOSTS
-              value: "$(MY_POD_IP):3000,danwils.com"
+              value: "$(MY_POD_IP):3000,danwils.com,danwils.com:443"
           ports:
             - name: http
               containerPort: 3000
