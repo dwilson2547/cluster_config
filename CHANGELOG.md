@@ -1,3 +1,19 @@
+## 2026-10-10 - external-dns for public danwils.com records
+
+### Added
+- `argocd/external-dns.yaml` + `external-dns/values.yaml`: external-dns chart 1.23.0 (v0.23.0), Cloudflare
+  provider, namespace `external-dns`. Ingress source only, opt-in by label `dns.danwils.com/public=true`,
+  domain filter `danwils.com`, records proxied, policy `sync` with TXT registry (owner `home-cluster`,
+  prefix `_extdns-%{record_type}.`), private target ranges excluded.
+- Token secret `cloudflare-api-token-danwils` in `external-dns`, applied by hand; template in
+  `example-secrets/external-dns/secret.yml`.
+
+### Notes
+- Replaces the planned agent-run `cf-cname` script: publishing is a git change on the Ingress, and no
+  agent holds a Cloudflare token.
+
+---
+
 ## 2026-10-10 - Separate public ingress (traefik-public, 192.168.0.65)
 
 ### Fixed

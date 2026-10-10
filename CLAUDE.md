@@ -30,6 +30,11 @@ a service, give its Ingress a `*.danwils.com` host, TLS via `cert-manager.io/clu
 letsencrypt-prod`, and `traefik.ingress.kubernetes.io/router.entrypoints: pubsecure`. Never point the
 router at .60: every internal Ingress would be reachable from the internet by Host header.
 
+DNS for public hosts is automatic: external-dns (`external-dns/`) creates a proxied CNAME
+`<name>.danwils.com → danwils.com` for any Ingress labelled `dns.danwils.com/public: "true"` with
+annotation `external-dns.alpha.kubernetes.io/target: danwils.com`, and deletes it with the Ingress. It only
+touches records it owns (TXT `_extdns-cname.<name>`); the apex A record is ddclient's.
+
 ## Two Deployment Patterns
 
 ### 1. Manifest-based (this repo)
@@ -52,6 +57,7 @@ Most services are plain Kubernetes manifests tracked directly in this repo. Argo
 | reloader | — (Helm chart, stakater) | `argocd/reloader.yaml` |
 | cert-manager | `cert-manager/` (Helm values + `issuers/`) | `argocd/cert-manager.yaml` |
 | traefik (ingress, LB 192.168.0.60) | `traefik/values.yaml` (Helm values) | `argocd/traefik.yaml` |
+| external-dns (Cloudflare records) | `external-dns/values.yaml` (Helm values) | `argocd/external-dns.yaml` |
 | metallb (LB IP pool) | `metallb/` (upstream manifest + `pool.yaml`) | `argocd/metallb.yaml` |
 | flink-operator | `flink-operator/` (Helm values) | `argocd/flink-operator.yaml` |
 

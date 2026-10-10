@@ -1,0 +1,38 @@
+# Publishes Cloudflare records for opted-in Ingresses. An Ingress is published only if it
+# carries the label below; its record is a proxied CNAME to the target annotation:
+#   metadata.labels:      dns.danwils.com/public: "true"
+#   metadata.annotations: external-dns.alpha.kubernetes.io/target: danwils.com
+# The danwils.com apex A record belongs to ddclient; never label the apex Ingress.
+provider:
+  name: cloudflare
+
+env:
+  - name: CF_API_TOKEN
+    valueFrom:
+      secretKeyRef:
+        name: cloudflare-api-token-danwils   # hand-applied; example-secrets/external-dns/secret.yml
+        key: api-token
+
+sources:
+  - ingress
+labelFilter: dns.danwils.com/public=true
+domainFilters:
+  - danwils.com
+
+# sync deletes a record when its Ingress goes away. The TXT registry limits that (and
+# every update) to records this instance created, marked by _extdns-<type>.<name> TXTs.
+policy: sync
+registry: txt
+txtOwnerId: home-cluster
+txtPrefix: "_extdns-%{record_type}."
+
+triggerLoopOnEvent: true
+interval: 5m
+
+extraArgs:
+  - --cloudflare-proxied
+  # Ingress status carries Traefik's LAN IP; a missing target annotation must never
+  # publish it.
+  - --exclude-target-net=10.0.0.0/8
+  - --exclude-target-net=172.16.0.0/12
+  - --exclude-target-net=192.168.0.0/16
