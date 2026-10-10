@@ -47,3 +47,14 @@ metadata:
 type: Opaque
 stringData:
   client_secret: replace-me
+---
+# authentik-danwiki-oidc: DanWiki's OIDC client secret (any random string).
+# The same value goes in `danwiki-oidc` (danwiki ns), see example-secrets/danwiki-secrets.yml.
+apiVersion: v1
+kind: Secret
+metadata:
+  name: authentik-danwiki-oidc
+  namespace: authentik
+type: Opaque
+stringData:
+  client_secret: replace-me

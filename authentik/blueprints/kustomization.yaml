@@ -9,5 +9,6 @@ configMapGenerator:
       - notify-new-users.yaml
       - photo-dump.yaml
       - grafana.yaml
+      - danwiki.yaml
 generatorOptions:
   disableNameSuffixHash: true

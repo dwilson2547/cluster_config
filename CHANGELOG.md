@@ -1,3 +1,23 @@
+## 2026-10-10 - DanWiki public at danwiki.danwils.com, sign-in through authentik
+
+### Added
+- `authentik/blueprints/danwiki.yaml`: confidential OIDC provider + application `danwiki` (client id
+  `danwiki`, code flow, redirect `https://danwiki.danwils.com/api/auth/oidc/callback`) and groups
+  `danwiki-admins` (site admin) / `danwiki-creators` (may create wikis). No policy binding: any approved
+  authentik user may sign in; per-wiki roles stay in DanWiki. Client secret from the hand-applied
+  `authentik-danwiki-oidc` Secret via `!Env`; the app reads the same value from `danwiki-oidc`
+  (danwiki ns). Templates in `example-secrets/`.
+- Public homepage: DanWiki.
+
+### Changed
+- DanWiki's chart (app repo) now serves only https://danwiki.danwils.com (pubsecure, letsencrypt-prod,
+  external-dns) and has no password login. Internal homepage links updated.
+- `danwiki-app-secrets` `SECRET_KEY` (hand-applied) was still the template placeholder; rotated, since it
+  now signs the OIDC state cookie on a public host.
+
+### Removed
+- `dns/dns.yaml`: the `danwiki.local` zone, which no Ingress serves any more.
+
 ## 2026-10-10 - Grafana public at grafana.danwils.com, sign-in through authentik
 
 ### Added

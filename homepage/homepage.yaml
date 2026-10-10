@@ -218,11 +218,11 @@ data:
 
     - DanWiki:
         - Wiki:
-            href: http://danwiki.local
+            href: https://danwiki.danwils.com
             description: AI-powered wiki with semantic search
             icon: si-gitbook
         - API:
-            href: http://danwiki.local/api/health
+            href: https://danwiki.danwils.com/api/health
             description: DanWiki Flask REST API
             icon: si-flask
 

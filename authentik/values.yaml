@@ -65,6 +65,12 @@ global:
         secretKeyRef:
           name: authentik-grafana-oidc
           key: client_secret
+    # DanWiki OIDC client secret, read by blueprints/danwiki.yaml.
+    - name: AUTHENTIK_DANWIKI_CLIENT_SECRET
+      valueFrom:
+        secretKeyRef:
+          name: authentik-danwiki-oidc
+          key: client_secret
   envFrom:
     # optional: authentik still starts (without mail) before the Secret exists.
     - secretRef:
