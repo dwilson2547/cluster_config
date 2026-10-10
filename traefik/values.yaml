@@ -1,0 +1,61 @@
+# Traefik ingress controller (chart pinned in argocd/traefik.yaml).
+# Originally installed by the microk8s ingress addon; adopted into Argo 2026-10-10
+# with these values unchanged. Never run `microk8s disable ingress`: it deletes
+# these Argo-managed resources.
+#
+# DaemonSet on every node with hostPorts 80/443, plus the LoadBalancer service
+# (MetalLB, 192.168.0.60). Serves IngressClasses traefik, public (default) and
+# nginx (nginx-annotation compatibility via the kubernetesIngressNginx provider).
+deployment:
+  kind: DaemonSet
+extraObjects:
+- apiVersion: networking.k8s.io/v1
+  kind: IngressClass
+  metadata:
+    annotations:
+      ingressclass.kubernetes.io/is-default-class: "true"
+    name: public
+  spec:
+    controller: traefik.io/ingress-controller
+- apiVersion: networking.k8s.io/v1
+  kind: IngressClass
+  metadata:
+    name: nginx
+  spec:
+    controller: traefik.io/ingress-controller
+gateway:
+  listeners:
+    web:
+      namespacePolicy:
+        from: All
+ingressClass:
+  enabled: true
+  isDefaultClass: false
+  name: traefik
+ingressRoute:
+  dashboard:
+    enabled: true
+    entryPoints:
+    - web
+    matchRule: Host(`dashboard.localhost`)
+ports:
+  web:
+    exposedPort: 80
+    hostPort: 80
+    port: 8000
+    protocol: TCP
+  websecure:
+    exposedPort: 443
+    hostPort: 443
+    port: 8443
+    protocol: TCP
+providers:
+  kubernetesGateway:
+    enabled: true
+  kubernetesIngress:
+    allowEmptyServices: true
+    enabled: true
+    publishedService:
+      enabled: true
+  kubernetesIngressNginx:
+    enabled: true

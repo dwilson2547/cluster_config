@@ -1,0 +1,27 @@
+# metallb-native-v0.15.2.yaml is the unmodified upstream manifest
+# (github.com/metallb/metallb, tag v0.15.2, config/manifests/). To upgrade,
+# replace it with the new tag's file. Site config is in pool.yaml.
+resources:
+  - metallb-native-v0.15.2.yaml
+  - pool.yaml
+patches:
+  # Losing these would drop every LoadBalancer IP in the cluster.
+  - target:
+      kind: CustomResourceDefinition
+    patch: |-
+      apiVersion: apiextensions.k8s.io/v1
+      kind: CustomResourceDefinition
+      metadata:
+        name: any
+        annotations:
+          argocd.argoproj.io/sync-options: Prune=false,Delete=false
+  - target:
+      kind: Namespace
+      name: metallb-system
+    patch: |-
+      apiVersion: v1
+      kind: Namespace
+      metadata:
+        name: metallb-system
+        annotations:
+          argocd.argoproj.io/sync-options: Prune=false,Delete=false

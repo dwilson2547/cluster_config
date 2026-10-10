@@ -14,6 +14,13 @@ kubectl apply -f argocd/monitoring.yaml
 
 Once applied, ArgoCD takes over. All apps are configured with `automated` sync (`prune: true`, `selfHeal: true`), so pushing to `main` in this repo is all that's needed to deploy changes.
 
+## microk8s addons: never disable ingress, metallb or cert-manager
+
+Traefik (`ingress` namespace) and MetalLB were installed by microk8s addons and are now owned by ArgoCD
+(`traefik/`, `metallb/`). cert-manager is Argo-installed; its addon was disabled. `microk8s disable
+ingress` / `metallb` would delete the Argo-managed resources and take down every ingress and
+LoadBalancer IP. Change them here, through git.
+
 ## Two Deployment Patterns
 
 ### 1. Manifest-based (this repo)
@@ -33,6 +40,9 @@ Most services are plain Kubernetes manifests tracked directly in this repo. Argo
 | searxng | `searxng/` | `argocd/searxng.yaml` |
 | ingress + argocd ingress | `argocd/ingress.yaml` | (applied manually) |
 | reloader | — (Helm chart, stakater) | `argocd/reloader.yaml` |
+| cert-manager | `cert-manager/` (Helm values + `issuers/`) | `argocd/cert-manager.yaml` |
+| traefik (ingress, LB 192.168.0.60) | `traefik/values.yaml` (Helm values) | `argocd/traefik.yaml` |
+| metallb (LB IP pool) | `metallb/` (upstream manifest + `pool.yaml`) | `argocd/metallb.yaml` |
 | flink-operator | `flink-operator/` (Helm values) | `argocd/flink-operator.yaml` |
 
 ### 2. Self-managed Helm (external repos)

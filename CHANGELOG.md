@@ -1,3 +1,19 @@
+## 2026-10-10 - Adopt Traefik and MetalLB into ArgoCD
+
+### Added
+- `argocd/traefik.yaml` + `traefik/values.yaml`: Traefik chart 37.4.0 (v3.6.2), release `traefik`,
+  namespace `ingress`, values copied unchanged from the microk8s ingress addon's Helm release.
+- `argocd/metallb.yaml` + `metallb/`: unmodified upstream `metallb-native` v0.15.2 manifest plus
+  `pool.yaml` (IPAddressPool `192.168.0.60-192.168.0.85`, L2Advertisement), via kustomize.
+- `Prune=false,Delete=false` on MetalLB CRDs, namespace, pool and L2Advertisement.
+
+### Notes
+- Adopted in place: `kubectl diff` of both renders against the live cluster was empty apart from the
+  added Argo annotations, so no pods restarted. First sync manual, then automated.
+- Warning added to `CLAUDE.md`: never `microk8s disable ingress|metallb`.
+
+---
+
 ## 2026-10-10 - ddclient restarts on secret change
 
 ### Changed
