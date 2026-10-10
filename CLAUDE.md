@@ -21,6 +21,15 @@ Traefik (`ingress` namespace) and MetalLB were installed by microk8s addons and 
 ingress` / `metallb` would delete the Argo-managed resources and take down every ingress and
 LoadBalancer IP. Change them here, through git.
 
+## Public vs internal ingress
+
+Traefik has two LoadBalancers. `traefik` (192.168.0.60, entrypoints `web`/`websecure`) is LAN-only
+and is the default: an Ingress that names no entrypoint is internal. `traefik-public`
+(192.168.0.65, entrypoints `pubweb`/`pubsecure`) is what the router forwards WAN 80/443 to. To publish
+a service, give its Ingress a `*.danwils.com` host, TLS via `cert-manager.io/cluster-issuer:
+letsencrypt-prod`, and `traefik.ingress.kubernetes.io/router.entrypoints: pubsecure`. Never point the
+router at .60: every internal Ingress would be reachable from the internet by Host header.
+
 ## Two Deployment Patterns
 
 ### 1. Manifest-based (this repo)

@@ -1,3 +1,19 @@
+## 2026-10-10 - Separate public ingress (traefik-public, 192.168.0.65)
+
+### Fixed
+- Forwarding WAN 80/443 to Traefik's .60 exposed every internal Ingress to the internet: Traefik
+  bound all routers to all entrypoints, so a request to the public IP with `Host: home.cluster.local`
+  returned the internal homepage. The router forward was moved to .65 (nothing listening) as soon as
+  this was seen.
+
+### Added
+- `traefik/values.yaml`: entrypoints `pubweb` (redirects to https) and `pubsecure` (TLS) exposed only on a
+  second LoadBalancer Service `traefik-public` pinned to 192.168.0.65. `web`/`websecure` are now
+  `asDefault`, so Ingresses that name no entrypoint stay on .60 / LAN only.
+- `homepage-public` Ingress opts in with `router.entrypoints: pubsecure`.
+
+---
+
 ## 2026-10-10 - Public landing page at danwils.com
 
 ### Added

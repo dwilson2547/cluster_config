@@ -4,7 +4,8 @@
 # these Argo-managed resources.
 #
 # DaemonSet on every node with hostPorts 80/443, plus the LoadBalancer service
-# (MetalLB, 192.168.0.60, pinned below). Serves IngressClasses traefik, public (default) and
+# (MetalLB, 192.168.0.60, pinned below) for the LAN, and a second LoadBalancer
+# `traefik-public` (192.168.0.65) carrying only the public entrypoints. Serves IngressClasses traefik, public (default) and
 # nginx (nginx-annotation compatibility via the kubernetesIngressNginx provider).
 deployment:
   kind: DaemonSet
@@ -39,16 +40,44 @@ ingressRoute:
     - web
     matchRule: Host(`dashboard.localhost`)
 ports:
+  # Internal (LAN) entrypoints on 192.168.0.60. asDefault: a router that names no
+  # entrypoint binds only to these, so every existing Ingress stays LAN-only.
   web:
+    asDefault: true
     exposedPort: 80
     hostPort: 80
     port: 8000
     protocol: TCP
   websecure:
+    asDefault: true
     exposedPort: 443
     hostPort: 443
     port: 8443
     protocol: TCP
+  # Public entrypoints, exposed only on the `public` Service (192.168.0.65), which
+  # the router forwards WAN 80/443 to. Nothing is served here unless its Ingress
+  # opts in with: traefik.ingress.kubernetes.io/router.entrypoints: pubsecure
+  pubweb:
+    port: 8001
+    exposedPort: 80
+    protocol: TCP
+    expose:
+      default: false
+      public: true
+    redirections:
+      entryPoint:
+        to: pubsecure
+        scheme: https
+        permanent: true
+  pubsecure:
+    port: 8444
+    exposedPort: 443
+    protocol: TCP
+    expose:
+      default: false
+      public: true
+    tls:
+      enabled: true
 providers:
   kubernetesGateway:
     enabled: true
@@ -60,6 +89,12 @@ providers:
   kubernetesIngressNginx:
     enabled: true
 service:
+  additionalServices:
+    public:
+      type: LoadBalancer
+      single: true
+      annotations:
+        metallb.universe.tf/loadBalancerIPs: 192.168.0.65
   annotations:
     # Pinned so the ingress IP can't move: dns.yaml's zones and the router's 80/443
     # forward point here. (Was a hand-run `kubectl annotate` before 2026-10-10.)
