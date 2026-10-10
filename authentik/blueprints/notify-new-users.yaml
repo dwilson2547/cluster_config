@@ -25,7 +25,9 @@ entries:
       name: danwils-notify-user-created
     attrs:
       severity: notice
-      group: !Find [authentik_core.group, [name, authentik Admins]]
+      # `destination_group`, not `group`: the shipped events-default.yaml still uses
+      # `group`, which this version silently ignores (its rules notify nobody).
+      destination_group: !Find [authentik_core.group, [name, authentik Admins]]
       transports:
         - !Find [authentik_events.notificationtransport, [name, default-email-transport]]
         - !Find [authentik_events.notificationtransport, [name, default-local-transport]]
