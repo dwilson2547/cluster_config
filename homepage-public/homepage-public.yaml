@@ -39,10 +39,20 @@ data:
             icon: grafana
 
   bookmarks.yaml: |
-    - Links:
-        - GitHub:
-            - href: https://github.com/dwilson2547
-              icon: github
+    - GitHub:
+        - All Repos:
+            - href: https://github.com/dwilson2547?tab=repositories
+              abbr: GH
+        - cluster_config:
+            - href: https://github.com/dwilson2547/cluster_config
+              abbr: CC
+    - Registries:
+        - Docker Hub:
+            - href: https://hub.docker.com/repositories/dwilson2547
+              abbr: DH
+        - PyPI:
+            - href: https://pypi.org/user/dwilson2547/
+              abbr: PY
 
   widgets.yaml: |
     []

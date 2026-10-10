@@ -1,3 +1,10 @@
+## 2026-10-10 - Public homepage: GitHub and registry links
+
+### Changed
+- `homepage-public`: the single GitHub bookmark is replaced by the internal homepage's link groups:
+  GitHub (All Repos, cluster_config) and Registries (Docker Hub, PyPI). gyopart is left out because it
+  is not a public service.
+
 ## 2026-10-10 - DanWiki public at danwiki.danwils.com, sign-in through authentik
 
 ### Added
