@@ -72,6 +72,10 @@ entries:
     attrs:
       user_creation_mode: always_create
       create_users_as_inactive: true
+      # External (also the default): sign-ups can use apps through authentik but
+      # not authentik's own user/admin interface ("Interface can only be accessed
+      # by internal users"). Make admins internal by hand in Directory > Users.
+      user_type: external
 
   # Removed: a Deny stage here dropped the Google link (see header).
   - model: authentik_stages_deny.denystage

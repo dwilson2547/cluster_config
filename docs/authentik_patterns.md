@@ -30,6 +30,10 @@ notifications as blueprints, mounted via `blueprints.configMaps`).
   sign-in cannot find them. To stop without signing in, let the flow complete and simply omit the
   User Login stage; an info prompt (`alert_info` field) can carry the message.
 
+- Users created by a User Write stage are `external` unless `user_type` says otherwise. External
+  users can sign in to applications but get "Interface can only be accessed by internal users" on
+  authentik's own UI. Right for public sign-ups; an admin account must be switched to internal.
+
 ## Client IPs behind Cloudflare
 
 Two layers both have to trust the hop in front of them, or authentik logs the wrong address:
