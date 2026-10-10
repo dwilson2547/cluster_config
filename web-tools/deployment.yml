@@ -20,7 +20,7 @@ spec:
     spec:
       containers:
         - name: web-tools
-          image: dwilson2547/web-tools:1.0.0
+          image: dwilson2547/web-tools:1.0.1
           imagePullPolicy: IfNotPresent
           ports:
             - name: http

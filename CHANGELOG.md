@@ -1,3 +1,9 @@
+## 2026-10-10 - web-tools 1.0.1: OSM tiles blocked
+
+### Fixed
+- geojson-editor showed OSM "Access blocked" (403) tiles: the image sent `Referrer-Policy: no-referrer`
+  and OSM's tile usage policy rejects requests with no Referer. Now `strict-origin-when-cross-origin`.
+
 ## 2026-10-10 - web-tools public at tools.danwils.com
 
 ### Added
