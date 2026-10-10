@@ -14,7 +14,7 @@
 - `argocd/cert-manager.yaml`: jetstack chart v1.21.2 (values `cert-manager/values.yaml`, CRDs installed
   and kept on delete) plus `cert-manager/issuers/` in one multi-source app, namespace `cert-manager`.
 - ClusterIssuers `letsencrypt-staging` and `letsencrypt-prod`: ACME DNS-01 via Cloudflare for
-  `danwils.com`. Token secret `cloudflare-api-token` (key `api-token`) applied by hand; template in
+  `danwils.com`. Token secret `cloudflare-api-token-danwils` (key `api-token`; one secret per zone) applied by hand; template in
   `example-secrets/cert-manager/secret.yml`.
 
 ### Removed
