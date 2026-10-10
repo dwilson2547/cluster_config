@@ -7,7 +7,10 @@
   Applications now live here; charts stay in their app repos. scrape-stack-dev is unchanged live.
 - scrape-stack prod (namespace `scrape-stack`) is deployed for the first time. Empty databases
   `request_auth`, `webcache`, `imgcache`, `filecache`, `vidcache` created on prod `postgres` (services
-  create their own tables). Needs the `postgres-credentials` secret in `scrape-stack`.
+  create their own tables). Needs the `postgres-credentials` secret in `scrape-stack`. Its user had no
+  role on prod postgres (auth failures until created); the role was created from the secret over stdin and
+  given ownership of the five databases (PG17: ownership is what grants CREATE on `public`). Verified: all
+  10 pods Running, all six `*.scrapestack.local` hosts return 200, gRPC LB on .62.
 
 ### Removed
 - `argocd/gyopart.yaml`, `argocd/danwiki-dev.yaml`, `argocd/photo-dump.yaml`: never applied, so nothing
