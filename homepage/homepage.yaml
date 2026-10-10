@@ -305,6 +305,10 @@ data:
             href: http://canvas-viewer.local
             description: View/edit JSON Canvas (.canvas) files, export PNG/PDF
             icon: mdi-graph-outline
+        - Web Tools:
+            href: https://tools.danwils.com
+            description: JSON/YAML/CSV, JWT, OAuth, hashes, regex, diff, timestamps
+            icon: mdi-toolbox-outline
 
     - Cluster:
         - ArgoCD:

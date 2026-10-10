@@ -25,6 +25,10 @@ data:
             href: https://canvas-viewer.danwils.com
             description: View and edit JSON Canvas (.canvas) files in the browser
             icon: mdi-vector-square
+        - Web Tools:
+            href: https://tools.danwils.com
+            description: Browser-only utilities - JSON/YAML/CSV, JWT, OAuth, hashes, regex, diff
+            icon: mdi-toolbox-outline
         - Photo Dump:
             href: https://photo-dump.danwils.com
             description: Photo sharing spaces

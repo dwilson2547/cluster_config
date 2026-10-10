@@ -145,6 +145,7 @@ Contains legacy and one-off manifests that predate the ArgoCD setup (postgres, b
 | `home.cluster.local` | Homepage dashboard (internal) |
 | `danwils.com` | Public landing page (homepage-public, cert-manager TLS) |
 | `dxf-converter.danwils.com` | DXF converter (public; anonymous use, sign-in via authentik only) |
+| `tools.danwils.com` | web-tools static browser utilities (public, no auth; `web-tools/`) |
 
 ## Notes
 

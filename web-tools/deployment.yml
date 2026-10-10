@@ -1,0 +1,79 @@
+# Static single-page browser tools. Source + Dockerfile: workspace apps/web-tools.
+# Bump the tag here to release a new build.
+# Public only: the tools need navigator.clipboard / crypto.subtle, which browsers only expose on
+# HTTPS, so an http .local host would be half-broken.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web-tools
+  labels:
+    app: web-tools
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: web-tools
+  template:
+    metadata:
+      labels:
+        app: web-tools
+    spec:
+      containers:
+        - name: web-tools
+          image: dwilson2547/web-tools:1.0.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8080
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              cpu: 200m
+              memory: 64Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: web-tools
+spec:
+  selector:
+    app: web-tools
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: web-tools-public
+  labels:
+    dns.danwils.com/public: "true"
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    traefik.ingress.kubernetes.io/router.entrypoints: pubsecure
+    external-dns.kubernetes.io/target: danwils.com
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts:
+        - tools.danwils.com
+      secretName: tools-danwils-tls
+  rules:
+    - host: tools.danwils.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: web-tools
+                port:
+                  name: http

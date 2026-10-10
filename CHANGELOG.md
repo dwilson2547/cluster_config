@@ -1,3 +1,12 @@
+## 2026-10-10 - web-tools public at tools.danwils.com
+
+### Added
+- `web-tools/` + `argocd/web-tools.yaml`: 13 static browser utilities (source `apps/web-tools` in the
+  workspace) in one nginx image `dwilson2547/web-tools:1.0.0`, served at https://tools.danwils.com on
+  pubsecure (letsencrypt-prod, external-dns). No auth: the tools are client-side only. No `.local` host,
+  because they rely on `navigator.clipboard` / `crypto.subtle`, which need an HTTPS origin.
+- Homepage (Tools) and homepage-public (Tools) entries linking to it.
+
 ## 2026-10-10 - ArgoCD: restart argocd-server after enabling OIDC
 
 ### Fixed
