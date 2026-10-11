@@ -83,6 +83,12 @@ global:
         secretKeyRef:
           name: authentik-dxf-converter-oidc
           key: client_secret
+    # nodewright OIDC client secret, read by blueprints/nodewright.yaml.
+    - name: AUTHENTIK_NODEWRIGHT_CLIENT_SECRET
+      valueFrom:
+        secretKeyRef:
+          name: authentik-nodewright-oidc
+          key: client_secret
   envFrom:
     # optional: authentik still starts (without mail) before the Secret exists.
     - secretRef:

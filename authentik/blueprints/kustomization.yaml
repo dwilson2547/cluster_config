@@ -12,5 +12,6 @@ configMapGenerator:
       - danwiki.yaml
       - argocd.yaml
       - dxf-converter.yaml
+      - nodewright.yaml
 generatorOptions:
   disableNameSuffixHash: true

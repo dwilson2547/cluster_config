@@ -1,3 +1,18 @@
+## 2026-10-11 - nodewright public at nodewright.danwils.com
+
+### Added
+- `argocd/nodewright.yaml`: nodewright (chart `helm/nodewright` in `dwilson2547/nodewright`, `main`) into
+  namespace `nodewright`. Diagram editor on JSON Canvas; image `dwilson2547/nodewright:0.1.0`. Public on
+  pubsecure (letsencrypt-prod, external-dns); everything past health/config/sign-in needs an authentik session.
+- `authentik/blueprints/nodewright.yaml` (+ kustomization, `AUTHENTIK_NODEWRIGHT_CLIENT_SECRET` in
+  `authentik/values.yaml`): confidential OIDC client `nodewright`, code flow, per-provider issuer, any
+  approved user may sign in. Validated with the importer in the worker before pushing.
+- `nodewright` role and database on the cluster postgres (namespace `postgres`), owned by `nodewright`,
+  `CONNECT` revoked from `PUBLIC`.
+- Secrets `nodewright-db`, `nodewright-oidc` (namespace `nodewright`) and `authentik-nodewright-oidc`
+  (namespace `authentik`), applied by hand; template in `example-secrets/nodewright/secret.yml`.
+- Homepage (Tools) and homepage-public entries.
+
 ## 2026-10-10 - scrape-job-manager operator
 
 ### Added

@@ -37,6 +37,10 @@ data:
             href: https://danwiki.danwils.com
             description: Wiki with semantic search
             icon: si-gitbook
+        - nodewright:
+            href: https://nodewright.danwils.com
+            description: Diagram editor on JSON Canvas
+            icon: mdi-graph-outline
         - DXF Converter:
             href: https://dxf-converter.danwils.com
             description: Scanned pen tracing to clean, to-scale DXF
