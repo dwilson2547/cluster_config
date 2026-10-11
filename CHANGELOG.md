@@ -1,3 +1,11 @@
+## 2026-10-11 - VPN proxy reachable from pods
+
+### Fixed
+- `vpn/deployment.yml`: `LOCAL_NETWORK` now includes the pod network (`10.1.0.0/16`). The proxy pod's
+  default route is the tunnel and it only had return routes for the LAN, so replies to in-cluster
+  clients left through `tun0` and their connections timed out — no pod (browserless, the parts-direct
+  updater) could use the proxy; only LAN clients and `kubectl port-forward` worked.
+
 ## 2026-10-11 - VPN proxy: recover from dead servers, real liveness probe
 
 ### Fixed

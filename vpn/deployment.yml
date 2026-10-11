@@ -30,8 +30,11 @@ spec:
             - containerPort: 8118
               name: proxy-server
           env:
+            # Networks whose replies must bypass the tunnel: the LAN, and the pod network so in-cluster
+            # clients (scrapers, browserless) can use the proxy. Without 10.1.0.0/16, replies to pods
+            # went out tun0 and their connections timed out (2026-10-11).
             - name: LOCAL_NETWORK
-              value: 192.168.0.0/24
+              value: 192.168.0.0/24,10.1.0.0/16
             - name: USERNAME
               valueFrom:
                 secretKeyRef:
