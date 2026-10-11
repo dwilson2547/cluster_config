@@ -12,6 +12,7 @@ spec:
     helm:
       valueFiles:
         - values.yaml
+        - values-prod.yaml   # prod-only: the scraper fleet (values.yaml is merged into every env)
   destination:
     server: https://kubernetes.default.svc
     namespace: gyopart
