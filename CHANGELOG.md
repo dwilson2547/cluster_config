@@ -1,3 +1,10 @@
+## 2026-10-11 - nodewright attachments bucket
+
+### Added
+- `example-secrets/nodewright/secret.yml`: template for `nodewright-bucket-credentials`
+  (`S3_ACCESS_KEY` / `S3_SECRET_KEY`, AIStor bucket `nodewright`), applied by hand. Used by
+  nodewright 0.4.0 attachments.
+
 ## 2026-10-11 - nodewright public at nodewright.danwils.com
 
 ### Added
