@@ -1,3 +1,11 @@
+## 2026-10-11 - gyopart prod databases
+
+### Added
+- `postgres/init-gyopart.sql`: role `gyopart` owning `parts_interchange` and `junkyard_inventory` on the
+  prod postgres, plus `pg_trgm` (superuser-only) for the parts data. Mirrors dev's single-role layout.
+  Hand-run with the password as a psql variable; Secrets created by hand in namespace `gyopart`.
+  `parts_interchange` is then filled by copying dev; `junkyard_inventory` is migrated by the chart.
+
 ## 2026-10-11 - nodewright attachments bucket
 
 ### Added
