@@ -46,15 +46,17 @@ spec:
             - name: tz-config
               mountPath: /etc/localtime
               readOnly: true
-          # livenessProbe:
-          #   exec:
-          #     command:
-          #       - /bin/sh
-          #       - -c
-          #       - if [[ $( curl -x localhost:8118 https://api.nordvpn.com/vpn/check/full | jq -r '.["status"]' ) = "Protected" ]] ; then exit 0; else exit 1; fi
-          #   initialDelaySeconds: 60
-          #   periodSeconds: 60
-          #   timeoutSeconds: 10
+          # Restart the pod when the tunnel is down or Privoxy can't get traffic out (routes via tun0 +
+          # a real exit IP; see the image's /app/healthcheck.sh). Generous timings: a server switch
+          # takes a couple of minutes, and openvpn itself now gives up on a dead server
+          # (--connect-retry-max), so this is the backstop.
+          livenessProbe:
+            exec:
+              command: ["sh", "/app/healthcheck.sh"]
+            initialDelaySeconds: 120
+            periodSeconds: 300
+            timeoutSeconds: 45
+            failureThreshold: 2
       dnsConfig:
         nameservers:
           - 103.86.96.100

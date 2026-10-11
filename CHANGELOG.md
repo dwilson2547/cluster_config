@@ -1,3 +1,16 @@
+## 2026-10-11 - VPN proxy: recover from dead servers, real liveness probe
+
+### Fixed
+- The NordVPN proxy had been stuck on a retired server (`us11782`): OpenVPN soft-restarts against the
+  same server forever and the load cron ignores servers with empty stats, so every request through
+  the proxy returned 500 (it fails closed — nothing leaked). Deleting the pod picked a fresh server.
+- Image (`tools/nordvpn-proxy`, `dwilson2547/nordvpn-proxy:latest`): `--connect-retry-max 3` so OpenVPN
+  exits on a dead server and the wrapper picks a new recommended one; `healthcheck.sh` now requires
+  routes via `tun0` and a real exit IP through Privoxy (it used to pass with the tunnel down).
+- `vpn/deployment.yml`: liveness probe on that healthcheck (every 5 min, restart after 2 failures),
+  replacing the commented-out probe on NordVPN's `vpn/check/full`, which now only answers
+  `{"status": "deprecated"}`.
+
 ## 2026-10-11 - gyopart prod databases
 
 ### Added
