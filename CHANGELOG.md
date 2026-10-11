@@ -20,6 +20,14 @@
   (namespace `authentik`), applied by hand; template in `example-secrets/nodewright/secret.yml`.
 - Homepage (Tools) and homepage-public entries.
 
+## 2026-10-10 - scrape-job-manager run-history database
+
+### Added
+- `postgres/init-scrape-job-manager.sql`: role + database `scrape_job_manager` on the prod postgres for
+  the scraper operator's run history. Run by hand as the superuser in `postgres-0`; the password is a
+  psql variable, and the connection URL goes into the hand-made `scrape-job-manager-db` Secret (command
+  in the file's header). The operator creates its own tables.
+
 ## 2026-10-10 - scrape-job-manager operator
 
 ### Added
