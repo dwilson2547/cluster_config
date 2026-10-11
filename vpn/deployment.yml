@@ -60,10 +60,23 @@ spec:
             periodSeconds: 300
             timeoutSeconds: 45
             failureThreshold: 2
+      # Resolvers only, no cluster DNS: the pod's default route is the tunnel, so the cluster DNS service
+      # is unreachable from here, and with ClusterFirst every lookup also fanned out into 4 search-domain
+      # queries (ndots:5). Privoxy then failed lookups in bursts whenever NordVPN's resolvers wobbled
+      # (2026-10-11). 1.1.1.1 is the fallback; all three are reached through the tunnel.
+      dnsPolicy: None
       dnsConfig:
         nameservers:
           - 103.86.96.100
           - 103.86.99.100
+          - 1.1.1.1
+        options:
+          - name: ndots
+            value: "1"
+          - name: timeout
+            value: "2"
+          - name: attempts
+            value: "3"
       volumes:
         - name: tz-config
           hostPath:

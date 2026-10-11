@@ -1,3 +1,11 @@
+## 2026-10-11 - VPN proxy DNS
+
+### Fixed
+- `vpn/deployment.yml`: `dnsPolicy: None`. The pod's resolv.conf led with the cluster DNS service, which
+  is unreachable from behind the tunnel, and `ndots:5` expanded every lookup into search-domain queries,
+  so Privoxy failed lookups in bursts when NordVPN's resolvers were slow and scrapes stopped with
+  `ERR_TUNNEL_CONNECTION_FAILED`. Now NordVPN's two resolvers plus 1.1.1.1, `ndots:1`.
+
 ## 2026-10-11 - VPN proxy reachable from pods
 
 ### Fixed
