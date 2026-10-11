@@ -1,3 +1,12 @@
+## 2026-10-10 - scrape-job-manager operator
+
+### Added
+- `argocd/scrape-job-manager.yaml`: the scraper operator (chart in `dwilson2547/scrape_job_manager`,
+  `main`, `values-prod.yaml`) into namespace `scrape-job-manager`. Installs the cluster-wide CRDs
+  `scrapepools` / `scrapers` / `scrapejobs.scrape.danwils.com` and a ClusterRole to create Jobs in any
+  namespace. Needs the `repo-scrape-job-manager` repository secret (SSH, same pattern as
+  `repo-photo-dump`). No ScrapeJobs yet; the gyopart-dev pilot follows.
+
 ## 2026-10-10 - web-tools 1.0.1: OSM tiles blocked
 
 ### Fixed

@@ -90,6 +90,7 @@ picked up automatically.
 | photo-dump (https://photo-dump.danwils.com) | `dwilson2547/photo_dump` | `main` | `photo-dump` | `values-prod.yaml` |
 | photo-dump-dev (0 replicas) | `dwilson2547/photo_dump` | `dev` | `photo-dump-dev` | `values-dev.yaml` |
 | dxf-converter (https://dxf-converter.danwils.com) | `dwilson2547/dxf-converter` | `main` | `dxf-converter` | `values.yaml` |
+| scrape-job-manager (scraper operator; CRDs cluster-wide) | `dwilson2547/scrape_job_manager` | `main` | `scrape-job-manager` | `values-prod.yaml` |
 | robo-services, build-sim | own repos | `main` | own | see `argocd/` |
 
 ## Secret Management

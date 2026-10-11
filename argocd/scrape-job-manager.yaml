@@ -1,0 +1,25 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: scrape-job-manager
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: git@github.com:dwilson2547/scrape_job_manager.git
+    targetRevision: main
+    path: helm/scrape-job-manager
+    helm:
+      valueFiles:
+        - values-prod.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: scrape-job-manager
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      # CRD schemas are large; server-side apply avoids the last-applied annotation size limit.
+      - ServerSideApply=true
