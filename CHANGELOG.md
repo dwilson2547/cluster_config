@@ -1,3 +1,11 @@
+## 2026-10-11 - gyopart prod
+
+### Added
+- `argocd/gyopart.yaml`: gyopart prod (`main`, `values.yaml`, namespace `gyopart`) — the site on
+  `gyopart.local` against the prod databases, and the parts-direct updater (16 manufacturer sites) run by
+  scrape-job-manager. The prod databases were loaded and migrated first; the earlier `gyopart.yaml` was
+  never applied and was removed in the app-of-apps cleanup.
+
 ## 2026-10-11 - VPN proxy DNS
 
 ### Fixed

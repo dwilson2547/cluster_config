@@ -83,6 +83,7 @@ picked up automatically.
 
 | App | Repo | Branch | Namespace | Values |
 |---|---|---|---|---|
+| gyopart | `dwilson2547/gyopart` | `main` | `gyopart` | `values.yaml` |
 | gyopart-dev | `dwilson2547/gyopart` | `dev` | `gyopart-dev` | `values-dev.yaml` |
 | scrape-stack | `dwilson2547/scrape_stack` | `main` | `scrape-stack` | `values.yaml` |
 | scrape-stack-dev | `dwilson2547/scrape_stack` | `dev` | `scrapestack-dev` | `values-dev.yaml` |
