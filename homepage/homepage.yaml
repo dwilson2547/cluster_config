@@ -222,7 +222,7 @@ data:
     - Scrape Job Manager:
         - UI:
             href: http://sjm.local
-            description: Scheduled scraper fleet: phases, run history, recovery
+            description: Scheduled scraper fleet — phases, run history, recovery
             icon: si-react
 
     - DanWiki:
