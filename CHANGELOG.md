@@ -1,3 +1,17 @@
+## 2026-10-11 - webdoc authentik client and database
+
+### Added
+- `authentik/blueprints/webdoc.yaml` (+ kustomization, `AUTHENTIK_WEBDOC_CLIENT_SECRET` in
+  `authentik/values.yaml`): confidential OIDC client `webdoc`, code flow, per-provider issuer, any
+  approved user may sign in; group `webdoc-admins` (membership by hand), whose members are webdoc
+  admins via the profile scope's `groups` claim. Validated with the importer in the worker.
+- `postgres/init-webdoc.sql`: role and database `webdoc` on the pgvector postgres
+  (`postgres-pgvector-0`), owned by `webdoc`, `CONNECT` revoked from `PUBLIC`, `vector` extension
+  created for webdoc's planned semantic search. Run by hand; schema created by the app's migrations.
+- Namespace `webdoc`; secrets `webdoc-db`, `webdoc-oidc` (namespace `webdoc`) and
+  `authentik-webdoc-oidc` (namespace `authentik`), applied by hand; template in
+  `example-secrets/webdoc/secret.yml`. No Argo app yet.
+
 ## 2026-10-11 - gyopart prod
 
 ### Added

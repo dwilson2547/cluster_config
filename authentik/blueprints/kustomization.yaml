@@ -13,5 +13,6 @@ configMapGenerator:
       - argocd.yaml
       - dxf-converter.yaml
       - nodewright.yaml
+      - webdoc.yaml
 generatorOptions:
   disableNameSuffixHash: true

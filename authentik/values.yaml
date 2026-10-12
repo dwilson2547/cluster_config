@@ -89,6 +89,12 @@ global:
         secretKeyRef:
           name: authentik-nodewright-oidc
           key: client_secret
+    # webdoc OIDC client secret, read by blueprints/webdoc.yaml.
+    - name: AUTHENTIK_WEBDOC_CLIENT_SECRET
+      valueFrom:
+        secretKeyRef:
+          name: authentik-webdoc-oidc
+          key: client_secret
   envFrom:
     # optional: authentik still starts (without mail) before the Secret exists.
     - secretRef:
