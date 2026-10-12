@@ -88,6 +88,9 @@ data:
       Scrape Stack Dev:
         style: row
         columns: 3
+      Scrape Job Manager:
+        style: row
+        columns: 1
       DanWiki:
         style: row
         columns: 2
@@ -215,6 +218,12 @@ data:
             href: http://filecache.scrapestack-dev.local/docs
             description: File cache service — dev
             icon: si-fastapi
+
+    - Scrape Job Manager:
+        - UI:
+            href: http://sjm.local
+            description: Scheduled scraper fleet: phases, run history, recovery
+            icon: si-react
 
     - DanWiki:
         - Wiki:

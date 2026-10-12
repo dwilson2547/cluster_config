@@ -1,3 +1,16 @@
+## 2026-10-12 - scrape-job-manager UI at sjm.local
+
+### Added
+- `dns/dns.yaml`: CoreDNS zone `sjm.local` (apex → 192.168.0.60, Traefik) for the scrape-job-manager
+  UI's LAN ingress.
+- `homepage/homepage.yaml`: Scrape Job Manager group (UI at http://sjm.local).
+
+### Changed
+- scrape-job-manager chart (`ui.enabled: true` in its `values-prod.yaml`, LAN ingress only): UI
+  Deployment/Service/Ingress + ServiceAccount with read-CR and patch-annotation RBAC now deploy to
+  namespace `scrape-job-manager`. No OIDC while LAN-only: the dashboard is reachable without
+  sign-in from the home network.
+
 ## 2026-10-11 - webdoc public at webdoc.danwils.com
 
 ### Added
