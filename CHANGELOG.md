@@ -1,3 +1,11 @@
+## 2026-10-11 - webdoc public at webdoc.danwils.com
+
+### Added
+- `argocd/webdoc.yaml`: webdoc (chart `helm/webdoc` in `dwilson2547/webdoc`, `main`) into namespace
+  `webdoc`; image `dwilson2547/webdoc:0.1.0`. Public on pubsecure (letsencrypt-prod, external-dns);
+  public domains are readable signed out, everything else needs an authentik session.
+- Homepage (Tools) and homepage-public entries.
+
 ## 2026-10-11 - webdoc authentik client and database
 
 ### Added
