@@ -1,8 +1,10 @@
 # webdoc (https://webdoc.danwils.com) as an OIDC client of authentik.
 #
 # Any approved authentik user may sign in (no policy binding). The app keeps its own users,
-# matched on (issuer, sub). Members of `webdoc-admins` are webdoc admins: the app reads the
-# groups claim (profile scope) at every sign-in. Membership is managed by hand in authentik.
+# matched on (issuer, sub). Members of `webdoc-admins` are webdoc admins and members of
+# `webdoc-editors` are editors (create and write); everyone else signs in as a read-only viewer.
+# The app reads the groups claim (profile scope) at every sign-in, so changes apply at the next
+# sign-in. Admins are editors too. Membership is managed by hand in authentik.
 #
 # Client secret: hand-applied Secret `authentik-webdoc-oidc` (authentik ns); the app reads the
 # same value from `webdoc-oidc` (webdoc ns).
@@ -13,6 +15,10 @@ entries:
   - model: authentik_core.group
     identifiers:
       name: webdoc-admins
+
+  - model: authentik_core.group
+    identifiers:
+      name: webdoc-editors
 
   - model: authentik_providers_oauth2.oauth2provider
     id: provider
