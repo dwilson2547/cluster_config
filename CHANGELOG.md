@@ -1,3 +1,13 @@
+## 2026-10-13 - motorcycles: ducati scraper
+
+### Added
+- `motorcycles/dev/ducati.yaml`: ducati Scraper + ScrapeJob (image
+  `dwilson2547/motorcycle-scraper-ducati` pinned by digest). Browser-free SVG
+  path: Ducati Omaha's Issuu catalogues render per-page SVGs whose text layer
+  covers both born-digital catalogues and scans (Issuu's own OCR) — no PDF
+  downloads, no local OCR. Timeout 5m for the initial verification run —
+  restore to 8h once checked.
+
 ## 2026-10-13 - motorcycles: prod verified, dev jobs suspended
 
 ### Changed
