@@ -1,0 +1,16 @@
+# Scrape fleet for the motorcycle parts reference system (automotive/motorcycles/).
+# Prod pool: same cadence as dev. Jobs are unsuspended here once their dev run
+# has been verified (RELEASES.md in the motorcycles dir); the matching dev job
+# is then suspended so the site is not hit twice.
+
+apiVersion: scrape.danwils.com/v1alpha1
+kind: ScrapePool
+metadata:
+  name: motorcycle-parts
+  namespace: motorcycles
+spec:
+  every: 1w
+  activeHours:
+    tz: America/New_York
+    days: [Mon, Tue, Wed, Thu, Fri]
+    hours: "09:00-19:00"

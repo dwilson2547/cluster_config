@@ -1,0 +1,15 @@
+# Scrape fleet for the motorcycle parts reference system (automotive/motorcycles/).
+# Kept deliberately separate from gyopart: this is a reference catalogue of OEM
+# parts diagrams, not yard inventory. One pool; jobs are added per OEM scraper.
+
+apiVersion: scrape.danwils.com/v1alpha1
+kind: ScrapePool
+metadata:
+  name: motorcycle-parts
+  namespace: motorcycles-dev
+spec:
+  every: 1w
+  activeHours:
+    tz: America/New_York
+    days: [Mon, Tue, Wed, Thu, Fri]
+    hours: "09:00-19:00"

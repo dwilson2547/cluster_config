@@ -1,3 +1,18 @@
+## 2026-10-12 - motorcycles scrape fleet (kawasaki)
+
+### Added
+- `motorcycles/dev/`, `motorcycles/prod/`: namespaces `motorcycles-dev` / `motorcycles` with a
+  `motorcycle-parts` ScrapePool (weekly, Mon–Fri 09:00–19:00 America/New_York) and the kawasaki
+  Scraper/ScrapeJob (image `dwilson2547/motorcycle-scraper-kawasaki` pinned by digest, timeout 8h,
+  `health: {minItems: 0, maxDropPct: 100}` — a completed reference catalogue legitimately yields
+  zero new items). Prod job starts suspended until the dev run is verified.
+- `argocd/motorcycles-dev.yaml`, `argocd/motorcycles.yaml`: the two apps (this repo, `main`).
+- `postgres/init-motorcycle-parts.sql`: role + database `motorcycle_parts` on the prod postgres for
+  the shared motorcycle parts reference DB (scraper code: `automotive/motorcycles/` in the workspace
+  repo; release status tracked in `automotive/motorcycles/RELEASES.md` there).
+- `example-secrets/motorcycles/secret.yml`: template for `motorcycle-parts-credentials`
+  (MOTORCYCLE_USER / MOTORCYCLE_PASSWORD), applied by hand to both namespaces.
+
 ## 2026-10-12 - scrape-job-manager UI at sjm.local
 
 ### Added

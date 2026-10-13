@@ -1,0 +1,48 @@
+# Kawasaki OEM parts diagrams — server-rendered, no browser. Writes to the shared
+# motorcycle_parts database; images via imgcache, pages via webcache, target-site
+# requests paced by request-auth. Resume-safe (scraped_at), so weekly runs
+# continue the backfill where the previous run stopped. The full catalogue takes
+# many runs at request-auth's default pacing.
+
+apiVersion: scrape.danwils.com/v1alpha1
+kind: Scraper
+metadata:
+  name: kawasaki
+  namespace: motorcycles-dev
+spec:
+  image: dwilson2547/motorcycle-scraper-kawasaki@sha256:2500d2375444281b12d97ad03c90bf6ffeddb24c803afd5a73e7a69c78ee1dcc
+  imagePullPolicy: IfNotPresent
+  timeout: 8h
+  env:
+    # Order matters: $(VAR) only expands variables defined earlier in the list.
+    - name: MOTORCYCLE_USER
+      valueFrom: {secretKeyRef: {name: motorcycle-parts-credentials, key: MOTORCYCLE_USER}}
+    - name: MOTORCYCLE_PASSWORD
+      valueFrom: {secretKeyRef: {name: motorcycle-parts-credentials, key: MOTORCYCLE_PASSWORD}}
+    - name: MOTORCYCLE_DATABASE_URL
+      value: "postgresql://$(MOTORCYCLE_USER):$(MOTORCYCLE_PASSWORD)@postgres.postgres.svc.cluster.local:5432/motorcycle_parts"
+    - {name: WEBCACHE_URL, value: "http://webcache.scrapestack-dev.svc.cluster.local:8000"}
+    - {name: IMGCACHE_URL, value: "http://imgcache.scrapestack-dev.svc.cluster.local:8010"}
+    - {name: REQUEST_AUTH_SERVER_URL, value: "request-auth-server.scrapestack-dev.svc.cluster.local:9000"}
+  resources:
+    requests: {cpu: 100m, memory: 256Mi}
+    limits: {memory: 512Mi}
+  policy:
+    concurrency: 1
+    spacing: {min: 10m, jitter: 15m}
+    retry: {attempts: 3, backoff: {initial: 5m, factor: 3, max: 2h}}
+    suspendAfter: 3
+  # A completed reference catalogue legitimately yields zero new items on
+  # later runs, so zero-result and drop detection stay off.
+  health:
+    minItems: 0
+    maxDropPct: 100
+---
+apiVersion: scrape.danwils.com/v1alpha1
+kind: ScrapeJob
+metadata:
+  name: kawasaki
+  namespace: motorcycles-dev
+spec:
+  scraperRef: kawasaki
+  poolRef: motorcycle-parts
