@@ -3,8 +3,6 @@
 # requests paced by request-auth. Resume-safe (scraped_at), so weekly runs
 # continue the backfill where the previous run stopped. The full catalogue takes
 # many runs at request-auth's default pacing.
-# NOTE: timeout is 5m for the initial verification run; restore to 8h (prod
-# value) once the run has been checked.
 
 apiVersion: scrape.danwils.com/v1alpha1
 kind: Scraper
@@ -14,7 +12,7 @@ metadata:
 spec:
   image: dwilson2547/motorcycle-scraper-aprilia@sha256:598fffa2d63dd1e227c2990b368b9e0be7c572763dbf1d206e4de601f5dab2bb
   imagePullPolicy: IfNotPresent
-  timeout: 5m
+  timeout: 8h
   env:
     # Order matters: $(VAR) only expands variables defined earlier in the list.
     - name: MOTORCYCLE_USER
