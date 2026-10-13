@@ -10,9 +10,9 @@ metadata:
   name: aprilia
   namespace: motorcycles
 spec:
-  image: dwilson2547/motorcycle-scraper-aprilia@sha256:598fffa2d63dd1e227c2990b368b9e0be7c572763dbf1d206e4de601f5dab2bb
+  image: dwilson2547/motorcycle-scraper-aprilia@sha256:67e415fa7fae7675ea27504274867f818f86b3f1bd5ec494d877128b12e967bf
   imagePullPolicy: IfNotPresent
-  timeout: 5m
+  timeout: 8h
   env:
     # Order matters: $(VAR) only expands variables defined earlier in the list.
     - name: MOTORCYCLE_USER

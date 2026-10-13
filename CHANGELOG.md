@@ -6,6 +6,15 @@
   shared `motorcycle_parts` DB like kawasaki; the site is server-rendered since its redesign, so
   no browser is needed. Dev verified 2026-10-13 (run 20261013035511: 94 diagrams in 5m).
 
+### Fixed
+- The aprilia catalogue throttles per IP (~400 requests per ~15 min) and serves a reCAPTCHA
+  "Verification Required" page instead of an HTTP error; the first prod run (20261013040255)
+  tripped it mid-run and recorded 28 empty diagrams. Image rebuilt with challenge-page
+  detection (never cached, aborts the run gracefully); the poisoned webcache entries were
+  purged and the DB rows cleaned. request-auth now paces
+  `aprilia.genuine-parts-catalogue.com` at 1 req/15s (set via the request-auth API in both
+  scrape-stack namespaces — the rate lives in the request-auth DB, not in git).
+
 ## 2026-10-12 - motorcycles scrape fleet (kawasaki)
 
 ### Added
