@@ -1,3 +1,12 @@
+## 2026-10-13 - motorcycles: prod verified, dev jobs suspended
+
+### Changed
+- Dev ScrapeJobs for harley/yamaha/suzuki `suspend: true` — prod owns the
+  schedule (run-now in dev only for testing). Prod backfill runs dispatched
+  2026-10-13 06:37Z and scraping cleanly (harley ~1 req/s on the ARI API,
+  yamaha hitting real diagram data, suzuki riding out the intermittent
+  Cloudflare challenge).
+
 ## 2026-10-13 - motorcycles: harley, yamaha, suzuki in prod
 
 ### Added

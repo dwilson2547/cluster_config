@@ -48,3 +48,4 @@ metadata:
 spec:
   scraperRef: suzuki
   poolRef: motorcycle-parts
+  suspend: true  # verified 2026-10-13; prod owns the schedule now
