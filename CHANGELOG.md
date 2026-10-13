@@ -1,3 +1,13 @@
+## 2026-10-13 - motorcycles: suzuki scraper
+
+### Added
+- `motorcycles/dev/suzuki.yaml`: suzuki Scraper + ScrapeJob (image
+  `dwilson2547/motorcycle-scraper-suzuki` pinned by digest; ships Chromium +
+  playwright-stealth because suzukipartshouse.com sits behind a Cloudflare
+  managed challenge; 512Mi/1Gi memory for the browser). request-auth paces
+  `www.suzukipartshouse.com` at 1 req/30s in both namespaces (request-auth DB).
+  Timeout 5m for the initial verification run — restore to 8h once checked.
+
 ## 2026-10-13 - motorcycles: harley + yamaha scrapers
 
 ### Added
