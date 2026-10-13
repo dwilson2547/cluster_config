@@ -14,7 +14,7 @@ metadata:
   name: suzuki
   namespace: motorcycles-dev
 spec:
-  image: dwilson2547/motorcycle-scraper-suzuki@sha256:2ac31ca52ab5b96477c188b551de6bdd63bf32354bf3b808ac309c2b1851a2f4
+  image: dwilson2547/motorcycle-scraper-suzuki@sha256:97e8aa2a2f64db25b77c096837bb5fc2f3f6bd3094e6f79575845a8057381b6a
   imagePullPolicy: IfNotPresent
   timeout: 5m
   env:
