@@ -1,3 +1,13 @@
+## 2026-10-13 - motorcycles: ducati duplicate-part fix
+
+### Fixed
+- The ducati prod run died on `diagram_part_pkey`: a table can list one part at
+  several callouts, and with `autoflush=False` a DB-only existence check can't
+  see a page's own pending inserts — both flush at commit and collide. Part rows
+  now collapse by code before inserting (first callout is ref_num, all callouts
+  land in extras["ref_nums"], same shape as aprilia). Also fixed a cosmetic
+  variable shadowing that printed part codes as drawing codes in the log.
+
 ## 2026-10-13 - motorcycles: ducati verified in prod; operator cap + suzuki race
 
 ### Changed

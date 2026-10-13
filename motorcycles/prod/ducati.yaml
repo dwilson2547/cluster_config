@@ -10,7 +10,7 @@ metadata:
   name: ducati
   namespace: motorcycles
 spec:
-  image: dwilson2547/motorcycle-scraper-ducati@sha256:7cacc7094ef3d216fbca2ee06bfa7cdc5bce08e43587d57172d1c2f1c61d76a6
+  image: dwilson2547/motorcycle-scraper-ducati@sha256:b07f0bc8dfe65e09f89d2c7ca04578e3f09c0f1fab784acf8b072008767a61df
   imagePullPolicy: IfNotPresent
   timeout: 8h
   env:
