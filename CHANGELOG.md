@@ -1,3 +1,10 @@
+## 2026-10-13 - motorcycles: aprilia verified in prod
+
+### Changed
+- `motorcycles/prod/aprilia.yaml`: timeout back to 8h after the verification runs (prod run
+  20261013041952 with challenge detection: 9 diagrams, Healthy). `motorcycles/dev/aprilia.yaml`:
+  ScrapeJob `suspend: true` — prod owns the schedule now, dev run-now only for testing.
+
 ## 2026-10-12 - motorcycles: aprilia scraper
 
 ### Added
