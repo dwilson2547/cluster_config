@@ -1,3 +1,12 @@
+## 2026-10-13 - motorcycles: harley scraper
+
+### Added
+- `motorcycles/dev/harley.yaml`: harley Scraper + ScrapeJob (image
+  `dwilson2547/motorcycle-scraper-harley` pinned by digest). Browser-free: the
+  ARI PartStream API that powers the harley-davidson.com parts widget moved
+  under the `/Parts/` path prefix (old bare paths now return an empty 200).
+  Timeout 5m for the initial verification run — restore to 8h once checked.
+
 ## 2026-10-13 - motorcycles: aprilia verified in prod
 
 ### Changed
