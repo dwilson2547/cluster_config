@@ -11,7 +11,7 @@ metadata:
   name: yamaha
   namespace: motorcycles-dev
 spec:
-  image: dwilson2547/motorcycle-scraper-yamaha@sha256:fc6f24879a19a8a2a648ef9abf508af7103c841a9fe46790ab087186ffe1be7b
+  image: dwilson2547/motorcycle-scraper-yamaha@sha256:a5b5f1385ea6d7736dbf8f5e39162149305f489dd61ffaf899ae25272a1a36cc
   imagePullPolicy: IfNotPresent
   timeout: 5m
   env:
