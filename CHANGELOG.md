@@ -1,3 +1,18 @@
+## 2026-10-13 - motorcycles: ducati verified in prod; operator cap + suzuki race
+
+### Changed
+- `motorcycles/prod/ducati.yaml`: ducati live in prod (timeout 8h, same digest);
+  dev job suspended and timeout restored to 8h. Dev verified (84 tables,
+  1,150 parts in 5m). Two image fixes after the first dev run: lxml was missing
+  from requirements, and the motorcycle↔diagram link was never written
+  (backfilled 74 rows in the DB via SQL).
+- The scrape-job-manager looked "stalled" but was at its maxConcurrentRuns=6
+  cap: queued run-now requests (including a forgotten suzuki dev run) waited
+  hours and then dispatched concurrently with prod, racing on diagram inserts.
+  maxConcurrentRuns bumped to 10 (scrape-job-manager repo, values-prod.yaml),
+  suzuki's diagram insert is now race-safe (IntegrityError → adopt existing
+  row), and suzuki prod was re-run with the fixed image.
+
 ## 2026-10-13 - motorcycles: ducati scraper
 
 ### Added

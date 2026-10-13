@@ -3,8 +3,6 @@
 # born-digital catalogues and scans). Writes to the shared motorcycle_parts
 # database; reader4.json + page SVGs via webcache, subsystem images via
 # imgcache, target requests paced by request-auth. Resume-safe (scraped_at).
-# NOTE: timeout is 5m for the initial verification run; restore to 8h (prod
-# value) once the run has been checked.
 
 apiVersion: scrape.danwils.com/v1alpha1
 kind: Scraper
@@ -12,9 +10,9 @@ metadata:
   name: ducati
   namespace: motorcycles-dev
 spec:
-  image: dwilson2547/motorcycle-scraper-ducati@sha256:153f4981901672374483423dd1965e002e58306fe2ed9224539f9b5e57627941
+  image: dwilson2547/motorcycle-scraper-ducati@sha256:91d01c26b733a832087a4d9276c56a21936f4cac8ffbfc973e2ea81a4c45a2a3
   imagePullPolicy: IfNotPresent
-  timeout: 5m
+  timeout: 8h
   env:
     # Order matters: $(VAR) only expands variables defined earlier in the list.
     - name: MOTORCYCLE_USER
@@ -48,3 +46,4 @@ metadata:
 spec:
   scraperRef: ducati
   poolRef: motorcycle-parts
+  suspend: true  # verified 2026-10-13; prod owns the schedule now
