@@ -1,3 +1,11 @@
+## 2026-10-12 - motorcycles: aprilia scraper
+
+### Added
+- `motorcycles/dev/aprilia.yaml`: aprilia Scraper + ScrapeJob (image
+  `dwilson2547/motorcycle-scraper-aprilia` pinned by digest). Timeout 5m for the initial
+  verification run — restore to 8h once checked. Writes to the shared `motorcycle_parts` DB
+  like kawasaki; the site is server-rendered since its redesign, so no browser is needed.
+
 ## 2026-10-12 - motorcycles scrape fleet (kawasaki)
 
 ### Added
