@@ -12,7 +12,7 @@ metadata:
 spec:
   image: dwilson2547/motorcycle-scraper-kawasaki@sha256:c2a7ffc04f83f20a6c684d07071cdc402200f6bdab485c48192ed0aa4a4c8983
   imagePullPolicy: IfNotPresent
-  timeout: 5m
+  timeout: 8h
   env:
     # Order matters: $(VAR) only expands variables defined earlier in the list.
     - name: MOTORCYCLE_USER
