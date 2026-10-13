@@ -2,8 +2,6 @@
 # (no browser). Writes to the shared motorcycle_parts database; JSON responses
 # via webcache, diagram images (base64 in the diagram JSON) via imgcache, target
 # requests paced by request-auth. Resume-safe (scraped_at).
-# NOTE: timeout is 5m for the initial verification run; restore to 8h (prod
-# value) once the run has been checked.
 
 apiVersion: scrape.danwils.com/v1alpha1
 kind: Scraper
@@ -13,7 +11,7 @@ metadata:
 spec:
   image: dwilson2547/motorcycle-scraper-yamaha@sha256:509e730261baae47382d97195414df583157232a133675acb19698c929e2087f
   imagePullPolicy: IfNotPresent
-  timeout: 5m
+  timeout: 8h
   env:
     # Order matters: $(VAR) only expands variables defined earlier in the list.
     - name: MOTORCYCLE_USER

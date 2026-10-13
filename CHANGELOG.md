@@ -1,3 +1,13 @@
+## 2026-10-13 - motorcycles: harley, yamaha, suzuki in prod
+
+### Added
+- `motorcycles/prod/{harley,yamaha,suzuki}.yaml`: the three scrapers live in prod
+  (timeout 8h, same digests as dev). Dev verified 2026-10-13: harley 177 diagrams /
+  2 motorcycles in 5m; yamaha enumeration + sparse-data skips (44 diagrams first pass);
+  suzuki stealth-browser challenge recovery (2 diagrams in 5m — the Cloudflare
+  challenge is intermittent; stuck pages are skipped, 5 consecutive abort a run).
+  Dev timeouts restored to 8h.
+
 ## 2026-10-13 - motorcycles: suzuki scraper
 
 ### Added

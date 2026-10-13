@@ -5,8 +5,6 @@
 # database; pages via webcache (renders only on cache misses), diagram images
 # via imgcache, navigations paced by request-auth at 1 req/30s (set via the
 # request-auth API — the old robots.txt crawl-delay was 10s).
-# NOTE: timeout is 5m for the initial verification run; restore to 8h (prod
-# value) once the run has been checked.
 
 apiVersion: scrape.danwils.com/v1alpha1
 kind: Scraper
@@ -16,7 +14,7 @@ metadata:
 spec:
   image: dwilson2547/motorcycle-scraper-suzuki@sha256:97e8aa2a2f64db25b77c096837bb5fc2f3f6bd3094e6f79575845a8057381b6a
   imagePullPolicy: IfNotPresent
-  timeout: 5m
+  timeout: 8h
   env:
     # Order matters: $(VAR) only expands variables defined earlier in the list.
     - name: MOTORCYCLE_USER

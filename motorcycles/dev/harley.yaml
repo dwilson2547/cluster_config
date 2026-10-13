@@ -3,8 +3,6 @@
 # via webcache, diagram images via imgcache, target requests paced by
 # request-auth. Resume-safe (scraped_at), so weekly runs continue the backfill
 # where the previous run stopped.
-# NOTE: timeout is 5m for the initial verification run; restore to 8h (prod
-# value) once the run has been checked.
 
 apiVersion: scrape.danwils.com/v1alpha1
 kind: Scraper
@@ -14,7 +12,7 @@ metadata:
 spec:
   image: dwilson2547/motorcycle-scraper-harley@sha256:fa8086ce535b2f3d1f276f7b6f214ce3bd6c02bd54406f61f23e69b6519432bc
   imagePullPolicy: IfNotPresent
-  timeout: 5m
+  timeout: 8h
   env:
     # Order matters: $(VAR) only expands variables defined earlier in the list.
     - name: MOTORCYCLE_USER

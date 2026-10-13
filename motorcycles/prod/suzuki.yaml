@@ -1,0 +1,50 @@
+# Suzuki OEM parts from Babbitt's suzukipartshouse.com — the only motorcycle
+# scraper that ships a browser: the site is behind a Cloudflare managed
+# challenge that plain requests and plain headless Chromium fail; the image
+# carries Chromium + playwright-stealth. Writes to the shared motorcycle_parts
+# database; pages via webcache (renders only on cache misses), diagram images
+# via imgcache, navigations paced by request-auth at 1 req/30s (set via the
+# request-auth API — the old robots.txt crawl-delay was 10s).
+
+apiVersion: scrape.danwils.com/v1alpha1
+kind: Scraper
+metadata:
+  name: suzuki
+  namespace: motorcycles
+spec:
+  image: dwilson2547/motorcycle-scraper-suzuki@sha256:97e8aa2a2f64db25b77c096837bb5fc2f3f6bd3094e6f79575845a8057381b6a
+  imagePullPolicy: IfNotPresent
+  timeout: 8h
+  env:
+    # Order matters: $(VAR) only expands variables defined earlier in the list.
+    - name: MOTORCYCLE_USER
+      valueFrom: {secretKeyRef: {name: motorcycle-parts-credentials, key: MOTORCYCLE_USER}}
+    - name: MOTORCYCLE_PASSWORD
+      valueFrom: {secretKeyRef: {name: motorcycle-parts-credentials, key: MOTORCYCLE_PASSWORD}}
+    - name: MOTORCYCLE_DATABASE_URL
+      value: "postgresql://$(MOTORCYCLE_USER):$(MOTORCYCLE_PASSWORD)@postgres.postgres.svc.cluster.local:5432/motorcycle_parts"
+    - {name: WEBCACHE_URL, value: "http://webcache.scrape-stack.svc.cluster.local:8000"}
+    - {name: IMGCACHE_URL, value: "http://imgcache.scrape-stack.svc.cluster.local:8010"}
+    - {name: REQUEST_AUTH_SERVER_URL, value: "request-auth-server.scrape-stack.svc.cluster.local:9000"}
+  resources:
+    requests: {cpu: 100m, memory: 512Mi}
+    limits: {memory: 1Gi}
+  policy:
+    concurrency: 1
+    spacing: {min: 10m, jitter: 15m}
+    retry: {attempts: 3, backoff: {initial: 5m, factor: 3, max: 2h}}
+    suspendAfter: 3
+  # A completed reference catalogue legitimately yields zero new items on
+  # later runs, so zero-result and drop detection stay off.
+  health:
+    minItems: 0
+    maxDropPct: 100
+---
+apiVersion: scrape.danwils.com/v1alpha1
+kind: ScrapeJob
+metadata:
+  name: suzuki
+  namespace: motorcycles
+spec:
+  scraperRef: suzuki
+  poolRef: motorcycle-parts
