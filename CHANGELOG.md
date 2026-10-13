@@ -1,3 +1,17 @@
+## 2026-10-13 - motorcycles: harley + yamaha scrapers
+
+### Added
+- `motorcycles/dev/harley.yaml`: harley Scraper + ScrapeJob (image
+  `dwilson2547/motorcycle-scraper-harley` pinned by digest). Browser-free: the
+  ARI PartStream API that powers the harley-davidson.com parts widget moved
+  under the `/Parts/` path prefix (old bare paths now return an empty 200).
+  Timeout 5m for the initial verification run — restore to 8h once checked.
+- `motorcycles/dev/yamaha.yaml`: yamaha Scraper + ScrapeJob (image
+  `dwilson2547/motorcycle-scraper-yamaha` pinned by digest). Browser-free since
+  the 2026 redesign: anonymous `POST api.yamaha-motor.com/auth` token + legacy
+  browse API + Next.js `_next/data` JSONs (the old POC API host now resolves to
+  private IPs). Timeout 5m for verification.
+
 ## 2026-10-13 - motorcycles: harley scraper
 
 ### Added
