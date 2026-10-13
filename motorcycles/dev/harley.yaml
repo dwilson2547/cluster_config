@@ -12,7 +12,7 @@ metadata:
   name: harley
   namespace: motorcycles-dev
 spec:
-  image: dwilson2547/motorcycle-scraper-harley@sha256:a510bdf43d2e0fa5c959aabbdf49249c888d8d9ee21f730312a5a14254892438
+  image: dwilson2547/motorcycle-scraper-harley@sha256:fa8086ce535b2f3d1f276f7b6f214ce3bd6c02bd54406f61f23e69b6519432bc
   imagePullPolicy: IfNotPresent
   timeout: 5m
   env:
