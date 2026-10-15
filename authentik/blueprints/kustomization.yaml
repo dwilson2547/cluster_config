@@ -14,5 +14,6 @@ configMapGenerator:
       - dxf-converter.yaml
       - nodewright.yaml
       - webdoc.yaml
+      - scrape-job-manager.yaml
 generatorOptions:
   disableNameSuffixHash: true

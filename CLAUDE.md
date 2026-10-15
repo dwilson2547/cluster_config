@@ -148,6 +148,7 @@ Contains legacy and one-off manifests that predate the ArgoCD setup (postgres, b
 | `danwils.com` | Public landing page (homepage-public, cert-manager TLS) |
 | `dxf-converter.danwils.com` | DXF converter (public; anonymous use, sign-in via authentik only) |
 | `tools.danwils.com` | web-tools static browser utilities (public, no auth; `web-tools/`) |
+| `sjm.danwils.com` | scrape-job-manager UI (public; authentik sign-in, group `sjm-admins`) |
 
 ## Notes
 

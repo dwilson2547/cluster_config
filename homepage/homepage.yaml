@@ -221,8 +221,8 @@ data:
 
     - Scrape Job Manager:
         - UI:
-            href: http://sjm.local
-            description: Scheduled scraper fleet — phases, run history, recovery
+            href: https://sjm.danwils.com
+            description: Scheduled scraper fleet — phases, run history, recovery (authentik sign-in)
             icon: si-react
 
     - Web Workflows:
