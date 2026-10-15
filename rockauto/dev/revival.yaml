@@ -1,0 +1,53 @@
+# RockAuto full-catalogue crawler (automotive/rockauto/rockauto_revival).
+# Plain-requests tree walk of the server-rendered catalog URL hierarchy; all
+# listings per part-type page in one fetch (no pagination, no browser). Writes
+# vehicles/parts/fitment to the shared rockauto Postgres; webcache bucket
+# `rockauto_revival` is bounded by a retention config on the cache service;
+# target requests paced by request-auth. Resume-safe: the DB frontier is the
+# crawl state, so daily runs continue the backfill where the last stopped.
+# Dev/test scope: ROCKAUTO_SEED_MAKES bounds the backfill to three makes;
+# clear it (and re-seed) for the full catalogue.
+
+apiVersion: scrape.danwils.com/v1alpha1
+kind: Scraper
+metadata:
+  name: revival
+  namespace: rockauto-dev
+spec:
+  image: dwilson2547/rockauto-revival@sha256:0a72736248f81bef6d04a9c3d47e1267e9170a00b3b0d19708c4ccf6795db4e9
+  imagePullPolicy: IfNotPresent
+  timeout: 8h
+  env:
+    # Order matters: $(VAR) only expands variables defined earlier in the list.
+    - name: ROCKAUTO_USER
+      valueFrom: {secretKeyRef: {name: rockauto-credentials, key: ROCKAUTO_USER}}
+    - name: ROCKAUTO_PASSWORD
+      valueFrom: {secretKeyRef: {name: rockauto-credentials, key: ROCKAUTO_PASSWORD}}
+    - name: ROCKAUTO_DATABASE_URL
+      value: "postgresql://$(ROCKAUTO_USER):$(ROCKAUTO_PASSWORD)@postgres.postgres.svc.cluster.local:5432/rockauto"
+    - {name: WEBCACHE_URL, value: "http://webcache.scrape-stack.svc.cluster.local:8000"}
+    - {name: REQUEST_AUTH_SERVER_URL, value: "request-auth-server.scrape-stack.svc.cluster.local:9000"}
+    - {name: ROCKAUTO_SEED_MAKES, value: "honda,ford,toyota"}
+  resources:
+    requests: {cpu: 100m, memory: 256Mi}
+    limits: {memory: 1Gi}
+  policy:
+    concurrency: 1
+    spacing: {min: 10m, jitter: 15m}
+    retry: {attempts: 3, backoff: {initial: 5m, factor: 3, max: 2h}}
+    suspendAfter: 3
+  # A completed catalogue legitimately yields zero new rows on later runs,
+  # and the backfill rate varies with frontier state, so detection stays off.
+  health:
+    minItems: 0
+    maxDropPct: 100
+---
+apiVersion: scrape.danwils.com/v1alpha1
+kind: ScrapeJob
+metadata:
+  name: revival
+  namespace: rockauto-dev
+spec:
+  scraperRef: revival
+  poolRef: rockauto-catalog
+  suspend: false

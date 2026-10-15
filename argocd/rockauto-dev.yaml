@@ -1,0 +1,21 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: rockauto-dev
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: git@github.com:dwilson2547/cluster_config.git
+    targetRevision: main
+    path: rockauto/dev
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: rockauto-dev
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true

@@ -1,0 +1,15 @@
+# Scrape fleet for the RockAuto parts catalogue (automotive/rockauto/rockauto_revival).
+# A backfill-style crawler: each run continues the frontier where the last run
+# stopped, so the pool schedule is the throttle that paces the full catalogue.
+
+apiVersion: scrape.danwils.com/v1alpha1
+kind: ScrapePool
+metadata:
+  name: rockauto-catalog
+  namespace: rockauto-dev
+spec:
+  every: 1d
+  activeHours:
+    tz: America/New_York
+    days: [Mon, Tue, Wed, Thu, Fri, Sat, Sun]
+    hours: "09:00-21:00"

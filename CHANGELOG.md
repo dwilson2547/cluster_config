@@ -1,3 +1,13 @@
+## 2026-10-15 - rockauto: dev test deployment of the rockauto_revival crawler
+
+### Added
+- `rockauto/dev/` (namespace, ScrapePool `rockauto-catalog`, Scraper + ScrapeJob `revival`) and
+  `argocd/rockauto-dev.yaml`: first deployment of the RockAuto catalogue crawler under
+  scrape-job-manager. Dev scope is bounded by `ROCKAUTO_SEED_MAKES=honda,ford,toyota`; the
+  webcache bucket `rockauto_revival` is bounded by a retention config on the cache service.
+- `postgres/init-rockauto.sql` for the shared `rockauto` database (credentials secret applied
+  manually, template in `example-secrets/rockauto/secret.yml`).
+
 ## 2026-10-15 - Remove canvas-viewer; drop sjm.local; public homepage sections
 
 ### Removed
