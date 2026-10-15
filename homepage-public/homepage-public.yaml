@@ -57,6 +57,10 @@ data:
             href: https://argocd.danwils.com
             description: GitOps deployments and cluster health
             icon: argocd
+        - Scrape Job Manager:
+            href: https://sjm.danwils.com
+            description: Scraper fleet status, run history and recovery
+            icon: mdi-spider-web
 
   bookmarks.yaml: |
     - GitHub:
