@@ -13,6 +13,11 @@ spec:
       values: |
         controller:
           replicas: 1
+        node:
+          # microk8s (snap-confined) kubelet dir - the chart default
+          # /var/lib/kubelet makes NodePublishVolume mounts land where the
+          # kubelet cannot stat them (matches the working csi-nfs-node DS).
+          kubelet: /var/snap/microk8s/common/var/lib/kubelet
   destination:
     server: https://kubernetes.default.svc
     namespace: kube-system

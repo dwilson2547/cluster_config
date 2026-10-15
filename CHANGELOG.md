@@ -1,3 +1,15 @@
+## 2026-10-15 - smb-csi: fix kubelet dir for snap-confined microk8s
+
+### Fixed
+- The csi-driver-smb chart defaults its node hostPaths to `/var/lib/kubelet`,
+  but this cluster's kubelet (snap-confined microk8s) lives at
+  `/var/snap/microk8s/common/var/lib/kubelet` — the csi-nfs-node daemonset already
+  used the snap path. Symptom: NodePublishVolume reported success yet the kubelet
+  failed every worker container with `stat .../kubernetes.io~csi/tower-share/mount:
+  no such file or directory`. The smb-csi app now sets `node.kubelet` to the snap
+  path, matching NFS. (Also in this day's earlier commits: web-workflows plex scan
+  made optional.)
+
 ## 2026-10-15 - web-workflows: plex scan optional
 
 ### Changed
