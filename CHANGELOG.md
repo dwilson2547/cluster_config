@@ -1,3 +1,13 @@
+## 2026-10-15 - web-workflows: plex scan optional
+
+### Changed
+- `web-workflows/values.yaml` (in the web-workflows submodule): the Plex section
+  refresh is now gated behind `plex.enabled: false` by default — the token could
+  not be retrieved, so the library is refreshed manually in Plex. The worker
+  no longer references the `web-workflows-plex` secret (which would have blocked
+  the pod from starting); the scan code path remains a no-op without the env
+  vars and can be re-enabled later.
+
 ## 2026-10-14 - web-workflows deployed; smb-csi driver added
 
 ### Added
