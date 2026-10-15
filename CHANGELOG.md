@@ -1,3 +1,23 @@
+## 2026-10-14 - web-workflows deployed; smb-csi driver added
+
+### Added
+- `web-workflows` (browser workflow automation — MV3 extension sensor + backend
+  state/queue + download worker): new helm-based app, chart at
+  `web-scrapers/web-workflows/helm/web-workflows`, ArgoCD app
+  `argocd/web-workflows.yaml`. Ingress at `webworkflows.local` (DNS zone +
+  Corefile block added), homepage entry added. SQLite DB on a small nfs-dataset
+  PVC with `WW_DB_JOURNAL=delete` (WAL is unsafe on network storage); episode
+  downloads land on the tower unraid share `\\TOWER\Share\Anime` via a static
+  SMB CSI PV (`tower-share`, storageClassName `tower-smb`) with the worker
+  mounting subPath `Anime`.
+- `argocd/smb-csi.yaml`: installs csi-driver-smb 1.20.3 from the upstream helm
+  repo into kube-system — the cluster previously only had NFS CSI.
+- `example-secrets/web-workflows.yml`: templates for the two manual secrets:
+  `tower-share-creds` (SMB mount username/password, referenced by the PV's
+  `nodeStageSecretRef` — credentials never appear in any path or values file)
+  and `web-workflows-plex` (`WW_PLEX_URL`/`WW_PLEX_TOKEN`). Both must be
+  applied by hand before the worker can stage the share or trigger scans.
+
 ## 2026-10-13 - motorcycles: ducati duplicate-part fix
 
 ### Fixed

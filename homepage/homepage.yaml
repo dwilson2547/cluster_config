@@ -225,6 +225,12 @@ data:
             description: Scheduled scraper fleet — phases, run history, recovery
             icon: si-react
 
+    - Web Workflows:
+        - Tracker:
+            href: http://webworkflows.local
+            description: Browser workflow automation — show tracker, watched/remaining
+            icon: si-googletagmanager
+
     - DanWiki:
         - Wiki:
             href: https://danwiki.danwils.com

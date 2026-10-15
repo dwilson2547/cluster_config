@@ -1,0 +1,33 @@
+# Copy to a local file, fill in real values, then:
+#   kubectl apply -f <your-filled-file>
+# Do NOT commit the filled version.
+#
+# Both secrets must exist in the web-workflows namespace before the
+# web-workflows ArgoCD app can mount the tower share or run Plex scans.
+
+# SMB mount credentials for \\TOWER\Share (192.168.0.15).
+# Referenced by nodeStageSecretRef on the tower-share PV - the CSI driver
+# stages these onto the node; they never appear in any path or values file.
+apiVersion: v1
+kind: Secret
+metadata:
+  name: tower-share-creds
+  namespace: web-workflows
+type: Opaque
+stringData:
+  username: "CHANGE_ME_tower_user"
+  password: "CHANGE_ME_tower_password"
+  # domain is optional; set it if the share authenticates against a domain
+  # domain: "TOWER"
+---
+# Plex connection for library scans (worker env: WW_PLEX_URL, WW_PLEX_TOKEN).
+# The token is the Plex account/device token - backend-side only by design.
+apiVersion: v1
+kind: Secret
+metadata:
+  name: web-workflows-plex
+  namespace: web-workflows
+type: Opaque
+stringData:
+  WW_PLEX_URL: "http://192.168.0.15:32400"
+  WW_PLEX_TOKEN: "CHANGE_ME_plex_token"
