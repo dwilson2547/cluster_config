@@ -18,8 +18,32 @@ data:
     headerStyle: clean
     hideVersion: true
     disableUpdateCheck: true
+    # Groups stack top to bottom as full-width rows, in services.yaml order.
+    layout:
+      Applications:
+        style: row
+        columns: 3
+      Tools:
+        style: row
+        columns: 3
+      Infrastructure:
+        style: row
+        columns: 3
 
   services.yaml: |
+    - Applications:
+        - Photo Dump:
+            href: https://photo-dump.danwils.com
+            description: Photo sharing spaces
+            icon: si-googlephotos
+        - DanWiki:
+            href: https://danwiki.danwils.com
+            description: Wiki with semantic search
+            icon: si-gitbook
+        - gyopart:
+            href: https://gyopart.danwils.com
+            description: Used auto parts - interchange catalogue and junkyard inventory
+            icon: mdi-car-wrench
     - Tools:
         - Canvas Viewer:
             href: https://canvas-viewer.danwils.com
@@ -29,14 +53,6 @@ data:
             href: https://tools.danwils.com
             description: Browser-only utilities - JSON/YAML/CSV, JWT, OAuth, hashes, regex, diff
             icon: mdi-toolbox-outline
-        - Photo Dump:
-            href: https://photo-dump.danwils.com
-            description: Photo sharing spaces
-            icon: si-googlephotos
-        - DanWiki:
-            href: https://danwiki.danwils.com
-            description: Wiki with semantic search
-            icon: si-gitbook
         - nodewright:
             href: https://nodewright.danwils.com
             description: Diagram editor on JSON Canvas
@@ -49,10 +65,7 @@ data:
             href: https://dxf-converter.danwils.com
             description: Scanned pen tracing to clean, to-scale DXF
             icon: mdi-vector-polyline
-        - gyopart:
-            href: https://gyopart.danwils.com
-            description: Used auto parts - interchange catalogue and junkyard inventory
-            icon: mdi-car-wrench
+    - Infrastructure:
         - Grafana:
             href: https://grafana.danwils.com
             description: Cluster metrics, logs and traces
