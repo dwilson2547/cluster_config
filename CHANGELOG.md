@@ -1,3 +1,17 @@
+## 2026-10-15 - Remove canvas-viewer; drop sjm.local; public homepage sections
+
+### Removed
+- canvas-viewer (`argocd/canvas-viewer.yaml`, `canvas-viewer/`, its `canvas-viewer.local` DNS zone
+  and both homepage entries). nodewright has PNG export, so the viewer was redundant and only added
+  a public endpoint (`canvas-viewer.danwils.com`). The root app has `prune: false`, so the
+  Application and its namespace were deleted by hand.
+- `sjm.local` DNS zone: the scrape-job-manager UI moved to `https://sjm.danwils.com` behind
+  authentik (blueprint `authentik/blueprints/scrape-job-manager.yaml`, group `sjm-admins`).
+
+### Changed
+- homepage-public: services split into Applications / Tools / Infrastructure rows; added gyopart
+  and Scrape Job Manager; ArgoCD icon name fixed (`argo-cd`).
+
 ## 2026-10-15 - smb-csi: fix kubelet dir for snap-confined microk8s
 
 ### Fixed

@@ -324,10 +324,6 @@ data:
             href: http://build-sim.local
             description: Drone build AUW / thrust / flight-time modeling
             icon: mdi-quadcopter
-        - Canvas Viewer:
-            href: http://canvas-viewer.local
-            description: View/edit JSON Canvas (.canvas) files, export PNG/PDF
-            icon: mdi-graph-outline
         - Web Tools:
             href: https://tools.danwils.com
             description: JSON/YAML/CSV, JWT, OAuth, hashes, regex, diff, timestamps

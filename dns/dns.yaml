@@ -94,18 +94,6 @@ data:
         errors
     }
 
-    canvas-viewer.local:53 {
-        file /etc/coredns/db.canvas-viewer.local
-        log
-        errors
-    }
-
-    sjm.local:53 {
-        file /etc/coredns/db.sjm.local
-        log
-        errors
-    }
-
     webworkflows.local:53 {
         file /etc/coredns/db.webworkflows.local
         log
@@ -390,41 +378,6 @@ data:
     ; All subdomains → Traefik ingress controller
     @   IN  A    192.168.0.60
     *   IN  A    192.168.0.60
-
-  db.canvas-viewer.local: |
-    $ORIGIN canvas-viewer.local.
-    $TTL 300
-
-    @   IN  SOA  ns1.scrapestack.local. admin.scrapestack.local. (
-                    2026101001 ; serial
-                    3600       ; refresh
-                    900        ; retry
-                    86400      ; expire
-                    300        ; minimum TTL
-                 )
-
-    @   IN  NS   ns1.scrapestack.local.
-
-    ; All subdomains → Traefik ingress controller
-    @   IN  A    192.168.0.60
-    *   IN  A    192.168.0.60
-
-  db.sjm.local: |
-    $ORIGIN sjm.local.
-    $TTL 300
-
-    @   IN  SOA  ns1.scrapestack.local. admin.scrapestack.local. (
-                    2026101201 ; serial
-                    3600       ; refresh
-                    900        ; retry
-                    86400      ; expire
-                    300        ; minimum TTL
-                 )
-
-    @   IN  NS   ns1.scrapestack.local.
-
-    ; Apex → Traefik ingress controller
-    @   IN  A    192.168.0.60
 
   db.webworkflows.local: |
     $ORIGIN webworkflows.local.
