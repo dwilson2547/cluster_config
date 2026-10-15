@@ -49,6 +49,10 @@ data:
             href: https://dxf-converter.danwils.com
             description: Scanned pen tracing to clean, to-scale DXF
             icon: mdi-vector-polyline
+        - gyopart:
+            href: https://gyopart.danwils.com
+            description: Used auto parts - interchange catalogue and junkyard inventory
+            icon: mdi-car-wrench
         - Grafana:
             href: https://grafana.danwils.com
             description: Cluster metrics, logs and traces
