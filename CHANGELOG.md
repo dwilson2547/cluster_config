@@ -1,3 +1,20 @@
+## 2026-10-15 - postgres: automated nightly backups to the Unraid NAS
+
+### Added
+- `postgres/backup.yaml`: nightly logical backups for the prod postgres instances
+  (`postgres`, `postgres-pgvector` in namespace `postgres`; `postgres` in `private`, i.e.
+  reddit_archive). Dumps (`pg_dump -Fc`, plus `pg_dumpall --globals-only`) land on
+  192.168.0.15:/mnt/user/cluster_backup — a separate box from the live data on 192.168.0.10 —
+  via two static NFS PVs (`nfs-backup` storage class, `Retain`). The export squashes to
+  uid 99 / gid 100, so the pods run as 99:100. Retention: 7 daily + 4 Sunday-weekly per database.
+- Weekly restore-test CronJobs (Sunday 05:00/05:30 ET) that restore the newest dump of every
+  database into a `_restore_test_` scratch DB, verify nonzero user tables, and drop it.
+- Backup CronJobs run at 02:30/02:45 ET with `timeZone: America/New_York`.
+
+### Changed
+- `argocd/postgres.yaml`: added `automated: selfHeal` sync (no prune) so pushes to `postgres/`
+  deploy without a manual sync, matching the other core apps.
+
 ## 2026-10-15 - rockauto: dev test deployment of the rockauto_revival crawler
 
 ### Added
