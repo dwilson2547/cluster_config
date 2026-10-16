@@ -15,5 +15,6 @@ configMapGenerator:
       - nodewright.yaml
       - webdoc.yaml
       - scrape-job-manager.yaml
+      - gyopart-admin.yaml
 generatorOptions:
   disableNameSuffixHash: true

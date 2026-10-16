@@ -101,6 +101,12 @@ global:
         secretKeyRef:
           name: authentik-sjm-oidc
           key: client_secret
+    # gyopart admin OIDC client secret, read by blueprints/gyopart-admin.yaml.
+    - name: AUTHENTIK_GYOPART_ADMIN_CLIENT_SECRET
+      valueFrom:
+        secretKeyRef:
+          name: authentik-gyopart-admin-oidc
+          key: client_secret
   envFrom:
     # optional: authentik still starts (without mail) before the Secret exists.
     - secretRef:
