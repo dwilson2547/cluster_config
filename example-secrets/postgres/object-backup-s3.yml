@@ -1,0 +1,12 @@
+# Read-only AIStor access key for the nightly bucket copy (postgres/object-backup.yaml).
+# Create it in the AIStor console with a policy allowing s3:ListBucket + s3:GetObject on the backed-up buckets,
+# fill in below, then: kubectl apply -f <this file>   (never commit the real values)
+apiVersion: v1
+kind: Secret
+metadata:
+  name: object-backup-s3
+  namespace: postgres
+type: Opaque
+stringData:
+  S3_ACCESS_KEY: replace-me
+  S3_SECRET_KEY: replace-me

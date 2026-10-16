@@ -1,6 +1,7 @@
 # Postgres backups: design and runbook
 
-Automated nightly logical backups for the prod postgres instances, shipped 2026-10-15.
+Automated nightly logical backups for the prod postgres instances, shipped 2026-10-15, and a nightly copy of
+the object-store buckets (2026-10-16).
 Manifests: `postgres/backup.yaml`. Alerting: `monitoring/manifests/postgres-backup-alerts.yaml`.
 
 ## What gets backed up
@@ -28,6 +29,36 @@ data (192.168.0.10). Pods run as uid 99 / gid 100 to match the export's squash m
 File stamps are UTC (containers run UTC); schedules are America/New_York. Retention:
 every dump 7 days, Sunday dumps 28 days, everything else pruned by the backup script.
 One nightly set is ~2.5GB (parts_interchange dominates: 23GB raw → ~2.4GB compressed).
+
+## Object-store buckets
+
+`postgres/object-backup.yaml`, CronJob `backup-objects`, 03:15 ET daily: rclone copies each `<remote>:<bucket>` in `BUCKETS`
+(remote `aistor`) (TrueNAS, `192.168.0.10:30320`) to the same share. AIStor's free tier no longer allows replicating
+between two instances, so this copy is the backup.
+
+| Bucket | What |
+|---|---|
+| `nodewright` (AIStor) | nodewright attachments |
+
+Not yet: photo-dump's buckets are on the old MinIO instance, not AIStor (migration planned); `dxf-converter` and
+`race-logger` (AIStor) are left out (conversions; robo-services pipeline archive).
+
+```
+/backups/objects/<bucket>/current/              mirror of the bucket
+/backups/objects/<bucket>/replaced/<stamp>/     objects a run overwrote or deleted from current/ (28 days)
+/backups/objects/.last-success
+```
+
+A run that would delete more than `MAX_DELETE` (500) objects stops before touching `current/` (a wrong key or an
+emptied bucket). Credentials: secret `object-backup-s3` (read-only AIStor key; `example-secrets/postgres/`).
+The backup alerts below cover it (failed job, no success in 26h, suspended).
+
+Restore a bucket (or one prefix) from any pod or machine with the share:
+
+```bash
+rclone copy /backups/objects/<bucket>/current/<prefix> dst:<bucket>/<prefix>    # dst = an S3 remote with write access
+# an object deleted or overwritten in the last 28 days: look under replaced/<stamp>/ first
+```
 
 ## Restoring a database
 

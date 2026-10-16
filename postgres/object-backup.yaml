@@ -1,0 +1,106 @@
+# Nightly copy of object-store buckets to the Unraid backup share, next to the postgres dumps (postgres/backup.yaml; runbook docs/postgres_backup.md). Lives in the postgres
+# namespace to share that PVC, the SMTP secret and the backup alerts.
+#
+# BUCKETS lists <remote>:<bucket> entries; a remote is defined by RCLONE_CONFIG_<REMOTE>_* env vars below
+# (aistor = AIStor on the TrueNAS box, 192.168.0.10:30320). Per bucket:
+#   /backups/objects/<bucket>/current/                 mirror of the bucket (rclone sync)
+#   /backups/objects/<bucket>/replaced/<stamp>/        objects a run overwrote or deleted from current/, kept 28 days
+#   /backups/objects/.last-success                     stamp of the last run where every bucket synced
+# so a deletion or overwrite in the bucket stays recoverable for 28 days. --max-delete stops a run that would
+# remove more than MAX_DELETE objects (a wrong key or an emptied bucket), before it touches current/.
+#
+# Credentials: hand-applied secret `object-backup-s3` (keys S3_ACCESS_KEY, S3_SECRET_KEY), a read-only AIStor
+# access key scoped to the listed buckets; template in example-secrets/postgres/object-backup-s3.yml.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backup-objects-script
+  namespace: postgres
+data:
+  backup-objects.sh: |
+    #!/bin/sh
+    set -eu
+    STAMP=$(date -u +%Y%m%d-%H%M%S)
+    ROOT=/backups/objects
+    mkdir -p "$ROOT"
+    failed=""
+    for entry in $BUCKETS; do
+      b=${entry#*:}
+      echo "== $entry"
+      mkdir -p "$ROOT/$b/current"
+      if rclone sync "$entry" "$ROOT/$b/current" \
+          --backup-dir "$ROOT/$b/replaced/$STAMP" \
+          --max-delete "$MAX_DELETE" --fast-list --transfers 4 --checkers 8 \
+          --stats-one-line --stats 5m -v; then
+        echo "   $(rclone size --json "$ROOT/$b/current")"
+      else
+        echo "   FAILED: $b"
+        failed="$failed $b"
+      fi
+      # Keep 28 days of replaced/deleted objects.
+      find "$ROOT/$b/replaced" -mindepth 1 -maxdepth 1 -type d -mtime +28 -exec rm -rf {} + 2>/dev/null || true
+    done
+    if [ -n "$failed" ]; then
+      echo "failed buckets:$failed"
+      exit 1
+    fi
+    date -u +%Y-%m-%dT%H:%M:%SZ > "$ROOT/.last-success"
+    echo "all buckets synced"
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: backup-objects
+  namespace: postgres
+  labels:
+    app: backup-objects
+spec:
+  schedule: "15 3 * * *"
+  timeZone: "America/New_York"
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 3600
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      activeDeadlineSeconds: 21600
+      template:
+        spec:
+          restartPolicy: Never
+          # The Unraid export squashes to 99:100 (docs/postgres_backup.md, gotchas).
+          securityContext:
+            runAsUser: 99
+            runAsGroup: 100
+          containers:
+            - name: backup
+              image: rclone/rclone:1.68.2
+              imagePullPolicy: IfNotPresent
+              command: ["/bin/sh", "/scripts/backup-objects.sh"]
+              env:
+                # <remote>:<bucket>, space-separated. nodewright = its attachments. (photo-dump is still on the
+                # old MinIO; it joins here once migrated to AIStor.)
+                - {name: BUCKETS, value: "aistor:nodewright"}
+                - {name: MAX_DELETE, value: "500"}
+                - {name: HOME, value: /tmp}
+                - {name: RCLONE_CONFIG, value: /tmp/rclone.conf}
+                - {name: RCLONE_CONFIG_AISTOR_TYPE, value: s3}
+                - {name: RCLONE_CONFIG_AISTOR_PROVIDER, value: Minio}
+                - {name: RCLONE_CONFIG_AISTOR_ENDPOINT, value: "http://192.168.0.10:30320"}
+                - name: RCLONE_CONFIG_AISTOR_ACCESS_KEY_ID
+                  valueFrom: {secretKeyRef: {name: object-backup-s3, key: S3_ACCESS_KEY}}
+                - name: RCLONE_CONFIG_AISTOR_SECRET_ACCESS_KEY
+                  valueFrom: {secretKeyRef: {name: object-backup-s3, key: S3_SECRET_KEY}}
+              resources:
+                requests: {cpu: 100m, memory: 128Mi}
+                limits: {memory: 512Mi}
+              volumeMounts:
+                - {name: backup, mountPath: /backups}
+                - {name: scripts, mountPath: /scripts}
+          volumes:
+            - name: backup
+              persistentVolumeClaim:
+                claimName: postgres-backup
+            - name: scripts
+              configMap:
+                name: backup-objects-script

@@ -23,7 +23,7 @@ spec:
     - name: postgres-backup
       rules:
         - alert: PostgresBackupJobFailed
-          expr: kube_job_status_failed{namespace="postgres", job_name=~"postgres-(backup|restore-test).*"} > 0
+          expr: kube_job_status_failed{namespace="postgres", job_name=~"(postgres-(backup|restore-test)|backup-objects).*"} > 0
           labels:
             severity: critical
           annotations:
@@ -34,9 +34,9 @@ spec:
               failedJobsHistoryLimit keeps the last 3 failed jobs.
         - alert: PostgresBackupStale
           expr: >-
-            time() - kube_cronjob_status_last_successful_time{namespace="postgres", cronjob=~"postgres-backup(-pgvector)?"} > 26*3600
-            or (kube_cronjob_info{namespace="postgres", cronjob=~"postgres-backup(-pgvector)?"}
-            unless on(namespace, cronjob) kube_cronjob_status_last_successful_time{namespace="postgres", cronjob=~"postgres-backup(-pgvector)?"})
+            time() - kube_cronjob_status_last_successful_time{namespace="postgres", cronjob=~"postgres-backup(-pgvector)?|backup-objects"} > 26*3600
+            or (kube_cronjob_info{namespace="postgres", cronjob=~"postgres-backup(-pgvector)?|backup-objects"}
+            unless on(namespace, cronjob) kube_cronjob_status_last_successful_time{namespace="postgres", cronjob=~"postgres-backup(-pgvector)?|backup-objects"})
           labels:
             severity: critical
           annotations:
@@ -61,7 +61,7 @@ spec:
               actually restore. It has not succeeded in over a week - the backups may be
               unrestorable even if the nightly dumps keep succeeding.
         - alert: PostgresBackupSuspended
-          expr: kube_cronjob_spec_suspend{namespace="postgres", cronjob=~"postgres-(backup|restore-test).*"} == 1
+          expr: kube_cronjob_spec_suspend{namespace="postgres", cronjob=~"(postgres-(backup|restore-test)|backup-objects).*"} == 1
           labels:
             severity: warning
           annotations:
