@@ -12,3 +12,9 @@ User-Agent, and Cloudflare (proxying auth.danwils.com) returns 403 to it. The ca
 with "could not be verified" while discovery and the token exchange (httpx) work. Pass
 `headers={"User-Agent": "<app>"}` to PyJWKClient. Pods that resolve auth.danwils.com to
 192.168.0.65 (traefik-public, as nodewright's does) skip Cloudflare and never see this.
+
+Fourth trap (2026-10-15, gyopart admin): adding the client-secret env makes authentik roll its pods, and an
+old worker without the variable can apply the new blueprint first, storing an empty client secret (token
+endpoint then answers invalid_client). After the rollout, re-apply from a new worker:
+`kubectl -n authentik exec <new worker> -- ak apply_blueprint /blueprints/mounted/cm-authentik-blueprints-danwils/<app>.yaml`,
+then re-run the bogus-code probe (invalid_grant = right secret).
