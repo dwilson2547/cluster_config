@@ -1,15 +1,27 @@
+## 2026-10-15 - postgres backup: version-matched clients for the pgvector instance
+
+### Fixed
+- First end-to-end verification caught the pgvector restore test failing with
+  `unrecognized configuration parameter "transaction_timeout"`: the v17 `pg_restore` emits a
+  v17-only GUC that the PG16 pgvector server rejects. Backup/restore CronJobs are now split
+  per instance with matching client images (`postgres:17` / `pgvector/pgvector:pg16`) and a
+  single generic script — see
+  [docs/issues/2026_10_15_pgvector_restore_transaction_timeout.md](docs/issues/2026_10_15_pgvector_restore_transaction_timeout.md).
+  First manual runs verified: all 15 databases on `postgres` (incl. 23GB parts_interchange)
+  dumped and restored, reddit_archive dumped and restored on the NAS.
+
 ## 2026-10-15 - postgres: automated nightly backups to the Unraid NAS
 
 ### Added
 - `postgres/backup.yaml`: nightly logical backups for the prod postgres instances
-  (`postgres`, `postgres-pgvector` in namespace `postgres`; `postgres` in `private`, i.e.
+  (`postgres` and `postgres-pgvector` in namespace `postgres`; `postgres` in `private`, i.e.
   reddit_archive). Dumps (`pg_dump -Fc`, plus `pg_dumpall --globals-only`) land on
   192.168.0.15:/mnt/user/cluster_backup — a separate box from the live data on 192.168.0.10 —
   via two static NFS PVs (`nfs-backup` storage class, `Retain`). The export squashes to
   uid 99 / gid 100, so the pods run as 99:100. Retention: 7 daily + 4 Sunday-weekly per database.
-- Weekly restore-test CronJobs (Sunday 05:00/05:30 ET) that restore the newest dump of every
+- Weekly restore-test CronJobs (Sunday 05:00-06:00 ET) that restore the newest dump of every
   database into a `_restore_test_` scratch DB, verify nonzero user tables, and drop it.
-- Backup CronJobs run at 02:30/02:45 ET with `timeZone: America/New_York`.
+- Backup CronJobs run at 02:30-02:45 ET with `timeZone: America/New_York`.
 
 ### Changed
 - `argocd/postgres.yaml`: added `automated: selfHeal` sync (no prune) so pushes to `postgres/`

@@ -9,10 +9,15 @@
 #   /backups/<instance>/<db>/<db>-<YYYYMMDD-HHMMSS>.dump   pg_dump custom format
 #   /backups/<instance>/globals-<YYYYMMDD-HHMMSS>.sql      roles/grants (pg_dumpall globals)
 #   /backups/<instance>/.last-success                      stamp of the last clean run
+# File name stamps are UTC (containers run in UTC); CronJob schedules are America/New_York.
 #
 # Retention: every dump kept for 7 days; Sunday dumps kept for 28 days; everything else
-# pruned. Backups run nightly at 02:30/02:45 ET; a restore test runs Sunday 05:00/05:30 ET
-# and restores the newest dump of every database into a _restore_test_ scratch DB.
+# pruned.
+#
+# Each instance gets its own CronJob with a version-matched client image. The pgvector
+# instance is PostgreSQL 16 and must be dumped/restored with the pgvector/pgvector:pg16
+# image: a v17 pg_restore emits `SET transaction_timeout`, which a v16 server rejects
+# (see docs/issues/2026_10_15_pgvector_restore_transaction_timeout.md).
 #
 # The private-namespace objects carry an explicit metadata.namespace because that
 # namespace is not otherwise ArgoCD-managed; ArgoCD honors manifest namespaces over the
@@ -99,171 +104,37 @@ metadata:
 data:
   backup.sh: |
     #!/bin/bash
+    # Generic single-instance backup script. Driven by env:
+    #   INSTANCE_DIR  subdirectory under /backups for this instance
+    #   PGHOST        postgres service to back up
+    #   PGUSER / PGPASSWORD  credentials
     set -u
     ROOT=/backups
-    STAMP=$(date +%Y%m%d-%H%M%S)
+    STAMP=$(date -u +%Y%m%d-%H%M%S)
     DAILY_KEEP=7
     WEEKLY_KEEP=28
-    FAILURES=0
-
-    dump_instance() {
-      local dir=$1 host=$2 password=$3
-      export PGPASSWORD="$password"
-      local root_dir="$ROOT/$dir"
-      local instance_failures=0
-      mkdir -p "$root_dir"
-
-      echo "[$dir] dumping globals"
-      if ! pg_dumpall -h "$host" --globals-only > "$root_dir/globals-$STAMP.sql"; then
-        echo "[$dir] FAILED: globals dump"
-        instance_failures=$((instance_failures + 1))
-      fi
-
-      local dbs
-      if ! dbs=$(psql -h "$host" -At -c "SELECT datname FROM pg_database WHERE NOT datistemplate AND datallowconn AND datname <> 'postgres' AND left(datname, 14) <> '_restore_test_' ORDER BY 1"); then
-        echo "[$dir] FAILED: database enumeration"
-        FAILURES=$((FAILURES + 1))
-        return
-      fi
-
-      for db in $dbs; do
-        echo "[$dir] dumping $db"
-        mkdir -p "$root_dir/$db"
-        if pg_dump -h "$host" -Fc -d "$db" -f "$root_dir/$db/$db-$STAMP.dump"; then
-          echo "[$dir] $db -> $(du -h "$root_dir/$db/$db-$STAMP.dump" | cut -f1)"
-        else
-          echo "[$dir] FAILED: $db dump"
-          rm -f "$root_dir/$db/$db-$STAMP.dump"
-          instance_failures=$((instance_failures + 1))
-        fi
-      done
-
-      if [ "$instance_failures" -eq 0 ]; then
-        echo "$STAMP" > "$root_dir/.last-success"
-      else
-        FAILURES=$((FAILURES + instance_failures))
-      fi
-    }
-
-    prune_instance() {
-      local dir=$1 f now mtime age wd
-      now=$(date +%s)
-      for f in "$ROOT/$dir"/*/*.dump "$ROOT/$dir"/globals-*.sql; do
-        [ -e "$f" ] || continue
-        mtime=$(stat -c %Y "$f")
-        age=$(( (now - mtime) / 86400 ))
-        if [ "$age" -le "$DAILY_KEEP" ]; then
-          continue
-        fi
-        wd=$(date -d "@$mtime" +%w)
-        if [ "$wd" = "0" ] && [ "$age" -le "$WEEKLY_KEEP" ]; then
-          continue
-        fi
-        echo "[$dir] pruning $(basename "$f")"
-        rm -f "$f"
-      done
-    }
-
-    dump_instance postgres postgres.postgres.svc.cluster.local "$PGPASSWORD_MAIN"
-    dump_instance postgres-pgvector postgres-pgvector.postgres.svc.cluster.local "$PGPASSWORD_PGVECTOR"
-    prune_instance postgres
-    prune_instance postgres-pgvector
-
-    if [ "$FAILURES" -gt 0 ]; then
-      echo "backup completed with $FAILURES failures"
-      exit 1
-    fi
-    echo "backup completed cleanly"
-  restore-test.sh: |
-    #!/bin/bash
-    set -u
-    ROOT=/backups
-    FAILURES=0
-
-    test_instance() {
-      local dir=$1 host=$2 password=$3 dbdir db target dump tables
-      export PGPASSWORD="$password"
-      for dbdir in "$ROOT/$dir"/*/; do
-        [ -d "$dbdir" ] || continue
-        db=$(basename "$dbdir")
-        dump=$(ls -1t "$dbdir"/*.dump 2>/dev/null | head -n 1)
-        if [ -z "$dump" ]; then
-          echo "[$dir] $db: no dumps found, skipping"
-          continue
-        fi
-        target="_restore_test_$db"
-        dropdb -h "$host" --if-exists "$target" 2>/dev/null
-        if ! createdb -h "$host" "$target"; then
-          echo "[$dir] $db: FAILED to create scratch database"
-          FAILURES=$((FAILURES + 1))
-          continue
-        fi
-        if pg_restore -h "$host" --exit-on-error -d "$target" "$dump"; then
-          tables=$(psql -h "$host" -d "$target" -At -c "SELECT count(*) FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE c.relkind = 'r' AND n.nspname NOT IN ('pg_catalog', 'information_schema')")
-          if [ "$tables" -gt 0 ]; then
-            echo "[$dir] $db: restore OK from $(basename "$dump") ($tables tables)"
-          else
-            echo "[$dir] $db: restore left zero user tables"
-            FAILURES=$((FAILURES + 1))
-          fi
-        else
-          echo "[$dir] $db: FAILED restore from $(basename "$dump")"
-          FAILURES=$((FAILURES + 1))
-        fi
-        dropdb -h "$host" --if-exists "$target"
-      done
-    }
-
-    test_instance postgres postgres.postgres.svc.cluster.local "$PGPASSWORD_MAIN"
-    test_instance postgres-pgvector postgres-pgvector.postgres.svc.cluster.local "$PGPASSWORD_PGVECTOR"
-
-    if [ "$FAILURES" -gt 0 ]; then
-      echo "restore test completed with $FAILURES failures"
-      exit 1
-    fi
-    echo "restore test completed cleanly"
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: postgres-backup-scripts
-  namespace: private
-data:
-  backup-private.sh: |
-    #!/bin/bash
-    # Single-instance variant of the postgres backup script, for the private-namespace
-    # postgres (reddit_archive). See the postgres-namespace ConfigMap for the full design.
-    set -u
-    ROOT=/backups
-    STAMP=$(date +%Y%m%d-%H%M%S)
-    DAILY_KEEP=7
-    WEEKLY_KEEP=28
-    FAILURES=0
-    dir=private-postgres
-    host=postgres.private.svc.cluster.local
-    root_dir="$ROOT/$dir"
+    root_dir="$ROOT/$INSTANCE_DIR"
     instance_failures=0
     mkdir -p "$root_dir"
 
-    echo "[$dir] dumping globals"
-    if ! pg_dumpall -h "$host" --globals-only > "$root_dir/globals-$STAMP.sql"; then
-      echo "[$dir] FAILED: globals dump"
+    echo "[$INSTANCE_DIR] dumping globals"
+    if ! pg_dumpall -h "$PGHOST" --globals-only > "$root_dir/globals-$STAMP.sql"; then
+      echo "[$INSTANCE_DIR] FAILED: globals dump"
       instance_failures=$((instance_failures + 1))
     fi
 
-    dbs=$(psql -h "$host" -At -c "SELECT datname FROM pg_database WHERE NOT datistemplate AND datallowconn AND datname <> 'postgres' AND left(datname, 14) <> '_restore_test_' ORDER BY 1")
-    if [ $? -ne 0 ]; then
-      echo "[$dir] FAILED: database enumeration"
+    if ! dbs=$(psql -h "$PGHOST" -At -c "SELECT datname FROM pg_database WHERE NOT datistemplate AND datallowconn AND datname <> 'postgres' AND left(datname, 14) <> '_restore_test_' ORDER BY 1"); then
+      echo "[$INSTANCE_DIR] FAILED: database enumeration"
       exit 1
     fi
 
     for db in $dbs; do
-      echo "[$dir] dumping $db"
+      echo "[$INSTANCE_DIR] dumping $db"
       mkdir -p "$root_dir/$db"
-      if pg_dump -h "$host" -Fc -d "$db" -f "$root_dir/$db/$db-$STAMP.dump"; then
-        echo "[$dir] $db -> $(du -h "$root_dir/$db/$db-$STAMP.dump" | cut -f1)"
+      if pg_dump -h "$PGHOST" -Fc -d "$db" -f "$root_dir/$db/$db-$STAMP.dump"; then
+        echo "[$INSTANCE_DIR] $db -> $(du -h "$root_dir/$db/$db-$STAMP.dump" | cut -f1)"
       else
-        echo "[$dir] FAILED: $db dump"
+        echo "[$INSTANCE_DIR] FAILED: $db dump"
         rm -f "$root_dir/$db/$db-$STAMP.dump"
         instance_failures=$((instance_failures + 1))
       fi
@@ -271,8 +142,6 @@ data:
 
     if [ "$instance_failures" -eq 0 ]; then
       echo "$STAMP" > "$root_dir/.last-success"
-    else
-      FAILURES=$instance_failures
     fi
 
     now=$(date +%s)
@@ -287,52 +156,166 @@ data:
       if [ "$wd" = "0" ] && [ "$age" -le "$WEEKLY_KEEP" ]; then
         continue
       fi
-      echo "[$dir] pruning $(basename "$f")"
+      echo "[$INSTANCE_DIR] pruning $(basename "$f")"
       rm -f "$f"
     done
 
-    if [ "$FAILURES" -gt 0 ]; then
-      echo "backup completed with $FAILURES failures"
+    if [ "$instance_failures" -gt 0 ]; then
+      echo "backup completed with $instance_failures failures"
       exit 1
     fi
     echo "backup completed cleanly"
-  restore-test-private.sh: |
+  restore-test.sh: |
     #!/bin/bash
-    # Single-instance variant of the restore test, for the private-namespace postgres.
+    # Generic single-instance restore test: restores the newest dump of every database
+    # into a _restore_test_ scratch DB, verifies nonzero user tables, drops the scratch
+    # DB. Reads /backups read-only; only touches the postgres server.
     set -u
     ROOT=/backups
     FAILURES=0
-    dir=private-postgres
-    host=postgres.private.svc.cluster.local
 
-    for dbdir in "$ROOT/$dir"/*/; do
+    for dbdir in "$ROOT/$INSTANCE_DIR"/*/; do
       [ -d "$dbdir" ] || continue
       db=$(basename "$dbdir")
       dump=$(ls -1t "$dbdir"/*.dump 2>/dev/null | head -n 1)
       if [ -z "$dump" ]; then
-        echo "[$dir] $db: no dumps found, skipping"
+        echo "[$INSTANCE_DIR] $db: no dumps found, skipping"
         continue
       fi
       target="_restore_test_$db"
-      dropdb -h "$host" --if-exists "$target" 2>/dev/null
-      if ! createdb -h "$host" "$target"; then
-        echo "[$dir] $db: FAILED to create scratch database"
+      dropdb -h "$PGHOST" --if-exists "$target" 2>/dev/null
+      if ! createdb -h "$PGHOST" "$target"; then
+        echo "[$INSTANCE_DIR] $db: FAILED to create scratch database"
         FAILURES=$((FAILURES + 1))
         continue
       fi
-      if pg_restore -h "$host" --exit-on-error -d "$target" "$dump"; then
-        tables=$(psql -h "$host" -d "$target" -At -c "SELECT count(*) FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE c.relkind = 'r' AND n.nspname NOT IN ('pg_catalog', 'information_schema')")
+      if pg_restore -h "$PGHOST" --exit-on-error -d "$target" "$dump"; then
+        tables=$(psql -h "$PGHOST" -d "$target" -At -c "SELECT count(*) FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE c.relkind = 'r' AND n.nspname NOT IN ('pg_catalog', 'information_schema')")
         if [ "$tables" -gt 0 ]; then
-          echo "[$dir] $db: restore OK from $(basename "$dump") ($tables tables)"
+          echo "[$INSTANCE_DIR] $db: restore OK from $(basename "$dump") ($tables tables)"
         else
-          echo "[$dir] $db: restore left zero user tables"
+          echo "[$INSTANCE_DIR] $db: restore left zero user tables"
           FAILURES=$((FAILURES + 1))
         fi
       else
-        echo "[$dir] $db: FAILED restore from $(basename "$dump")"
+        echo "[$INSTANCE_DIR] $db: FAILED restore from $(basename "$dump")"
         FAILURES=$((FAILURES + 1))
       fi
-      dropdb -h "$host" --if-exists "$target"
+      dropdb -h "$PGHOST" --if-exists "$target"
+    done
+
+    if [ "$FAILURES" -gt 0 ]; then
+      echo "restore test completed with $FAILURES failures"
+      exit 1
+    fi
+    echo "restore test completed cleanly"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-backup-scripts
+  namespace: private
+data:
+  backup.sh: |
+    #!/bin/bash
+    # Generic single-instance backup script. Driven by env:
+    #   INSTANCE_DIR  subdirectory under /backups for this instance
+    #   PGHOST        postgres service to back up
+    #   PGUSER / PGPASSWORD  credentials
+    set -u
+    ROOT=/backups
+    STAMP=$(date -u +%Y%m%d-%H%M%S)
+    DAILY_KEEP=7
+    WEEKLY_KEEP=28
+    root_dir="$ROOT/$INSTANCE_DIR"
+    instance_failures=0
+    mkdir -p "$root_dir"
+
+    echo "[$INSTANCE_DIR] dumping globals"
+    if ! pg_dumpall -h "$PGHOST" --globals-only > "$root_dir/globals-$STAMP.sql"; then
+      echo "[$INSTANCE_DIR] FAILED: globals dump"
+      instance_failures=$((instance_failures + 1))
+    fi
+
+    if ! dbs=$(psql -h "$PGHOST" -At -c "SELECT datname FROM pg_database WHERE NOT datistemplate AND datallowconn AND datname <> 'postgres' AND left(datname, 14) <> '_restore_test_' ORDER BY 1"); then
+      echo "[$INSTANCE_DIR] FAILED: database enumeration"
+      exit 1
+    fi
+
+    for db in $dbs; do
+      echo "[$INSTANCE_DIR] dumping $db"
+      mkdir -p "$root_dir/$db"
+      if pg_dump -h "$PGHOST" -Fc -d "$db" -f "$root_dir/$db/$db-$STAMP.dump"; then
+        echo "[$INSTANCE_DIR] $db -> $(du -h "$root_dir/$db/$db-$STAMP.dump" | cut -f1)"
+      else
+        echo "[$INSTANCE_DIR] FAILED: $db dump"
+        rm -f "$root_dir/$db/$db-$STAMP.dump"
+        instance_failures=$((instance_failures + 1))
+      fi
+    done
+
+    if [ "$instance_failures" -eq 0 ]; then
+      echo "$STAMP" > "$root_dir/.last-success"
+    fi
+
+    now=$(date +%s)
+    for f in "$root_dir"/*/*.dump "$root_dir"/globals-*.sql; do
+      [ -e "$f" ] || continue
+      mtime=$(stat -c %Y "$f")
+      age=$(( (now - mtime) / 86400 ))
+      if [ "$age" -le "$DAILY_KEEP" ]; then
+        continue
+      fi
+      wd=$(date -d "@$mtime" +%w)
+      if [ "$wd" = "0" ] && [ "$age" -le "$WEEKLY_KEEP" ]; then
+        continue
+      fi
+      echo "[$INSTANCE_DIR] pruning $(basename "$f")"
+      rm -f "$f"
+    done
+
+    if [ "$instance_failures" -gt 0 ]; then
+      echo "backup completed with $instance_failures failures"
+      exit 1
+    fi
+    echo "backup completed cleanly"
+  restore-test.sh: |
+    #!/bin/bash
+    # Generic single-instance restore test: restores the newest dump of every database
+    # into a _restore_test_ scratch DB, verifies nonzero user tables, drops the scratch
+    # DB. Reads /backups read-only; only touches the postgres server.
+    set -u
+    ROOT=/backups
+    FAILURES=0
+
+    for dbdir in "$ROOT/$INSTANCE_DIR"/*/; do
+      [ -d "$dbdir" ] || continue
+      db=$(basename "$dbdir")
+      dump=$(ls -1t "$dbdir"/*.dump 2>/dev/null | head -n 1)
+      if [ -z "$dump" ]; then
+        echo "[$INSTANCE_DIR] $db: no dumps found, skipping"
+        continue
+      fi
+      target="_restore_test_$db"
+      dropdb -h "$PGHOST" --if-exists "$target" 2>/dev/null
+      if ! createdb -h "$PGHOST" "$target"; then
+        echo "[$INSTANCE_DIR] $db: FAILED to create scratch database"
+        FAILURES=$((FAILURES + 1))
+        continue
+      fi
+      if pg_restore -h "$PGHOST" --exit-on-error -d "$target" "$dump"; then
+        tables=$(psql -h "$PGHOST" -d "$target" -At -c "SELECT count(*) FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE c.relkind = 'r' AND n.nspname NOT IN ('pg_catalog', 'information_schema')")
+        if [ "$tables" -gt 0 ]; then
+          echo "[$INSTANCE_DIR] $db: restore OK from $(basename "$dump") ($tables tables)"
+        else
+          echo "[$INSTANCE_DIR] $db: restore left zero user tables"
+          FAILURES=$((FAILURES + 1))
+        fi
+      else
+        echo "[$INSTANCE_DIR] $db: FAILED restore from $(basename "$dump")"
+        FAILURES=$((FAILURES + 1))
+      fi
+      dropdb -h "$PGHOST" --if-exists "$target"
     done
 
     if [ "$FAILURES" -gt 0 ]; then
@@ -371,17 +354,80 @@ spec:
               imagePullPolicy: IfNotPresent
               command: ["/bin/bash", "/scripts/backup.sh"]
               env:
+                - name: INSTANCE_DIR
+                  value: postgres
+                - name: PGHOST
+                  value: postgres.postgres.svc.cluster.local
                 - name: PGUSER
                   valueFrom:
                     secretKeyRef:
                       name: postgres-credentials
                       key: POSTGRES_USER
-                - name: PGPASSWORD_MAIN
+                - name: PGPASSWORD
                   valueFrom:
                     secretKeyRef:
                       name: postgres-credentials
                       key: POSTGRES_PASSWORD
-                - name: PGPASSWORD_PGVECTOR
+              resources:
+                requests:
+                  cpu: 250m
+                  memory: 256Mi
+                limits:
+                  cpu: "1"
+                  memory: 1Gi
+              volumeMounts:
+                - name: backup
+                  mountPath: /backups
+                - name: scripts
+                  mountPath: /scripts
+          volumes:
+            - name: backup
+              persistentVolumeClaim:
+                claimName: postgres-backup
+            - name: scripts
+              configMap:
+                name: postgres-backup-scripts
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: postgres-backup-pgvector
+  namespace: postgres
+  labels:
+    app: postgres-backup
+spec:
+  schedule: "40 2 * * *"
+  timeZone: "America/New_York"
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 3600
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      activeDeadlineSeconds: 21600
+      template:
+        spec:
+          restartPolicy: Never
+          securityContext:
+            runAsUser: 99
+            runAsGroup: 100
+          containers:
+            - name: backup
+              image: pgvector/pgvector:pg16
+              imagePullPolicy: IfNotPresent
+              command: ["/bin/bash", "/scripts/backup.sh"]
+              env:
+                - name: INSTANCE_DIR
+                  value: postgres-pgvector
+                - name: PGHOST
+                  value: postgres-pgvector.postgres.svc.cluster.local
+                - name: PGUSER
+                  valueFrom:
+                    secretKeyRef:
+                      name: postgres-pgvector-credentials
+                      key: POSTGRES_USER
+                - name: PGPASSWORD
                   valueFrom:
                     secretKeyRef:
                       name: postgres-pgvector-credentials
@@ -436,17 +482,81 @@ spec:
               imagePullPolicy: IfNotPresent
               command: ["/bin/bash", "/scripts/restore-test.sh"]
               env:
+                - name: INSTANCE_DIR
+                  value: postgres
+                - name: PGHOST
+                  value: postgres.postgres.svc.cluster.local
                 - name: PGUSER
                   valueFrom:
                     secretKeyRef:
                       name: postgres-credentials
                       key: POSTGRES_USER
-                - name: PGPASSWORD_MAIN
+                - name: PGPASSWORD
                   valueFrom:
                     secretKeyRef:
                       name: postgres-credentials
                       key: POSTGRES_PASSWORD
-                - name: PGPASSWORD_PGVECTOR
+              resources:
+                requests:
+                  cpu: 250m
+                  memory: 256Mi
+                limits:
+                  cpu: "2"
+                  memory: 2Gi
+              volumeMounts:
+                - name: backup
+                  mountPath: /backups
+                  readOnly: true
+                - name: scripts
+                  mountPath: /scripts
+          volumes:
+            - name: backup
+              persistentVolumeClaim:
+                claimName: postgres-backup
+            - name: scripts
+              configMap:
+                name: postgres-backup-scripts
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: postgres-restore-test-pgvector
+  namespace: postgres
+  labels:
+    app: postgres-backup
+spec:
+  schedule: "30 5 * * 0"
+  timeZone: "America/New_York"
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 3600
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 0
+      activeDeadlineSeconds: 28800
+      template:
+        spec:
+          restartPolicy: Never
+          securityContext:
+            runAsUser: 99
+            runAsGroup: 100
+          containers:
+            - name: restore-test
+              image: pgvector/pgvector:pg16
+              imagePullPolicy: IfNotPresent
+              command: ["/bin/bash", "/scripts/restore-test.sh"]
+              env:
+                - name: INSTANCE_DIR
+                  value: postgres-pgvector
+                - name: PGHOST
+                  value: postgres-pgvector.postgres.svc.cluster.local
+                - name: PGUSER
+                  valueFrom:
+                    secretKeyRef:
+                      name: postgres-pgvector-credentials
+                      key: POSTGRES_USER
+                - name: PGPASSWORD
                   valueFrom:
                     secretKeyRef:
                       name: postgres-pgvector-credentials
@@ -456,8 +566,8 @@ spec:
                   cpu: 250m
                   memory: 256Mi
                 limits:
-                  cpu: "2"
-                  memory: 2Gi
+                  cpu: "1"
+                  memory: 1Gi
               volumeMounts:
                 - name: backup
                   mountPath: /backups
@@ -500,8 +610,12 @@ spec:
             - name: backup
               image: postgres:17
               imagePullPolicy: IfNotPresent
-              command: ["/bin/bash", "/scripts/backup-private.sh"]
+              command: ["/bin/bash", "/scripts/backup.sh"]
               env:
+                - name: INSTANCE_DIR
+                  value: private-postgres
+                - name: PGHOST
+                  value: postgres.private.svc.cluster.local
                 - name: PGUSER
                   valueFrom:
                     secretKeyRef:
@@ -540,7 +654,7 @@ metadata:
   labels:
     app: postgres-backup
 spec:
-  schedule: "30 5 * * 0"
+  schedule: "0 6 * * 0"
   timeZone: "America/New_York"
   concurrencyPolicy: Forbid
   startingDeadlineSeconds: 3600
@@ -560,8 +674,12 @@ spec:
             - name: restore-test
               image: postgres:17
               imagePullPolicy: IfNotPresent
-              command: ["/bin/bash", "/scripts/restore-test-private.sh"]
+              command: ["/bin/bash", "/scripts/restore-test.sh"]
               env:
+                - name: INSTANCE_DIR
+                  value: private-postgres
+                - name: PGHOST
+                  value: postgres.private.svc.cluster.local
                 - name: PGUSER
                   valueFrom:
                     secretKeyRef:
@@ -577,8 +695,8 @@ spec:
                   cpu: 250m
                   memory: 256Mi
                 limits:
-                  cpu: "2"
-                  memory: 2Gi
+                  cpu: "1"
+                  memory: 1Gi
               volumeMounts:
                 - name: backup
                   mountPath: /backups
