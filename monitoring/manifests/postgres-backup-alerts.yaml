@@ -1,0 +1,99 @@
+---
+# Alerts for the postgres backup CronJobs (postgres/backup.yaml).
+#
+# The AlertmanagerConfig lives in the postgres namespace on purpose: backup job
+# metrics carry namespace="postgres", and the operator routes each
+# AlertmanagerConfig by its own namespace, so the config must sit where the
+# alerts live. The monitoring-prometheus app must enable
+# alertmanagerConfigSelector/alertmanagerConfigNamespaceSelector (set in
+# monitoring/helm-values/prometheus-values.yaml) for it to be picked up.
+#
+# SMTP credentials: hand-applied secret `alertmanager-smtp` in namespace
+# postgres (key SMTP_PASSWORD), copied from scrape-job-manager-smtp. Same Gmail
+# SMTP channel as authentik and scrape-job-manager.
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: postgres-backup-alerts
+  namespace: monitoring
+  labels:
+    release: prometheus
+spec:
+  groups:
+    - name: postgres-backup
+      rules:
+        - alert: PostgresBackupJobFailed
+          expr: kube_job_status_failed{namespace="postgres", job_name=~"postgres-(backup|restore-test).*"} > 0
+          labels:
+            severity: critical
+          annotations:
+            summary: "Backup job {{ $labels.job_name }} failed"
+            description: >-
+              A postgres backup or restore-test job failed. Check
+              `kubectl -n postgres describe job {{ $labels.job_name }}` and its pod logs.
+              failedJobsHistoryLimit keeps the last 3 failed jobs.
+        - alert: PostgresBackupStale
+          expr: >-
+            time() - kube_cronjob_status_last_successful_time{namespace="postgres", cronjob=~"postgres-backup(-pgvector)?"} > 26*3600
+            or (kube_cronjob_info{namespace="postgres", cronjob=~"postgres-backup(-pgvector)?"}
+            unless kube_cronjob_status_last_successful_time{namespace="postgres", cronjob=~"postgres-backup(-pgvector)?"})
+          labels:
+            severity: critical
+          annotations:
+            summary: "CronJob {{ $labels.cronjob }} has no successful run in over 26h"
+            description: >-
+              Nightly backups should succeed every 24h. A stale success time means the
+              backup is either not starting (suspended CronJob, scheduler, image pull)
+              or silently failing without producing a failed job. Check
+              `kubectl -n postgres get jobs,cronjobs`.
+        - alert: PostgresRestoreTestStale
+          expr: >-
+            time() - kube_cronjob_status_last_successful_time{namespace="postgres", cronjob=~"postgres-restore-test(-pgvector)?"} > 8*86400
+            or (kube_cronjob_info{namespace="postgres", cronjob=~"postgres-restore-test(-pgvector)?"}
+            unless kube_cronjob_status_last_successful_time{namespace="postgres", cronjob=~"postgres-restore-test(-pgvector)?"})
+          for: 1h
+          labels:
+            severity: warning
+          annotations:
+            summary: "Restore test {{ $labels.cronjob }} has not succeeded in over 8 days"
+            description: >-
+              The weekly restore test (Sunday 05:00/05:30 ET) validates that backup dumps
+              actually restore. It has not succeeded in over a week - the backups may be
+              unrestorable even if the nightly dumps keep succeeding.
+        - alert: PostgresBackupSuspended
+          expr: kube_cronjob_spec_suspend{namespace="postgres", cronjob=~"postgres-(backup|restore-test).*"} == 1
+          labels:
+            severity: warning
+          annotations:
+            summary: "CronJob {{ $labels.cronjob }} is suspended"
+            description: >-
+              The backup or restore-test CronJob is suspended and will not run until
+              resumed: `kubectl -n postgres patch cronjob {{ $labels.cronjob }} -p '{"spec":{"suspend":false}}'`
+---
+apiVersion: monitoring.coreos.com/v1alpha1
+kind: AlertmanagerConfig
+metadata:
+  name: postgres-backup-email
+  namespace: postgres
+spec:
+  route:
+    receiver: db-backup-email
+    groupBy:
+      - alertname
+    matchers:
+      - name: alertname
+        matchType: =~
+        value: "Postgres(Backup|RestoreTest).*"
+    continue: false
+  receivers:
+    - name: db-backup-email
+      emailConfigs:
+        - to: dwilson2547@gmail.com
+          from: "alertmanager <dwilson2547@gmail.com>"
+          smarthost: smtp.gmail.com:587
+          authUsername: dwilson2547@gmail.com
+          authPassword:
+            name: alertmanager-smtp
+            key: SMTP_PASSWORD
+          requireTLS: true
+          sendResolved: true

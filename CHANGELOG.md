@@ -1,3 +1,18 @@
+## 2026-10-15 - monitoring: email alerts for postgres backup failures
+
+### Added
+- `monitoring/manifests/postgres-backup-alerts.yaml`: PrometheusRule (4 alerts on the
+  backup CronJobs) + an AlertmanagerConfig routing them to dwilson2547@gmail.com over
+  Gmail SMTP (secret `alertmanager-smtp` in namespace postgres, copied by hand from
+  `scrape-job-manager-smtp` - same channel as authentik and scrape-job-manager).
+  Alerts: PostgresBackupJobFailed (failed job), PostgresBackupStale (no successful run
+  in 26h - catches suspended/silent CronJobs), PostgresRestoreTestStale (weekly restore
+  test not succeeded in 8 days), PostgresBackupSuspended (suspend flag).
+  The AlertmanagerConfig sits in namespace postgres because the operator routes configs
+  by their namespace and the job metrics carry namespace=postgres.
+- `prometheus-values.yaml`: alertmanagerSpec now selects AlertmanagerConfig CRs from any
+  namespace (alertmanagerConfigSelector/alertmanagerConfigNamespaceSelector).
+
 ## 2026-10-15 - postgres backup: drop the private namespace from backup scope
 
 ### Removed

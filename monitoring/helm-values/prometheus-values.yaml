@@ -3,6 +3,10 @@ crds:
 
 alertmanager:
   alertmanagerSpec:
+    # Pick up AlertmanagerConfig CRs from any namespace (e.g. the postgres-backup
+    # email config in postgres/). The operator routes each config by its own namespace.
+    alertmanagerConfigSelector: {}
+    alertmanagerConfigNamespaceSelector: {}
     storage:
       volumeClaimTemplate:
         spec:
