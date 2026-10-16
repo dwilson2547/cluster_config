@@ -36,7 +36,7 @@ spec:
           expr: >-
             time() - kube_cronjob_status_last_successful_time{namespace="postgres", cronjob=~"postgres-backup(-pgvector)?"} > 26*3600
             or (kube_cronjob_info{namespace="postgres", cronjob=~"postgres-backup(-pgvector)?"}
-            unless kube_cronjob_status_last_successful_time{namespace="postgres", cronjob=~"postgres-backup(-pgvector)?"})
+            unless on(namespace, cronjob) kube_cronjob_status_last_successful_time{namespace="postgres", cronjob=~"postgres-backup(-pgvector)?"})
           labels:
             severity: critical
           annotations:
@@ -50,7 +50,7 @@ spec:
           expr: >-
             time() - kube_cronjob_status_last_successful_time{namespace="postgres", cronjob=~"postgres-restore-test(-pgvector)?"} > 8*86400
             or (kube_cronjob_info{namespace="postgres", cronjob=~"postgres-restore-test(-pgvector)?"}
-            unless kube_cronjob_status_last_successful_time{namespace="postgres", cronjob=~"postgres-restore-test(-pgvector)?"})
+            unless on(namespace, cronjob) kube_cronjob_status_last_successful_time{namespace="postgres", cronjob=~"postgres-restore-test(-pgvector)?"})
           for: 1h
           labels:
             severity: warning
