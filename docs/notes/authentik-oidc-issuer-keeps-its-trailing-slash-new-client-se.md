@@ -18,3 +18,10 @@ old worker without the variable can apply the new blueprint first, storing an em
 endpoint then answers invalid_client). After the rollout, re-apply from a new worker:
 `kubectl -n authentik exec <new worker> -- ak apply_blueprint /blueprints/mounted/cm-authentik-blueprints-danwils/<app>.yaml`,
 then re-run the bogus-code probe (invalid_grant = right secret).
+
+Fifth trap (2026-10-16, gyopart admin prod): a callback can arrive twice for one code; the first exchange
+succeeds, the duplicate gets invalid_grant ("Code does not exist" in authentik's log) and its error is what
+the browser shows. Also, any signed-out GET that starts a sign-in (favicon, images) overwrites the flow
+cookie of the one in progress. Pattern: start sign-in only for navigations (Sec-Fetch-Mode: navigate), and on
+a failed callback continue if already signed in, else restart once quietly. Write-up:
+automotive/gyopart/docs/issues/2026_10_16_admin_signin_duplicate_callback_spent_code.md.
