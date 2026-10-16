@@ -1,3 +1,10 @@
+## 2026-10-15 - monitoring: expose Alertmanager UI on the LAN
+
+### Added
+- LAN ingress for Alertmanager at http://alertmanager.monitoring.local (monitoring/manifests/
+  ingress.yaml, traefik class; the existing monitoring.local wildcard in dns.yaml already
+  resolves the host to 192.168.0.60). Homepage "Cluster" group gains an Alertmanager entry.
+
 ## 2026-10-15 - monitoring: fix false-positive PostgresBackupStale alerts
 
 ### Fixed

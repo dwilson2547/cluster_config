@@ -342,6 +342,10 @@ data:
             href: https://grafana.danwils.com
             description: Metrics and dashboards
             icon: grafana
+        - Alertmanager:
+            href: http://alertmanager.monitoring.local
+            description: Alert routing and silences
+            icon: alertmanager
         - SearXNG:
             href: http://search.local
             description: Private meta search engine

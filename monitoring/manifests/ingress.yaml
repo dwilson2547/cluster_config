@@ -1,5 +1,29 @@
 # Public only: Grafana's root_url and OIDC redirect are https://grafana.danwils.com,
 # so a .local host would bounce there on sign-in anyway. Sign-in is through authentik.
+#
+# LAN only: Alertmanager UI. The monitoring.local zone (dns.yaml) already wildcards
+# *.monitoring.local to Traefik on 192.168.0.60, so no DNS change is needed.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: alertmanager
+  namespace: monitoring
+  labels:
+    app: alertmanager
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: alertmanager.monitoring.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: prometheus-kube-prometheus-alertmanager
+                port:
+                  number: 9093
+---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
