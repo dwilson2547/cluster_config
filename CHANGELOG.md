@@ -1,3 +1,14 @@
+## 2026-10-15 - monitoring: fix false-positive PostgresBackupStale alerts
+
+### Fixed
+- The `unless` clause in the backup staleness alerts matched on the full label set:
+  `kube_cronjob_info` carries labels (`schedule`, `timezone`, ...) that
+  `kube_cronjob_status_last_successful_time` lacks, so the "never succeeded" branch fired
+  even when a success was 4 hours old. Now matches `unless on(namespace, cronjob)`.
+  Caught during end-to-end verification: the false positive emailed, which is also proof
+  the alert-to-email path works (2 emails dispatched, per
+  `alertmanager_notifications_total{integration="email"}`).
+
 ## 2026-10-15 - monitoring: email alerts for postgres backup failures
 
 ### Added
