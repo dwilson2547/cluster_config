@@ -30,7 +30,7 @@ data:
       mkdir -p "$ROOT/$b/current"
       if rclone sync "$entry" "$ROOT/$b/current" \
           --backup-dir "$ROOT/$b/replaced/$STAMP" \
-          --max-delete "$MAX_DELETE" --fast-list --transfers 4 --checkers 8 \
+          --max-delete "$MAX_DELETE" --list-cutoff 200000 --transfers 4 --checkers 8 \
           --stats-one-line --stats 5m -v; then
         echo "   $(rclone size --json "$ROOT/$b/current")"
       else
@@ -74,7 +74,7 @@ spec:
             runAsGroup: 100
           containers:
             - name: backup
-              image: rclone/rclone:1.68.2
+              image: rclone/rclone:1.71.1
               imagePullPolicy: IfNotPresent
               command: ["/bin/sh", "/scripts/backup-objects.sh"]
               env:
@@ -93,10 +93,13 @@ spec:
                   valueFrom: {secretKeyRef: {name: object-backup-s3, key: S3_SECRET_KEY}}
               resources:
                 requests: {cpu: 100m, memory: 128Mi}
-                limits: {memory: 512Mi}
+                limits: {memory: 2Gi}
               volumeMounts:
                 - {name: backup, mountPath: /backups}
                 - {name: scripts, mountPath: /scripts}
+                # rclone >= 1.70 sorts listings above --list-cutoff here instead of in memory: part-images keeps
+                # millions of objects per flat folder (1.68 needed > 8 GiB for one).
+                - {name: tmp, mountPath: /tmp}
           volumes:
             - name: backup
               persistentVolumeClaim:
@@ -104,3 +107,5 @@ spec:
             - name: scripts
               configMap:
                 name: backup-objects-script
+            - name: tmp
+              emptyDir: {sizeLimit: 20Gi}
