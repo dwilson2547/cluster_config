@@ -150,7 +150,7 @@ Contains legacy and one-off manifests that predate the ArgoCD setup (postgres, b
 | `tools.danwils.com` | web-tools static browser utilities (public, no auth; `web-tools/`) |
 | `sjm.danwils.com` | scrape-job-manager UI (public; authentik sign-in, group `sjm-admins`) |
 | `gyopart.danwils.com` | gyopart UI (public, anonymous, read-only; `/v1/vin/` rate-limited) |
-| `gyopart-admin-dev.danwils.com` | gyopart admin, dev (public; authentik sign-in, group `gyopart-admin`); prod will be `gyopart-admin.danwils.com` |
+| `gyopart-admin.danwils.com` | gyopart admin (public; authentik sign-in, group `gyopart-admin`); dev: `gyopart-admin-dev.danwils.com` |
 
 ## Notes
 
