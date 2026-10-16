@@ -1,3 +1,12 @@
+## 2026-10-15 - postgres backup: drop the private namespace from backup scope
+
+### Removed
+- The private-namespace backup objects (PV `postgres-backup-nfs-private`, PVC/ConfigMap
+  `postgres-backup`, CronJobs `postgres-backup` + `postgres-restore-test` in `private`):
+  per user decision the reddit_archive postgres is not backed up. The live objects were
+  deleted by hand (the postgres app does not prune). Existing dumps under
+  `/backups/private-postgres/` on 192.168.0.15 were left in place.
+
 ## 2026-10-15 - postgres backup: version-matched clients for the pgvector instance
 
 ### Fixed
