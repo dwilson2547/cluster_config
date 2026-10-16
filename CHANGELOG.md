@@ -1,3 +1,10 @@
+## 2026-10-15 - docs: postgres backup runbook
+
+### Added
+- `docs/postgres_backup.md`: consolidated design + restore runbook for the automated
+  backups (schedules, layout on the NAS, restore procedure, version-matching rule,
+  alerting, gotchas).
+
 ## 2026-10-15 - monitoring: expose Alertmanager UI on the LAN
 
 ### Added
