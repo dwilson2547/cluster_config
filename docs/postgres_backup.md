@@ -38,10 +38,12 @@ between two instances, so this copy is the backup.
 
 | Bucket | What |
 |---|---|
-| `nodewright` (AIStor) | nodewright attachments |
+| `nodewright` | nodewright attachments |
+| `photo-dump-prod`, `photo-dump-dev` | photo-dump's photos (moved from the old MinIO on the Unraid box, 2026-10-16) |
 
-Not yet: photo-dump's buckets are on the old MinIO instance, not AIStor (migration planned); `dxf-converter` and
-`race-logger` (AIStor) are left out (conversions; robo-services pipeline archive).
+All on AIStor. Coming: `part-images` (180 GB, being copied from the old MinIO). Left out: `dxf-converter`
+(conversions) and `race-logger` (robo-services pipeline archive). The backup key is read-only and scoped to the
+listed buckets: add a bucket to its AIStor policy as well as to `BUCKETS`.
 
 ```
 /backups/objects/<bucket>/current/              mirror of the bucket
