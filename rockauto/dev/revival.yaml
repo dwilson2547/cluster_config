@@ -17,7 +17,17 @@ spec:
   image: dwilson2547/rockauto-revival@sha256:0a72736248f81bef6d04a9c3d47e1267e9170a00b3b0d19708c4ccf6795db4e9
   imagePullPolicy: IfNotPresent
   timeout: 8h
+  # Each run retries the pages a previous run left in error (one fetch per page per run).
+  command: ["python", "scraper.py"]
+  args: ["--requeue-errors"]
   env:
+    # RockAuto drops connections from the cluster's own IP (blocked 2026-10-15 after an unpaced first run), so
+    # target fetches go through the VPN proxy. requests/httpx read HTTPS_PROXY, gRPC (request-auth) reads
+    # https_proxy; the no_proxy entries keep webcache, request-auth and postgres direct.
+    - {name: HTTPS_PROXY, value: "http://nordvpn-proxy-entrypoint.vpn.svc.cluster.local:8118"}
+    - {name: https_proxy, value: "http://nordvpn-proxy-entrypoint.vpn.svc.cluster.local:8118"}
+    - {name: NO_PROXY, value: ".svc.cluster.local,.cluster.local,localhost,127.0.0.1"}
+    - {name: no_proxy, value: ".svc.cluster.local,.cluster.local,localhost,127.0.0.1"}
     # Order matters: $(VAR) only expands variables defined earlier in the list.
     - name: ROCKAUTO_USER
       valueFrom: {secretKeyRef: {name: rockauto-credentials, key: ROCKAUTO_USER}}
