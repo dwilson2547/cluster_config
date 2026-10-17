@@ -1,0 +1,10 @@
+# otel-collector-aistor-audit: the token AIStor's audit webhook sends in its Authorization header. Never commit
+# real values. Enter the same value as the webhook's auth token in AIStor.
+apiVersion: v1
+kind: Secret
+metadata:
+  name: otel-collector-aistor-audit
+  namespace: monitoring
+type: Opaque
+stringData:
+  TOKEN: replace-me

@@ -12,10 +12,44 @@ data:
             endpoint: 0.0.0.0:4317
           http:
             endpoint: 0.0.0.0:4318
+      # AIStor's audit webhook (one JSON event per S3 request), posted from the TrueNAS box through the LAN
+      # ingress in ingress.yaml. Only requests carrying the token from the otel-collector-aistor-audit secret
+      # are accepted. Runbook: docs/logging.md.
+      webhookevent/aistor:
+        endpoint: 0.0.0.0:8088
+        path: /aistor-audit
+        health_path: /aistor-audit/health
+        split_logs_at_newline: true
+        required_header:
+          key: Authorization
+          value: ${env:AISTOR_AUDIT_TOKEN}
 
     processors:
       batch:
         timeout: 5s
+      # Pull the useful audit fields up as attributes (structured metadata in Loki); the body keeps the full event.
+      transform/aistor:
+        error_mode: ignore
+        log_statements:
+          - context: resource
+            statements:
+              - set(attributes["service.name"], "aistor-audit")
+          - context: log
+            statements:
+              - set(cache, ParseJSON(body))
+              - set(attributes["status"], Int(cache["api"]["statusCode"]))
+              - set(attributes["api"], cache["api"]["name"])
+              - set(attributes["bucket"], cache["api"]["bucket"])
+              - set(attributes["object"], cache["api"]["object"])
+              - set(attributes["remote_host"], cache["remotehost"])
+              - set(attributes["user_agent"], cache["userAgent"])
+      # Errors only: every successful request would be millions of lines a night (backup listings, image checks).
+      filter/aistor-errors:
+        error_mode: ignore
+        logs:
+          log_record:
+            - attributes["status"] == nil
+            - attributes["status"] < 400
 
     exporters:
       prometheus:
@@ -24,6 +58,8 @@ data:
         endpoint: http://tempo.monitoring.svc.cluster.local:4318
       loki:
         endpoint: http://loki.monitoring.svc.cluster.local:3100/loki/api/v1/push
+      otlphttp/loki:
+        endpoint: http://loki-gateway.monitoring.svc.cluster.local/otlp
 
     service:
       pipelines:
@@ -39,6 +75,10 @@ data:
           receivers: [otlp]
           processors: [batch]
           exporters: [loki]
+        logs/aistor:
+          receivers: [webhookevent/aistor]
+          processors: [transform/aistor, filter/aistor-errors, batch]
+          exporters: [otlphttp/loki]
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -56,6 +96,9 @@ spec:
     metadata:
       labels:
         app: otel-collector
+      annotations:
+        # Restart on config change (stakater reloader).
+        reloader.stakater.com/auto: "true"
     spec:
       containers:
         - name: otel-collector
@@ -67,6 +110,12 @@ spec:
               containerPort: 4318
             - name: prometheus
               containerPort: 8889
+            - name: aistor-audit
+              containerPort: 8088
+          env:
+            - name: AISTOR_AUDIT_TOKEN
+              valueFrom:
+                secretKeyRef: {name: otel-collector-aistor-audit, key: TOKEN}
           volumeMounts:
             - name: config
               mountPath: /etc/otelcol-contrib/config.yaml
@@ -97,3 +146,6 @@ spec:
     - name: prometheus
       port: 8889
       targetPort: 8889
+    - name: aistor-audit
+      port: 8088
+      targetPort: 8088

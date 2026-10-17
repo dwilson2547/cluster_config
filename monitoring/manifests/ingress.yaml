@@ -46,6 +46,33 @@ spec:
                 port:
                   number: 9090
 ---
+# LAN only: AIStor's audit webhook into the otel-collector (token-checked there). The host-less rule lets the
+# TrueNAS box post to http://192.168.0.60/aistor-audit without resolving monitoring.local; only that path matches.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: aistor-audit
+  namespace: monitoring
+  labels:
+    app: otel-collector
+  annotations:
+    # LAN entrypoint only (also Traefik's default; explicit because the rule has no host).
+    traefik.ingress.kubernetes.io/router.entrypoints: web
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: otel-webhook.monitoring.local
+      http: &aistor-audit
+        paths:
+          - path: /aistor-audit
+            pathType: Prefix
+            backend:
+              service:
+                name: otel-collector
+                port:
+                  number: 8088
+    - http: *aistor-audit
+---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:

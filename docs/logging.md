@@ -8,6 +8,7 @@ logs; its compactor deletes older chunks. Grafana reads it through the `Loki` da
 | Source | How | What |
 |---|---|---|
 | Scraper fleet | DaemonSet `otel-agent` (`monitoring/manifests/otel-agent.yaml`) tails `/var/log/pods` on every node, OTLP to Loki | the `scraper` container in `gyopart`, `gyopart-dev`, `motorcycles`, `motorcycles-dev`, `rockauto-dev` |
+| AIStor (TrueNAS) | audit webhook to `http://192.168.0.60/aistor-audit` (ingress `aistor-audit`), received by `otel-collector` | S3 requests that failed (status 400 and up); successful ones are dropped in the collector |
 | Apps pushing OTLP | the `otel-collector` Deployment (`monitoring/manifests/otel-collector.yaml`) | whatever an app sends; none instrumented yet |
 
 The agent reads only the paths in its `filelog.include` list: browserless sidecars and the rest of the cluster are
@@ -35,6 +36,25 @@ Loki indexes these (from the OTel resource attributes, dots become underscores):
 ```
 
 The Scrape Jobs dashboard has a logs panel driven by its Namespace/Job variables.
+
+## AIStor audit events
+
+AIStor's audit webhook posts one JSON event per S3 request. The `otel-collector` receives them on
+`/aistor-audit` (checking the `Authorization` header against the `otel-collector-aistor-audit` secret), keeps only
+events with status 400 and up, and sends them to Loki as `service_name="aistor-audit"`. The full event is the line
+body; these ride along as structured metadata: `status`, `api` (e.g. `HeadObject`), `bucket`, `object`,
+`remote_host` (the caller; a pod IP for cluster clients), `user_agent`.
+
+```logql
+{service_name="aistor-audit"}                                  # all failed requests
+sum by (remote_host, api, status) (count_over_time({service_name="aistor-audit"}[1h]))
+```
+
+A `HeadObject` 404 is normal: clients check whether an object exists before uploading it (the parts-direct
+updaters do this for every new image).
+
+AIStor setting (audit webhook): endpoint `http://192.168.0.60/aistor-audit`, auth token = the secret's `TOKEN`.
+The ingress also answers on `otel-webhook.monitoring.local`; the IP form works without the `monitoring.local` zone.
 
 ## Permissions
 
