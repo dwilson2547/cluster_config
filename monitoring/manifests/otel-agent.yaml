@@ -1,0 +1,132 @@
+# Node log agent: an OpenTelemetry Collector on every node that tails the scraper fleet's pod logs and ships them
+# to Loki over OTLP (runbook: docs/logging.md). The existing otel-collector Deployment stays the receiver for apps
+# that push OTLP themselves.
+#
+# Collected: the `scraper` container of pods in the scrape-job-manager namespaces only (not browserless, not the
+# rest of the cluster). Each line carries the namespace, pod, container and Job, plus the pod's scrape labels:
+# scrape.job (also service.name, so Loki indexes it as service_name), scrape.run, scrape.attempt.
+#
+# RBAC (read pods/namespaces for those labels) is in otel-agent-rbac.yaml.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: otel-agent-config
+  namespace: monitoring
+data:
+  config.yaml: |
+    extensions:
+      # Read positions survive restarts, so a restart doesn't re-send what Loki already has.
+      file_storage:
+        directory: /var/lib/otel-agent
+      health_check:
+        endpoint: 0.0.0.0:13133
+    receivers:
+      filelog:
+        include:
+          - /var/log/pods/gyopart_*/scraper/*.log
+          - /var/log/pods/gyopart-dev_*/scraper/*.log
+          - /var/log/pods/motorcycles_*/scraper/*.log
+          - /var/log/pods/motorcycles-dev_*/scraper/*.log
+          - /var/log/pods/rockauto-dev_*/scraper/*.log
+        start_at: beginning
+        include_file_path: false
+        storage: file_storage
+        operators:
+          # CRI log format -> body, stream, time; namespace/pod/uid/container from the file path.
+          - type: container
+            id: container-parser
+    processors:
+      memory_limiter:
+        check_interval: 1s
+        limit_mib: 200
+      k8sattributes:
+        auth_type: serviceAccount
+        filter:
+          node_from_env_var: K8S_NODE_NAME
+        pod_association:
+          - sources:
+              - from: resource_attribute
+                name: k8s.pod.uid
+        extract:
+          metadata: [k8s.job.name, k8s.node.name]
+          labels:
+            - {tag_name: scrape.job, key: scrape.danwils.com/job, from: pod}
+            - {tag_name: scrape.run, key: scrape.danwils.com/run, from: pod}
+            - {tag_name: scrape.attempt, key: scrape.danwils.com/attempt, from: pod}
+      transform/service-name:
+        log_statements:
+          - context: resource
+            statements:
+              - set(attributes["service.name"], attributes["scrape.job"]) where attributes["scrape.job"] != nil
+      batch:
+        timeout: 5s
+    exporters:
+      otlphttp/loki:
+        endpoint: http://loki-gateway.monitoring.svc.cluster.local/otlp
+    service:
+      extensions: [file_storage, health_check]
+      pipelines:
+        logs:
+          receivers: [filelog]
+          processors: [memory_limiter, k8sattributes, transform/service-name, batch]
+          exporters: [otlphttp/loki]
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: otel-agent
+  namespace: monitoring
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: otel-agent
+  namespace: monitoring
+  labels:
+    app: otel-agent
+spec:
+  selector:
+    matchLabels:
+      app: otel-agent
+  template:
+    metadata:
+      labels:
+        app: otel-agent
+      annotations:
+        # Restart on config change (stakater reloader watches ConfigMaps referenced by the pod).
+        reloader.stakater.com/auto: "true"
+    spec:
+      serviceAccountName: otel-agent
+      containers:
+        - name: otel-agent
+          image: otel/opentelemetry-collector-contrib:0.123.0
+          args: ["--config=/conf/config.yaml"]
+          env:
+            - name: K8S_NODE_NAME
+              valueFrom: {fieldRef: {fieldPath: spec.nodeName}}
+          # Pod log files are root:root 0640 on the nodes; read-only mount, no privilege escalation.
+          securityContext:
+            runAsUser: 0
+            runAsGroup: 0
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL], add: [DAC_READ_SEARCH]}
+          readinessProbe:
+            httpGet: {path: /, port: 13133}
+          livenessProbe:
+            httpGet: {path: /, port: 13133}
+            initialDelaySeconds: 15
+          resources:
+            requests: {cpu: 50m, memory: 96Mi}
+            limits: {memory: 256Mi}
+          volumeMounts:
+            - {name: conf, mountPath: /conf}
+            - {name: varlogpods, mountPath: /var/log/pods, readOnly: true}
+            - {name: state, mountPath: /var/lib/otel-agent}
+      volumes:
+        - name: conf
+          configMap: {name: otel-agent-config}
+        - name: varlogpods
+          hostPath: {path: /var/log/pods}
+        - name: state
+          hostPath: {path: /var/lib/otel-agent, type: DirectoryOrCreate}

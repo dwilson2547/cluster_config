@@ -1207,6 +1207,52 @@ data:
          }
         ]
        }
+      },
+      {
+       "type": "row",
+       "title": "Logs (scraper container, via Loki)",
+       "id": 16,
+       "collapsed": false,
+       "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 65
+       }
+      },
+      {
+       "type": "logs",
+       "title": "Scraper logs",
+       "id": 17,
+       "datasource": {
+        "type": "loki",
+        "uid": "loki"
+       },
+       "description": "Shipped by the otel-agent DaemonSet (docs/logging.md). Narrow with the Namespace/Job variables; each line carries scrape_run and scrape_attempt for a single run.",
+       "gridPos": {
+        "h": 20,
+        "w": 24,
+        "x": 0,
+        "y": 66
+       },
+       "targets": [
+        {
+         "refId": "A",
+         "datasource": {
+          "type": "loki",
+          "uid": "loki"
+         },
+         "expr": "{k8s_container_name=\"scraper\", k8s_namespace_name=~\"$namespace\", service_name=~\"$job\"}"
+        }
+       ],
+       "options": {
+        "showTime": true,
+        "wrapLogMessage": true,
+        "sortOrder": "Descending",
+        "enableLogDetails": true,
+        "dedupStrategy": "none",
+        "prettifyLogMessage": false
+       }
       }
      ]
     }

@@ -203,6 +203,22 @@ panels.append({
 })
 
 
+# ── Logs ─────────────────────────────────────────────────────────────────────
+row("Logs (scraper container, via Loki)", 65)
+panels.append({
+    "type": "logs", "title": "Scraper logs", "id": nid(),
+    "datasource": {"type": "loki", "uid": "loki"},
+    "description": "Shipped by the otel-agent DaemonSet (docs/logging.md). Narrow with the Namespace/Job variables; "
+                   "each line carries scrape_run and scrape_attempt for a single run.",
+    "gridPos": {"h": 20, "w": 24, "x": 0, "y": 66},
+    "targets": [{"refId": "A", "datasource": {"type": "loki", "uid": "loki"},
+                 # k8s_container_name is the non-empty matcher LogQL requires when the variables are "All" (.*).
+                 "expr": '{k8s_container_name="scraper", k8s_namespace_name=~"$namespace", service_name=~"$job"}'}],
+    "options": {"showTime": True, "wrapLogMessage": True, "sortOrder": "Descending", "enableLogDetails": True,
+                "dedupStrategy": "none", "prettifyLogMessage": False},
+})
+
+
 def var(name, label, query):
     return {"type": "query", "name": name, "label": label, "datasource": DS,
             "query": {"query": query, "refId": f"{name}-var"}, "definition": query,
