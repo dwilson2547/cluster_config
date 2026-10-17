@@ -64,6 +64,35 @@ rclone copy /backups/objects/<bucket>/current/<prefix> dst:<bucket>/<prefix>    
 # an object deleted or overwritten in the last 28 days: look under replaced/<stamp>/ first
 ```
 
+## File volumes
+
+`postgres/volume-backup.yaml`, CronJob `backup-volumes`, 02:50 ET daily. Each app volume's directory on TrueNAS
+(`nfs-dataset`, `192.168.0.10:/mnt/ssd_pool/nfs_dataset/<pv name>`) is mounted read-only through a static PV.
+
+| Volume | Kind | Copy |
+|---|---|---|
+| `web-workflows/web-workflows-db` | SQLite (`web-workflows.db`) | online backup, one file per night |
+| `build-sim/build-sim-data` | SQLite (`build_sim.db`) | online backup, one file per night |
+| `danwiki/danwiki-uploads` | files (empty on 2026-10-17) | mirror, like the buckets |
+
+```
+/backups/volumes/<name>/<db>-<stamp>.db         SQLite copies, integrity-checked, 28 days
+/backups/volumes/<name>/current/                file mirror
+/backups/volumes/<name>/replaced/<stamp>/       files overwritten or deleted (28 days)
+/backups/volumes/.last-success
+```
+
+SQLite files are copied with SQLite's backup API, never as plain files: a file copied mid-write can be corrupt.
+Restore one: scale the app to 0, copy `<db>-<stamp>.db` over the live file under its original name, scale back up.
+
+The static PVs point at the app PVC's PV name. If an app's PVC is recreated, update the `subdir` in
+`postgres/volume-backup.yaml` (the old directory is deleted with the old PVC, so the job fails and alerts until then).
+`nfs-dataset` reclaims with `Delete`: deleting an app's PVC deletes its data on TrueNAS, and only this backup
+remains.
+
+Not backed up, by choice: scrape-stack caches (rebuildable), monitoring (Prometheus/Loki/Tempo history; dashboards
+are provisioned from git), iggy (pipeline data), Redis, searxng.
+
 ## Restoring a database
 
 From any machine with the NAS mounted, or a pod with the `postgres-backup` PVC:

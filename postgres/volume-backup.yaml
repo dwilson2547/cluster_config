@@ -1,0 +1,206 @@
+# Nightly copy of app file volumes (nfs-dataset PVCs on the TrueNAS box) to the Unraid backup share, next to the
+# postgres dumps (runbook: docs/postgres_backup.md, "File volumes"). Lives in the postgres namespace to share the
+# backup PVC, the SMTP secret and the backup alerts.
+#
+# Each volume's directory on TrueNAS is mounted read-only through a static PV (a PVC can't be mounted from another
+# namespace). The subdir is the app PVC's PV name: if an app's PVC is ever recreated, its data moves to a new subdir
+# and the PV here must follow (the old subdir is deleted with the PVC, so the mount fails and the job alerts).
+#
+#   /backups/volumes/<name>/<db>-<stamp>.db        SQLite volumes: online backup (consistent while the app writes),
+#                                                  28 days kept
+#   /backups/volumes/<name>/current/               file volumes: mirror (rclone sync)
+#   /backups/volumes/<name>/replaced/<stamp>/      files a run overwrote or deleted from current/, 28 days kept
+#   /backups/volumes/.last-success
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: volume-backup-web-workflows
+spec:
+  capacity: {storage: 2Gi}
+  accessModes: [ReadOnlyMany]
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: nfs-backup
+  mountOptions: [hard, nfsvers=4.1]
+  claimRef: {name: volume-backup-web-workflows, namespace: postgres}
+  csi:
+    driver: nfs.csi.k8s.io
+    volumeHandle: volume-backup-web-workflows
+    # web-workflows/web-workflows-db
+    volumeAttributes: {server: 192.168.0.10, share: /mnt/ssd_pool/nfs_dataset, subdir: pvc-a38f8eaa-f675-413b-9d52-f5b00ce82c25}
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: volume-backup-build-sim
+spec:
+  capacity: {storage: 1Gi}
+  accessModes: [ReadOnlyMany]
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: nfs-backup
+  mountOptions: [hard, nfsvers=4.1]
+  claimRef: {name: volume-backup-build-sim, namespace: postgres}
+  csi:
+    driver: nfs.csi.k8s.io
+    volumeHandle: volume-backup-build-sim
+    # build-sim/build-sim-data
+    volumeAttributes: {server: 192.168.0.10, share: /mnt/ssd_pool/nfs_dataset, subdir: pvc-f4ed26b7-c0fc-4635-8903-8a4023cf0596}
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: volume-backup-danwiki-uploads
+spec:
+  capacity: {storage: 20Gi}
+  accessModes: [ReadOnlyMany]
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: nfs-backup
+  mountOptions: [hard, nfsvers=4.1]
+  claimRef: {name: volume-backup-danwiki-uploads, namespace: postgres}
+  csi:
+    driver: nfs.csi.k8s.io
+    volumeHandle: volume-backup-danwiki-uploads
+    # danwiki/danwiki-uploads
+    volumeAttributes: {server: 192.168.0.10, share: /mnt/ssd_pool/nfs_dataset, subdir: pvc-c1da8ab9-2c8f-4c80-be0f-8fb102bc2a55}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata: {name: volume-backup-web-workflows, namespace: postgres}
+spec: {accessModes: [ReadOnlyMany], storageClassName: nfs-backup, resources: {requests: {storage: 2Gi}}}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata: {name: volume-backup-build-sim, namespace: postgres}
+spec: {accessModes: [ReadOnlyMany], storageClassName: nfs-backup, resources: {requests: {storage: 1Gi}}}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata: {name: volume-backup-danwiki-uploads, namespace: postgres}
+spec: {accessModes: [ReadOnlyMany], storageClassName: nfs-backup, resources: {requests: {storage: 20Gi}}}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backup-volumes-script
+  namespace: postgres
+data:
+  # Every *.db under /src/sqlite/<name>/ -> /backups/volumes/<name>/<db>-<stamp>.db
+  backup-sqlite.py: |
+    import datetime, os, pathlib, sqlite3, sys, time
+    stamp = datetime.datetime.now(datetime.timezone.utc).strftime("%Y%m%d-%H%M%S")
+    out_root = pathlib.Path("/backups/volumes")
+    failed = []
+    for vol in sorted(pathlib.Path("/src/sqlite").iterdir()):
+        dbs = sorted(vol.glob("*.db"))
+        if not dbs:
+            print(f"== {vol.name}: no *.db found"); failed.append(vol.name); continue
+        out = out_root / vol.name
+        out.mkdir(parents=True, exist_ok=True)
+        for db in dbs:
+            dst_path = out / f"{db.stem}-{stamp}.db"
+            tmp = dst_path.with_suffix(".db.tmp")
+            try:
+                src = sqlite3.connect(f"file:{db}?mode=ro", uri=True)
+                dst = sqlite3.connect(tmp)
+                src.backup(dst)
+                ok = dst.execute("pragma integrity_check").fetchone()[0]
+                dst.close(); src.close()
+                if ok != "ok":
+                    raise RuntimeError(f"integrity_check: {ok}")
+                tmp.rename(dst_path)
+                print(f"== {vol.name}/{db.name}: {dst_path.stat().st_size} bytes")
+            except Exception as e:
+                print(f"== {vol.name}/{db.name}: FAILED {e}"); failed.append(f"{vol.name}/{db.name}")
+                tmp.unlink(missing_ok=True)
+        # 28 days of copies.
+        cutoff = time.time() - 28 * 86400
+        for old in out.glob("*.db"):
+            if old.stat().st_mtime < cutoff:
+                old.unlink()
+    if failed:
+        sys.exit(f"failed: {failed}")
+  backup-files.sh: |
+    #!/bin/sh
+    set -eu
+    STAMP=$(date -u +%Y%m%d-%H%M%S)
+    ROOT=/backups/volumes
+    failed=""
+    for src in /src/files/*; do
+      b=$(basename "$src")
+      echo "== $b"
+      mkdir -p "$ROOT/$b/current"
+      if rclone sync "$src" "$ROOT/$b/current" --backup-dir "$ROOT/$b/replaced/$STAMP" \
+          --max-delete "$MAX_DELETE" --stats-one-line -v; then
+        echo "   $(rclone size --json "$ROOT/$b/current")"
+      else
+        echo "   FAILED: $b"; failed="$failed $b"
+      fi
+      find "$ROOT/$b/replaced" -mindepth 1 -maxdepth 1 -type d -mtime +28 -exec rm -rf {} + 2>/dev/null || true
+    done
+    if [ -n "$failed" ]; then echo "failed volumes:$failed"; exit 1; fi
+    date -u +%Y-%m-%dT%H:%M:%SZ > "$ROOT/.last-success"
+    echo "all volumes copied"
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: backup-volumes
+  namespace: postgres
+  labels:
+    app: backup-volumes
+spec:
+  schedule: "50 2 * * *"
+  timeZone: "America/New_York"
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 3600
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      activeDeadlineSeconds: 3600
+      template:
+        spec:
+          restartPolicy: Never
+          automountServiceAccountToken: false
+          # The Unraid export squashes to 99:100 (docs/postgres_backup.md, gotchas).
+          securityContext:
+            runAsUser: 99
+            runAsGroup: 100
+          # SQLite first (init container), then the file mirror; .last-success is written only if both succeed.
+          initContainers:
+            - name: sqlite
+              image: python:3.12-alpine
+              command: ["python", "/scripts/backup-sqlite.py"]
+              volumeMounts:
+                - {name: backup, mountPath: /backups}
+                - {name: scripts, mountPath: /scripts}
+                - {name: web-workflows, mountPath: /src/sqlite/web-workflows, readOnly: true}
+                - {name: build-sim, mountPath: /src/sqlite/build-sim, readOnly: true}
+          containers:
+            - name: files
+              image: rclone/rclone:1.71.1
+              command: ["/bin/sh", "/scripts/backup-files.sh"]
+              env:
+                - {name: MAX_DELETE, value: "500"}
+                - {name: HOME, value: /tmp}
+                - {name: RCLONE_CONFIG, value: /tmp/rclone.conf}
+              resources:
+                requests: {cpu: 50m, memory: 64Mi}
+                limits: {memory: 512Mi}
+              volumeMounts:
+                - {name: backup, mountPath: /backups}
+                - {name: scripts, mountPath: /scripts}
+                - {name: danwiki-uploads, mountPath: /src/files/danwiki-uploads, readOnly: true}
+          volumes:
+            - name: backup
+              persistentVolumeClaim:
+                claimName: postgres-backup
+            - name: scripts
+              configMap:
+                name: backup-volumes-script
+            - name: web-workflows
+              persistentVolumeClaim: {claimName: volume-backup-web-workflows, readOnly: true}
+            - name: build-sim
+              persistentVolumeClaim: {claimName: volume-backup-build-sim, readOnly: true}
+            - name: danwiki-uploads
+              persistentVolumeClaim: {claimName: volume-backup-danwiki-uploads, readOnly: true}
