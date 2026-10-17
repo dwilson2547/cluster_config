@@ -346,6 +346,10 @@ data:
             href: http://alertmanager.monitoring.local
             description: Alert routing and silences
             icon: alertmanager
+        - Prometheus:
+            href: http://prometheus.monitoring.local
+            description: Metrics queries, alert rules and scrape targets
+            icon: prometheus
         - SearXNG:
             href: http://search.local
             description: Private meta search engine
