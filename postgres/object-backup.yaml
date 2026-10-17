@@ -78,9 +78,9 @@ spec:
               imagePullPolicy: IfNotPresent
               command: ["/bin/sh", "/scripts/backup-objects.sh"]
               env:
-                # <remote>:<bucket>, space-separated: nodewright attachments, photo-dump's photos (moved from the
-                # old MinIO 2026-10-16). part-images joins once its copy from the old MinIO is done.
-                - {name: BUCKETS, value: "aistor:nodewright aistor:photo-dump-prod aistor:photo-dump-dev"}
+                # <remote>:<bucket>, space-separated: nodewright attachments, photo-dump's photos and gyopart's
+                # part-images (both moved from the old MinIO 2026-10-16).
+                - {name: BUCKETS, value: "aistor:nodewright aistor:photo-dump-prod aistor:photo-dump-dev aistor:part-images"}
                 - {name: MAX_DELETE, value: "500"}
                 - {name: HOME, value: /tmp}
                 - {name: RCLONE_CONFIG, value: /tmp/rclone.conf}

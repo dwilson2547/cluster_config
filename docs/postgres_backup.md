@@ -40,8 +40,10 @@ between two instances, so this copy is the backup.
 |---|---|
 | `nodewright` | nodewright attachments |
 | `photo-dump-prod`, `photo-dump-dev` | photo-dump's photos (moved from the old MinIO on the Unraid box, 2026-10-16) |
+| `part-images` | gyopart part images and diagrams: 6,859,975 objects, 134.6 GiB (copied from the old MinIO and checked object-for-object, 2026-10-17) |
 
-All on AIStor. Coming: `part-images` (180 GB, being copied from the old MinIO). Left out: `dxf-converter`
+All on AIStor. `part-images` keeps millions of objects in flat per-make folders: the job uses rclone ≥ 1.70 with
+`--list-cutoff` so those listings sort on disk (`/tmp` emptyDir) instead of in memory. Left out: `dxf-converter`
 (conversions) and `race-logger` (robo-services pipeline archive). The backup key is read-only and scoped to the
 listed buckets: add a bucket to its AIStor policy as well as to `BUCKETS`.
 
