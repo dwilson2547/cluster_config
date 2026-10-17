@@ -17,7 +17,8 @@ data:
     extensions:
       # Read positions survive restarts, so a restart doesn't re-send what Loki already has.
       file_storage:
-        directory: /var/lib/otel-agent
+        directory: /var/lib/otel-agent/positions
+        create_directory: true
       health_check:
         endpoint: 0.0.0.0:13133
     receivers:
