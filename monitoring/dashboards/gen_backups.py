@@ -144,7 +144,7 @@ panels.append({
         target("C", OWNED.format(m="kube_job_status_completion_time") + ' - on(namespace, job_name, cronjob) '
                + OWNED.format(m="kube_job_status_start_time")),
         target("D", OWNED.format(m="kube_job_status_succeeded") + ' - on(namespace, job_name, cronjob) '
-               + OWNED.format(m="kube_job_status_failed") + ' * 2 + on(namespace, job_name, cronjob) '
+               + 'sum by (namespace, job_name, cronjob) (' + OWNED.format(m="kube_job_status_failed") + ') * 2 + on(namespace, job_name, cronjob) '
                + OWNED.format(m="kube_job_status_active") + ' * 3'),
     ],
     "transformations": [

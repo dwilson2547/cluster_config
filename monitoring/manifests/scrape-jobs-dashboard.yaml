@@ -1,0 +1,1212 @@
+# Scrape Jobs dashboard: every scrape-job-manager job's state, run history and kept runs, filterable by namespace/job.
+# Provisioned by the Grafana sidecar (label grafana_dashboard). Edit the generator, not the JSON:
+# python3 monitoring/dashboards/gen_scrape_jobs.py > monitoring/manifests/scrape-jobs-dashboard.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: scrape-jobs-dashboard
+  namespace: monitoring
+  labels:
+    grafana_dashboard: "1"
+data:
+  scrape-jobs.json: |
+    {
+     "uid": "scrape-jobs",
+     "title": "Scrape Jobs",
+     "tags": [
+      "scrapers",
+      "overview"
+     ],
+     "timezone": "browser",
+     "schemaVersion": 39,
+     "refresh": "1m",
+     "editable": false,
+     "time": {
+      "from": "now-2d",
+      "to": "now"
+     },
+     "templating": {
+      "list": [
+       {
+        "type": "datasource",
+        "name": "datasource",
+        "label": "Prometheus",
+        "query": "prometheus",
+        "current": {},
+        "hide": 0
+       },
+       {
+        "type": "query",
+        "name": "namespace",
+        "label": "Namespace",
+        "datasource": {
+         "type": "prometheus",
+         "uid": "${datasource}"
+        },
+        "query": {
+         "query": "label_values(scrape_job_phase, exported_namespace)",
+         "refId": "namespace-var"
+        },
+        "definition": "label_values(scrape_job_phase, exported_namespace)",
+        "multi": true,
+        "includeAll": true,
+        "allValue": ".*",
+        "current": {
+         "text": "All",
+         "value": "$__all"
+        },
+        "refresh": 2,
+        "sort": 1,
+        "hide": 0
+       },
+       {
+        "type": "query",
+        "name": "job",
+        "label": "Job",
+        "datasource": {
+         "type": "prometheus",
+         "uid": "${datasource}"
+        },
+        "query": {
+         "query": "label_values(scrape_job_phase{exported_namespace=~\"$namespace\"}, scrape_job)",
+         "refId": "job-var"
+        },
+        "definition": "label_values(scrape_job_phase{exported_namespace=~\"$namespace\"}, scrape_job)",
+        "multi": true,
+        "includeAll": true,
+        "allValue": ".*",
+        "current": {
+         "text": "All",
+         "value": "$__all"
+        },
+        "refresh": 2,
+        "sort": 1,
+        "hide": 0
+       }
+      ]
+     },
+     "annotations": {
+      "list": []
+     },
+     "links": [
+      {
+       "title": "System Health",
+       "type": "link",
+       "url": "/d/system-health"
+      },
+      {
+       "title": "scrape-job-manager UI",
+       "type": "link",
+       "url": "https://sjm.danwils.com",
+       "targetBlank": true
+      }
+     ],
+     "panels": [
+      {
+       "type": "row",
+       "title": "At a glance",
+       "id": 1,
+       "collapsed": false,
+       "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+       }
+      },
+      {
+       "type": "stat",
+       "title": "Healthy",
+       "id": 2,
+       "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+       },
+       "description": "",
+       "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 0,
+        "y": 1
+       },
+       "targets": [
+        {
+         "refId": "A",
+         "expr": "count(scrape_job_phase{exported_namespace=~\"$namespace\", scrape_job=~\"$job\", phase=\"Healthy\"} == 1) or vector(0)",
+         "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+         },
+         "instant": true
+        }
+       ],
+       "fieldConfig": {
+        "defaults": {
+         "unit": "none",
+         "decimals": 0,
+         "color": {
+          "mode": "thresholds"
+         },
+         "thresholds": {
+          "mode": "absolute",
+          "steps": [
+           {
+            "color": "green",
+            "value": null
+           }
+          ]
+         }
+        },
+        "overrides": []
+       },
+       "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value",
+        "reduceOptions": {
+         "calcs": [
+          "lastNotNull"
+         ],
+         "fields": "",
+         "values": false
+        }
+       }
+      },
+      {
+       "type": "stat",
+       "title": "Degraded",
+       "id": 3,
+       "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+       },
+       "description": "",
+       "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 4,
+        "y": 1
+       },
+       "targets": [
+        {
+         "refId": "A",
+         "expr": "count(scrape_job_phase{exported_namespace=~\"$namespace\", scrape_job=~\"$job\", phase=\"Degraded\"} == 1) or vector(0)",
+         "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+         },
+         "instant": true
+        }
+       ],
+       "fieldConfig": {
+        "defaults": {
+         "unit": "none",
+         "decimals": 0,
+         "color": {
+          "mode": "thresholds"
+         },
+         "thresholds": {
+          "mode": "absolute",
+          "steps": [
+           {
+            "color": "orange",
+            "value": null
+           }
+          ]
+         }
+        },
+        "overrides": []
+       },
+       "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value",
+        "reduceOptions": {
+         "calcs": [
+          "lastNotNull"
+         ],
+         "fields": "",
+         "values": false
+        }
+       }
+      },
+      {
+       "type": "stat",
+       "title": "Disabled",
+       "id": 4,
+       "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+       },
+       "description": "",
+       "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 8,
+        "y": 1
+       },
+       "targets": [
+        {
+         "refId": "A",
+         "expr": "count(scrape_job_phase{exported_namespace=~\"$namespace\", scrape_job=~\"$job\", phase=\"Disabled\"} == 1) or vector(0)",
+         "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+         },
+         "instant": true
+        }
+       ],
+       "fieldConfig": {
+        "defaults": {
+         "unit": "none",
+         "decimals": 0,
+         "color": {
+          "mode": "thresholds"
+         },
+         "thresholds": {
+          "mode": "absolute",
+          "steps": [
+           {
+            "color": "text",
+            "value": null
+           }
+          ]
+         }
+        },
+        "overrides": []
+       },
+       "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value",
+        "reduceOptions": {
+         "calcs": [
+          "lastNotNull"
+         ],
+         "fields": "",
+         "values": false
+        }
+       }
+      },
+      {
+       "type": "stat",
+       "title": "Stale",
+       "id": 5,
+       "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+       },
+       "description": "Jobs whose last success is older than their schedule allows.",
+       "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 12,
+        "y": 1
+       },
+       "targets": [
+        {
+         "refId": "A",
+         "expr": "count(scrape_job_stale{exported_namespace=~\"$namespace\", scrape_job=~\"$job\"} == 1) or vector(0)",
+         "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+         },
+         "instant": true
+        }
+       ],
+       "fieldConfig": {
+        "defaults": {
+         "unit": "none",
+         "decimals": 0,
+         "color": {
+          "mode": "thresholds"
+         },
+         "thresholds": {
+          "mode": "absolute",
+          "steps": [
+           {
+            "color": "green",
+            "value": null
+           },
+           {
+            "color": "orange",
+            "value": 1
+           }
+          ]
+         }
+        },
+        "overrides": []
+       },
+       "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value",
+        "reduceOptions": {
+         "calcs": [
+          "lastNotNull"
+         ],
+         "fields": "",
+         "values": false
+        }
+       }
+      },
+      {
+       "type": "stat",
+       "title": "Running now",
+       "id": 6,
+       "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+       },
+       "description": "",
+       "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 16,
+        "y": 1
+       },
+       "targets": [
+        {
+         "refId": "A",
+         "expr": "count(label_replace(kube_job_status_active{namespace=~\"$namespace\"} * on(namespace, job_name) group_left(owner_name) kube_job_owner{namespace=~\"$namespace\", owner_kind=\"ScrapeJob\", owner_name=~\"$job\"}, \"scrape_job\", \"$1\", \"owner_name\", \"(.*)\") > 0) or vector(0)",
+         "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+         },
+         "instant": true
+        }
+       ],
+       "fieldConfig": {
+        "defaults": {
+         "unit": "none",
+         "decimals": 0,
+         "color": {
+          "mode": "thresholds"
+         },
+         "thresholds": {
+          "mode": "absolute",
+          "steps": [
+           {
+            "color": "blue",
+            "value": null
+           }
+          ]
+         }
+        },
+        "overrides": []
+       },
+       "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value",
+        "reduceOptions": {
+         "calcs": [
+          "lastNotNull"
+         ],
+         "fields": "",
+         "values": false
+        }
+       }
+      },
+      {
+       "type": "stat",
+       "title": "Operator last tick",
+       "id": 7,
+       "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+       },
+       "description": "Seconds since scrape-job-manager's reconcile loop last ran.",
+       "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 20,
+        "y": 1
+       },
+       "targets": [
+        {
+         "refId": "A",
+         "expr": "time() - max(scrape_operator_last_tick_timestamp_seconds)",
+         "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+         },
+         "instant": true
+        }
+       ],
+       "fieldConfig": {
+        "defaults": {
+         "unit": "s",
+         "decimals": 0,
+         "color": {
+          "mode": "thresholds"
+         },
+         "thresholds": {
+          "mode": "absolute",
+          "steps": [
+           {
+            "color": "green",
+            "value": null
+           },
+           {
+            "color": "orange",
+            "value": 120
+           },
+           {
+            "color": "red",
+            "value": 600
+           }
+          ]
+         }
+        },
+        "overrides": []
+       },
+       "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value",
+        "reduceOptions": {
+         "calcs": [
+          "lastNotNull"
+         ],
+         "fields": "",
+         "values": false
+        }
+       }
+      },
+      {
+       "type": "row",
+       "title": "Jobs",
+       "id": 8,
+       "collapsed": false,
+       "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 5
+       }
+      },
+      {
+       "type": "table",
+       "title": "Jobs",
+       "id": 9,
+       "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+       },
+       "description": "Items: rows the last successful run reported; baseline: what scrape-job-manager expects (a large drop below it degrades the job).",
+       "gridPos": {
+        "h": 16,
+        "w": 24,
+        "x": 0,
+        "y": 6
+       },
+       "targets": [
+        {
+         "refId": "A",
+         "expr": "scrape_job_phase{exported_namespace=~\"$namespace\", scrape_job=~\"$job\"} == 1",
+         "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+         },
+         "instant": true,
+         "format": "table"
+        },
+        {
+         "refId": "B",
+         "expr": "scrape_job_last_success_timestamp_seconds{exported_namespace=~\"$namespace\", scrape_job=~\"$job\"} * 1000",
+         "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+         },
+         "instant": true,
+         "format": "table"
+        },
+        {
+         "refId": "C",
+         "expr": "scrape_job_consecutive_failures{exported_namespace=~\"$namespace\", scrape_job=~\"$job\"}",
+         "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+         },
+         "instant": true,
+         "format": "table"
+        },
+        {
+         "refId": "D",
+         "expr": "scrape_job_last_items{exported_namespace=~\"$namespace\", scrape_job=~\"$job\"}",
+         "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+         },
+         "instant": true,
+         "format": "table"
+        },
+        {
+         "refId": "E",
+         "expr": "scrape_job_baseline_items{exported_namespace=~\"$namespace\", scrape_job=~\"$job\"}",
+         "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+         },
+         "instant": true,
+         "format": "table"
+        },
+        {
+         "refId": "F",
+         "expr": "scrape_job_last_duration_seconds{exported_namespace=~\"$namespace\", scrape_job=~\"$job\"}",
+         "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+         },
+         "instant": true,
+         "format": "table"
+        },
+        {
+         "refId": "G",
+         "expr": "scrape_job_stale{exported_namespace=~\"$namespace\", scrape_job=~\"$job\"}",
+         "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+         },
+         "instant": true,
+         "format": "table"
+        }
+       ],
+       "transformations": [
+        {
+         "id": "merge",
+         "options": {}
+        },
+        {
+         "id": "organize",
+         "options": {
+          "excludeByName": {
+           "Time": true,
+           "__name__": true,
+           "container": true,
+           "endpoint": true,
+           "instance": true,
+           "job": true,
+           "pod": true,
+           "service": true,
+           "namespace": true,
+           "owner_is_controller": true,
+           "owner_kind": true,
+           "owner_name": true,
+           "Value #A": true
+          },
+          "indexByName": {
+           "exported_namespace": 0,
+           "scrape_job": 1,
+           "scraper": 2,
+           "phase": 3,
+           "Value #B": 4,
+           "Value #C": 5,
+           "Value #D": 6,
+           "Value #E": 7,
+           "Value #F": 8,
+           "Value #G": 9
+          },
+          "renameByName": {
+           "exported_namespace": "Namespace",
+           "scrape_job": "Job",
+           "scraper": "Scraper",
+           "phase": "Phase",
+           "Value #B": "Last success",
+           "Value #C": "Failures in a row",
+           "Value #D": "Items",
+           "Value #E": "Baseline",
+           "Value #F": "Last duration",
+           "Value #G": "Stale"
+          }
+         }
+        }
+       ],
+       "fieldConfig": {
+        "defaults": {
+         "custom": {
+          "align": "auto",
+          "filterable": true
+         }
+        },
+        "overrides": [
+         {
+          "matcher": {
+           "id": "byName",
+           "options": "Last success"
+          },
+          "properties": [
+           {
+            "id": "unit",
+            "value": "dateTimeFromNow"
+           }
+          ]
+         },
+         {
+          "matcher": {
+           "id": "byName",
+           "options": "Last duration"
+          },
+          "properties": [
+           {
+            "id": "unit",
+            "value": "s"
+           }
+          ]
+         },
+         {
+          "matcher": {
+           "id": "byName",
+           "options": "Phase"
+          },
+          "properties": [
+           {
+            "id": "custom.cellOptions",
+            "value": {
+             "type": "color-background"
+            }
+           },
+           {
+            "id": "thresholds",
+            "value": {
+             "mode": "absolute",
+             "steps": [
+              {
+               "color": "transparent",
+               "value": null
+              }
+             ]
+            }
+           },
+           {
+            "id": "mappings",
+            "value": [
+             {
+              "type": "value",
+              "options": {
+               "Healthy": {
+                "color": "green"
+               },
+               "Degraded": {
+                "color": "orange"
+               },
+               "Disabled": {
+                "color": "text"
+               },
+               "Pending": {
+                "color": "blue"
+               }
+              }
+             }
+            ]
+           }
+          ]
+         },
+         {
+          "matcher": {
+           "id": "byName",
+           "options": "Failures in a row"
+          },
+          "properties": [
+           {
+            "id": "custom.cellOptions",
+            "value": {
+             "type": "color-background"
+            }
+           },
+           {
+            "id": "thresholds",
+            "value": {
+             "mode": "absolute",
+             "steps": [
+              {
+               "color": "transparent",
+               "value": null
+              },
+              {
+               "color": "orange",
+               "value": 1
+              },
+              {
+               "color": "red",
+               "value": 3
+              }
+             ]
+            }
+           }
+          ]
+         },
+         {
+          "matcher": {
+           "id": "byName",
+           "options": "Stale"
+          },
+          "properties": [
+           {
+            "id": "custom.cellOptions",
+            "value": {
+             "type": "color-background"
+            }
+           },
+           {
+            "id": "thresholds",
+            "value": {
+             "mode": "absolute",
+             "steps": [
+              {
+               "color": "transparent",
+               "value": null
+              },
+              {
+               "color": "orange",
+               "value": 1
+              }
+             ]
+            }
+           },
+           {
+            "id": "mappings",
+            "value": [
+             {
+              "type": "value",
+              "options": {
+               "0": {
+                "text": "-"
+               },
+               "1": {
+                "text": "STALE"
+               }
+              }
+             }
+            ]
+           }
+          ]
+         }
+        ]
+       },
+       "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "sortBy": [
+         {
+          "displayName": "Failures in a row",
+          "desc": true
+         }
+        ]
+       }
+      },
+      {
+       "type": "row",
+       "title": "History (last 10 days at most)",
+       "id": 10,
+       "collapsed": false,
+       "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 22
+       }
+      },
+      {
+       "type": "state-timeline",
+       "title": "When each job ran",
+       "id": 11,
+       "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+       },
+       "description": "Blue while a run's Job is active (retries included). Filter with the variables at the top when the list is long.",
+       "gridPos": {
+        "h": 18,
+        "w": 24,
+        "x": 0,
+        "y": 23
+       },
+       "targets": [
+        {
+         "refId": "A",
+         "expr": "max by (namespace, scrape_job) (label_replace(kube_job_status_active{namespace=~\"$namespace\"} * on(namespace, job_name) group_left(owner_name) kube_job_owner{namespace=~\"$namespace\", owner_kind=\"ScrapeJob\", owner_name=~\"$job\"}, \"scrape_job\", \"$1\", \"owner_name\", \"(.*)\") > bool 0)",
+         "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+         },
+         "range": true,
+         "legendFormat": "{{namespace}}/{{scrape_job}}"
+        }
+       ],
+       "fieldConfig": {
+        "defaults": {
+         "mappings": [
+          {
+           "type": "value",
+           "options": {
+            "0": {
+             "text": "idle",
+             "color": "transparent"
+            },
+            "1": {
+             "text": "running",
+             "color": "blue"
+            }
+           }
+          }
+         ],
+         "color": {
+          "mode": "thresholds"
+         },
+         "thresholds": {
+          "mode": "absolute",
+          "steps": [
+           {
+            "color": "transparent",
+            "value": null
+           },
+           {
+            "color": "blue",
+            "value": 1
+           }
+          ]
+         },
+         "custom": {
+          "fillOpacity": 80,
+          "lineWidth": 0
+         }
+        },
+        "overrides": []
+       },
+       "options": {
+        "showValue": "never",
+        "mergeValues": true,
+        "rowHeight": 0.8,
+        "legend": {
+         "showLegend": false
+        }
+       }
+      },
+      {
+       "type": "timeseries",
+       "title": "Failures in a row",
+       "id": 12,
+       "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+       },
+       "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 0,
+        "y": 41
+       },
+       "targets": [
+        {
+         "refId": "A",
+         "expr": "scrape_job_consecutive_failures{exported_namespace=~\"$namespace\", scrape_job=~\"$job\"} > 0",
+         "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+         },
+         "range": true,
+         "legendFormat": "{{exported_namespace}}/{{scrape_job}}"
+        }
+       ],
+       "fieldConfig": {
+        "defaults": {
+         "min": 0,
+         "decimals": 0,
+         "custom": {
+          "drawStyle": "line",
+          "lineInterpolation": "stepAfter",
+          "lineWidth": 2
+         }
+        },
+        "overrides": []
+       },
+       "options": {
+        "legend": {
+         "displayMode": "list",
+         "placement": "bottom"
+        },
+        "tooltip": {
+         "mode": "multi"
+        }
+       }
+      },
+      {
+       "type": "timeseries",
+       "title": "Items per successful run",
+       "id": 13,
+       "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+       },
+       "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 12,
+        "y": 41
+       },
+       "targets": [
+        {
+         "refId": "A",
+         "expr": "scrape_job_last_items{exported_namespace=~\"$namespace\", scrape_job=~\"$job\"}",
+         "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+         },
+         "range": true,
+         "legendFormat": "{{exported_namespace}}/{{scrape_job}}"
+        }
+       ],
+       "fieldConfig": {
+        "defaults": {
+         "min": 0,
+         "decimals": 0,
+         "custom": {
+          "drawStyle": "line",
+          "lineInterpolation": "stepAfter",
+          "lineWidth": 1
+         }
+        },
+        "overrides": []
+       },
+       "options": {
+        "legend": {
+         "displayMode": "table",
+         "placement": "right",
+         "calcs": [
+          "lastNotNull"
+         ]
+        },
+        "tooltip": {
+         "mode": "multi",
+         "sort": "desc"
+        }
+       }
+      },
+      {
+       "type": "row",
+       "title": "Runs Kubernetes still keeps",
+       "id": 14,
+       "collapsed": false,
+       "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 50
+       }
+      },
+      {
+       "type": "table",
+       "title": "Runs",
+       "id": 15,
+       "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+       },
+       "description": "One row per attempt (a run's retries are separate Jobs: <job>-<run>-<attempt>).",
+       "gridPos": {
+        "h": 14,
+        "w": 24,
+        "x": 0,
+        "y": 51
+       },
+       "targets": [
+        {
+         "refId": "A",
+         "expr": "label_replace(kube_job_status_start_time{namespace=~\"$namespace\"} * on(namespace, job_name) group_left(owner_name) kube_job_owner{namespace=~\"$namespace\", owner_kind=\"ScrapeJob\", owner_name=~\"$job\"}, \"scrape_job\", \"$1\", \"owner_name\", \"(.*)\") * 1000",
+         "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+         },
+         "instant": true,
+         "format": "table"
+        },
+        {
+         "refId": "B",
+         "expr": "label_replace(kube_job_status_completion_time{namespace=~\"$namespace\"} * on(namespace, job_name) group_left(owner_name) kube_job_owner{namespace=~\"$namespace\", owner_kind=\"ScrapeJob\", owner_name=~\"$job\"}, \"scrape_job\", \"$1\", \"owner_name\", \"(.*)\") * 1000",
+         "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+         },
+         "instant": true,
+         "format": "table"
+        },
+        {
+         "refId": "C",
+         "expr": "label_replace(kube_job_status_completion_time{namespace=~\"$namespace\"} * on(namespace, job_name) group_left(owner_name) kube_job_owner{namespace=~\"$namespace\", owner_kind=\"ScrapeJob\", owner_name=~\"$job\"}, \"scrape_job\", \"$1\", \"owner_name\", \"(.*)\") - on(namespace, job_name, scrape_job) label_replace(kube_job_status_start_time{namespace=~\"$namespace\"} * on(namespace, job_name) group_left(owner_name) kube_job_owner{namespace=~\"$namespace\", owner_kind=\"ScrapeJob\", owner_name=~\"$job\"}, \"scrape_job\", \"$1\", \"owner_name\", \"(.*)\")",
+         "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+         },
+         "instant": true,
+         "format": "table"
+        },
+        {
+         "refId": "D",
+         "expr": "label_replace(kube_job_status_succeeded{namespace=~\"$namespace\"} * on(namespace, job_name) group_left(owner_name) kube_job_owner{namespace=~\"$namespace\", owner_kind=\"ScrapeJob\", owner_name=~\"$job\"}, \"scrape_job\", \"$1\", \"owner_name\", \"(.*)\") - on(namespace, job_name, scrape_job) sum by (namespace, job_name, scrape_job) (label_replace(kube_job_status_failed{namespace=~\"$namespace\"} * on(namespace, job_name) group_left(owner_name) kube_job_owner{namespace=~\"$namespace\", owner_kind=\"ScrapeJob\", owner_name=~\"$job\"}, \"scrape_job\", \"$1\", \"owner_name\", \"(.*)\")) * 2 + on(namespace, job_name, scrape_job) label_replace(kube_job_status_active{namespace=~\"$namespace\"} * on(namespace, job_name) group_left(owner_name) kube_job_owner{namespace=~\"$namespace\", owner_kind=\"ScrapeJob\", owner_name=~\"$job\"}, \"scrape_job\", \"$1\", \"owner_name\", \"(.*)\") * 3",
+         "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+         },
+         "instant": true,
+         "format": "table"
+        }
+       ],
+       "transformations": [
+        {
+         "id": "merge",
+         "options": {}
+        },
+        {
+         "id": "organize",
+         "options": {
+          "excludeByName": {
+           "Time": true,
+           "__name__": true,
+           "container": true,
+           "endpoint": true,
+           "instance": true,
+           "job": true,
+           "pod": true,
+           "service": true,
+           "owner_is_controller": true,
+           "owner_kind": true,
+           "owner_name": true
+          },
+          "indexByName": {
+           "namespace": 0,
+           "scrape_job": 1,
+           "job_name": 2,
+           "Value #A": 3,
+           "Value #B": 4,
+           "Value #C": 5,
+           "Value #D": 6
+          },
+          "renameByName": {
+           "namespace": "Namespace",
+           "scrape_job": "Job",
+           "job_name": "Attempt",
+           "Value #A": "Started",
+           "Value #B": "Finished",
+           "Value #C": "Duration",
+           "Value #D": "Result"
+          }
+         }
+        }
+       ],
+       "fieldConfig": {
+        "defaults": {
+         "custom": {
+          "align": "auto",
+          "filterable": true
+         }
+        },
+        "overrides": [
+         {
+          "matcher": {
+           "id": "byName",
+           "options": "Started"
+          },
+          "properties": [
+           {
+            "id": "unit",
+            "value": "dateTimeAsLocal"
+           }
+          ]
+         },
+         {
+          "matcher": {
+           "id": "byName",
+           "options": "Finished"
+          },
+          "properties": [
+           {
+            "id": "unit",
+            "value": "dateTimeAsLocal"
+           }
+          ]
+         },
+         {
+          "matcher": {
+           "id": "byName",
+           "options": "Duration"
+          },
+          "properties": [
+           {
+            "id": "unit",
+            "value": "s"
+           }
+          ]
+         },
+         {
+          "matcher": {
+           "id": "byName",
+           "options": "Result"
+          },
+          "properties": [
+           {
+            "id": "custom.cellOptions",
+            "value": {
+             "type": "color-background"
+            }
+           },
+           {
+            "id": "thresholds",
+            "value": {
+             "mode": "absolute",
+             "steps": [
+              {
+               "color": "red",
+               "value": null
+              },
+              {
+               "color": "green",
+               "value": 1
+              },
+              {
+               "color": "blue",
+               "value": 3
+              }
+             ]
+            }
+           },
+           {
+            "id": "mappings",
+            "value": [
+             {
+              "type": "value",
+              "options": {
+               "1": {
+                "text": "succeeded",
+                "color": "green"
+               },
+               "-2": {
+                "text": "failed",
+                "color": "red"
+               },
+               "3": {
+                "text": "running",
+                "color": "blue"
+               }
+              }
+             }
+            ]
+           }
+          ]
+         }
+        ]
+       },
+       "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "sortBy": [
+         {
+          "displayName": "Started",
+          "desc": true
+         }
+        ]
+       }
+      }
+     ]
+    }
