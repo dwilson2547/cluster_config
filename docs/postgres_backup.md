@@ -93,6 +93,23 @@ remains.
 Not backed up, by choice: scrape-stack caches (rebuildable), monitoring (Prometheus/Loki/Tempo history; dashboards
 are provisioned from git), iggy (pipeline data), Redis, searxng.
 
+## Tracks
+
+`postgres/tracks-backup.yaml`, CronJob `postgres-backup-tracks`, 02:45 ET daily: the race-logger registry's
+`robo_registry.public.tracks` (OSM-extracted and user-built course geometry) from postgres-dev, the only part of
+the race-logger data kept for now (the rest is synthetic; user, 2026-10-17). TimescaleDB, iggy and the
+`race-logger` bucket are deliberately not backed up until the system holds real data.
+
+```
+/backups/postgres-dev/robo_registry/tracks-<stamp>.dump   pg_dump -Fc -t public.tracks, 28 days
+/backups/postgres-dev/robo_registry/tracks-<stamp>.json   the rows as a JSON array, 28 days
+```
+
+Restore into an existing registry: `pg_restore -h <host> -U postgres -d robo_registry --data-only
+tracks-<stamp>.dump` (empty the table first, or restore into a scratch database and copy the rows you need). The
+JSON copy survives schema changes: load it with `json_populate_recordset`. The extractor PoC's GeoJSON
+(`robotics/robo-services/track-poly-poc/*.geojson`) is in git.
+
 ## Restoring a database
 
 From any machine with the NAS mounted, or a pod with the `postgres-backup` PVC:

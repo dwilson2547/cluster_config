@@ -1,0 +1,83 @@
+# Nightly copy of the race-logger registry's tracks (robo-services; OSM-extracted and user-built course geometry)
+# from postgres-dev to the Unraid backup share (runbook: docs/postgres_backup.md, "Tracks"). Only this table: the
+# rest of the race-logger data is synthetic for now, and the other postgres-dev databases are dev data.
+#
+#   /backups/postgres-dev/robo_registry/tracks-<stamp>.dump    pg_dump -Fc of public.tracks (pg_restore-able)
+#   /backups/postgres-dev/robo_registry/tracks-<stamp>.json    the rows as a JSON array (schema-independent)
+#   28 days kept
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backup-tracks-script
+  namespace: postgres
+data:
+  backup-tracks.sh: |
+    #!/bin/bash
+    set -euo pipefail
+    STAMP=$(date -u +%Y%m%d-%H%M%S)
+    OUT=/backups/postgres-dev/robo_registry
+    mkdir -p "$OUT"
+    pg_dump -h "$PGHOST" -d robo_registry -Fc -t public.tracks -f "$OUT/.tracks-$STAMP.dump.tmp"
+    psql -h "$PGHOST" -d robo_registry -At -v ON_ERROR_STOP=1 \
+      -c "SELECT coalesce(json_agg(t ORDER BY t.id), '[]'::json) FROM public.tracks t" > "$OUT/.tracks-$STAMP.json.tmp"
+    rows=$(psql -h "$PGHOST" -d robo_registry -At -c "SELECT count(*) FROM public.tracks")
+    if [ "$rows" -lt 1 ]; then
+      echo "tracks table is empty; keeping the previous copies and failing"
+      rm -f "$OUT"/.tracks-"$STAMP".*.tmp; exit 1
+    fi
+    mv "$OUT/.tracks-$STAMP.dump.tmp" "$OUT/tracks-$STAMP.dump"
+    mv "$OUT/.tracks-$STAMP.json.tmp" "$OUT/tracks-$STAMP.json"
+    find "$OUT" -maxdepth 1 -name 'tracks-*' -mtime +28 -delete
+    echo "saved $rows tracks: $OUT/tracks-$STAMP.{dump,json}"
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: postgres-backup-tracks
+  namespace: postgres
+  labels:
+    app: postgres-backup-tracks
+spec:
+  schedule: "45 2 * * *"
+  timeZone: "America/New_York"
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 3600
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      activeDeadlineSeconds: 900
+      template:
+        spec:
+          restartPolicy: Never
+          automountServiceAccountToken: false
+          # The Unraid export squashes to 99:100 (gotchas in docs/postgres_backup.md).
+          securityContext:
+            runAsUser: 99
+            runAsGroup: 100
+          containers:
+            - name: backup
+              # Matches postgres-dev (17.x).
+              image: postgres:17
+              imagePullPolicy: IfNotPresent
+              command: ["/bin/bash", "/scripts/backup-tracks.sh"]
+              env:
+                - {name: PGHOST, value: postgres-dev.postgres.svc.cluster.local}
+                - name: PGUSER
+                  valueFrom: {secretKeyRef: {name: postgres-dev-credentials, key: POSTGRES_USER}}
+                - name: PGPASSWORD
+                  valueFrom: {secretKeyRef: {name: postgres-dev-credentials, key: POSTGRES_PASSWORD}}
+              resources:
+                requests: {cpu: 50m, memory: 64Mi}
+                limits: {memory: 256Mi}
+              volumeMounts:
+                - {name: backup, mountPath: /backups}
+                - {name: scripts, mountPath: /scripts}
+          volumes:
+            - name: backup
+              persistentVolumeClaim:
+                claimName: postgres-backup
+            - name: scripts
+              configMap:
+                name: backup-tracks-script

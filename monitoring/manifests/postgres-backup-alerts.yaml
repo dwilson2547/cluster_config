@@ -34,9 +34,9 @@ spec:
               failedJobsHistoryLimit keeps the last 3 failed jobs.
         - alert: PostgresBackupStale
           expr: >-
-            time() - kube_cronjob_status_last_successful_time{namespace="postgres", cronjob=~"postgres-backup(-pgvector)?|backup-(objects|volumes)"} > 26*3600
-            or (kube_cronjob_info{namespace="postgres", cronjob=~"postgres-backup(-pgvector)?|backup-(objects|volumes)"}
-            unless on(namespace, cronjob) kube_cronjob_status_last_successful_time{namespace="postgres", cronjob=~"postgres-backup(-pgvector)?|backup-(objects|volumes)"})
+            time() - kube_cronjob_status_last_successful_time{namespace="postgres", cronjob=~"postgres-backup(-pgvector|-tracks)?|backup-(objects|volumes)"} > 26*3600
+            or (kube_cronjob_info{namespace="postgres", cronjob=~"postgres-backup(-pgvector|-tracks)?|backup-(objects|volumes)"}
+            unless on(namespace, cronjob) kube_cronjob_status_last_successful_time{namespace="postgres", cronjob=~"postgres-backup(-pgvector|-tracks)?|backup-(objects|volumes)"})
           labels:
             severity: critical
           annotations:
