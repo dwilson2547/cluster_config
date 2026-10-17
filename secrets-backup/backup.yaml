@@ -1,0 +1,133 @@
+# Nightly age-encrypted export of every Secret in the cluster to the Unraid backup share, next to the postgres
+# dumps and bucket copies (runbook: docs/secrets_backup.md).
+#
+#   /backups/secrets/<stamp>.json.age     `kubectl get secrets -A -o json`, encrypted to AGE_RECIPIENT; 28 days kept
+#   /backups/secrets/.last-success
+#
+# The cluster holds only the age public key: nothing here can decrypt an export. The private key is kept off the
+# cluster by the user. Service-account tokens and Helm release records are left out (both are recreated).
+# Plaintext never touches disk: kubectl pipes straight into age.
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: secrets-backup-nfs
+spec:
+  capacity:
+    storage: 10Gi
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: nfs-backup
+  mountOptions:
+    - hard
+    - nfsvers=4.1
+  claimRef:
+    name: secrets-backup
+    namespace: secrets-backup
+  csi:
+    driver: nfs.csi.k8s.io
+    # Same share as postgres-backup-nfs (postgres/backup.yaml); a PV handle must be unique.
+    volumeHandle: 192.168.0.15-cluster-backup-secrets
+    volumeAttributes:
+      server: 192.168.0.15
+      share: /mnt/user/cluster_backup
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: secrets-backup
+  namespace: secrets-backup
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: nfs-backup
+  resources:
+    requests:
+      storage: 10Gi
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backup-secrets-script
+  namespace: secrets-backup
+data:
+  backup-secrets.sh: |
+    #!/bin/sh
+    set -eu -o pipefail
+    PATH=/tools:$PATH
+    OUT=/backups/secrets
+    STAMP=$(date -u +%Y%m%d-%H%M%S)
+    SELECTOR='type!=kubernetes.io/service-account-token,type!=helm.sh/release.v1'
+    mkdir -p "$OUT"
+    count=$(kubectl get secrets -A --field-selector "$SELECTOR" -o name | wc -l)
+    if [ "$count" -lt 1 ]; then
+      echo "no secrets listed (RBAC or API problem)"; exit 1
+    fi
+    tmp="$OUT/.$STAMP.json.age.tmp"
+    kubectl get secrets -A --field-selector "$SELECTOR" -o json | age -r "$AGE_RECIPIENT" -o "$tmp"
+    # An age file starts with its header line; anything else means the pipe broke.
+    if [ "$(head -c 21 "$tmp")" != "age-encryption.org/v1" ]; then
+      echo "output is not an age file"; rm -f "$tmp"; exit 1
+    fi
+    mv "$tmp" "$OUT/$STAMP.json.age"
+    find "$OUT" -maxdepth 1 -name '*.json.age' -mtime +28 -delete
+    find "$OUT" -maxdepth 1 -name '.*.tmp' -mtime +1 -delete
+    date -u +%Y-%m-%dT%H:%M:%SZ > "$OUT/.last-success"
+    echo "exported $count secrets to $OUT/$STAMP.json.age ($(wc -c < "$OUT/$STAMP.json.age") bytes)"
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: backup-secrets
+  namespace: secrets-backup
+  labels:
+    app: backup-secrets
+spec:
+  schedule: "0 3 * * *"
+  timeZone: "America/New_York"
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 3600
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      activeDeadlineSeconds: 1800
+      template:
+        spec:
+          serviceAccountName: secrets-backup
+          restartPolicy: Never
+          initContainers:
+            # Installs kubectl and age (root, for apk) into /tools for the unprivileged export below.
+            - name: tools
+              image: alpine:3.20
+              command: ["/bin/sh", "-c", "apk add --no-cache -q age kubectl && cp /usr/bin/age /usr/bin/kubectl /tools/"]
+              volumeMounts:
+                - {name: tools, mountPath: /tools}
+          containers:
+            - name: backup
+              image: alpine:3.20
+              command: ["/bin/sh", "/scripts/backup-secrets.sh"]
+              # The Unraid export squashes to 99:100 (docs/postgres_backup.md, gotchas).
+              securityContext:
+                runAsUser: 99
+                runAsGroup: 100
+              env:
+                # age public key (the matching private key is held off-cluster by the user).
+                - {name: AGE_RECIPIENT, value: age1gx9cthxat0afufl50ewq0g3t6dl7r98htsa2f4nfzqgkwqxvm9wqxdym27}
+              resources:
+                requests: {cpu: 50m, memory: 64Mi}
+                limits: {memory: 512Mi}
+              volumeMounts:
+                - {name: backup, mountPath: /backups}
+                - {name: scripts, mountPath: /scripts}
+                - {name: tools, mountPath: /tools}
+          volumes:
+            - name: backup
+              persistentVolumeClaim:
+                claimName: secrets-backup
+            - name: scripts
+              configMap:
+                name: backup-secrets-script
+            - name: tools
+              emptyDir: {}

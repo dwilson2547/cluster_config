@@ -1,0 +1,68 @@
+# Alerts for the nightly secrets export (backup.yaml), mailed like the postgres backup alerts
+# (monitoring/manifests/postgres-backup-alerts.yaml). The operator routes an AlertmanagerConfig by its own namespace,
+# so this one sits in secrets-backup, with its own copy of the SMTP secret `alertmanager-smtp` (key SMTP_PASSWORD).
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: secrets-backup-alerts
+  namespace: monitoring
+  labels:
+    release: prometheus
+spec:
+  groups:
+    - name: secrets-backup
+      rules:
+        - alert: SecretsBackupJobFailed
+          expr: kube_job_status_failed{namespace="secrets-backup", job_name=~"backup-secrets.*"} > 0
+          labels:
+            severity: critical
+          annotations:
+            summary: "Secrets export job {{ $labels.job_name }} failed"
+            description: >-
+              Check `kubectl -n secrets-backup describe job {{ $labels.job_name }}` and its pod logs.
+        - alert: SecretsBackupStale
+          expr: >-
+            time() - kube_cronjob_status_last_successful_time{namespace="secrets-backup", cronjob="backup-secrets"} > 26*3600
+            or (kube_cronjob_info{namespace="secrets-backup", cronjob="backup-secrets"}
+            unless on(namespace, cronjob) kube_cronjob_status_last_successful_time{namespace="secrets-backup", cronjob="backup-secrets"})
+          labels:
+            severity: critical
+          annotations:
+            summary: "Secrets export has no successful run in over 26h"
+            description: >-
+              The nightly export (03:00 ET) is not starting or not succeeding. Check
+              `kubectl -n secrets-backup get jobs,cronjobs`.
+        - alert: SecretsBackupSuspended
+          expr: kube_cronjob_spec_suspend{namespace="secrets-backup", cronjob="backup-secrets"} == 1
+          labels:
+            severity: warning
+          annotations:
+            summary: "Secrets export CronJob is suspended"
+---
+apiVersion: monitoring.coreos.com/v1alpha1
+kind: AlertmanagerConfig
+metadata:
+  name: secrets-backup-email
+  namespace: secrets-backup
+spec:
+  route:
+    receiver: secrets-backup-email
+    groupBy:
+      - alertname
+    matchers:
+      - name: alertname
+        matchType: =~
+        value: "SecretsBackup.*"
+    continue: false
+  receivers:
+    - name: secrets-backup-email
+      emailConfigs:
+        - to: dwilson2547@gmail.com
+          from: "alertmanager <dwilson2547@gmail.com>"
+          smarthost: smtp.gmail.com:587
+          authUsername: dwilson2547@gmail.com
+          authPassword:
+            name: alertmanager-smtp
+            key: SMTP_PASSWORD
+          requireTLS: true
+          sendResolved: true
