@@ -10,6 +10,14 @@ loki:
     replication_factor: 1
   storage:
     type: filesystem
+  # Keep 90 days: the compactor deletes older chunks (without it Loki keeps everything and fills its 50 GiB
+  # volume eventually). Scraper logs measured ~10-20 MB/day uncompressed on 2026-10-17 (⚠ estimate from the
+  # pods kept then). Helm merges this into the chart's limits_config defaults.
+  limits_config:
+    retention_period: 2160h
+  compactor:
+    retention_enabled: true
+    delete_request_store: filesystem
   schemaConfig:
     configs:
       - from: "2024-01-01"
