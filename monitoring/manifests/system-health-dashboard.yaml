@@ -1,0 +1,1436 @@
+# System Health dashboard: cluster state at a glance (alerts, nodes, volumes, backups, workloads, scrapers).
+# Provisioned by the Grafana sidecar (label grafana_dashboard); edit the generator, not the JSON:
+# monitoring/dashboards/gen_system_health.py > monitoring/manifests/system-health-dashboard.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: system-health-dashboard
+  namespace: monitoring
+  labels:
+    grafana_dashboard: "1"
+data:
+  system-health.json: |
+    {
+     "uid": "system-health",
+     "title": "System Health",
+     "tags": [
+      "cluster",
+      "overview"
+     ],
+     "timezone": "browser",
+     "schemaVersion": 39,
+     "refresh": "1m",
+     "editable": false,
+     "time": {
+      "from": "now-6h",
+      "to": "now"
+     },
+     "templating": {
+      "list": [
+       {
+        "type": "datasource",
+        "name": "datasource",
+        "label": "Prometheus",
+        "query": "prometheus",
+        "current": {},
+        "hide": 0
+       }
+      ]
+     },
+     "annotations": {
+      "list": []
+     },
+     "panels": [
+      {
+       "type": "row",
+       "title": "At a glance",
+       "id": 1,
+       "collapsed": false,
+       "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+       }
+      },
+      {
+       "type": "stat",
+       "title": "Critical alerts",
+       "id": 2,
+       "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+       },
+       "description": "",
+       "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 0,
+        "y": 1
+       },
+       "targets": [
+        {
+         "refId": "A",
+         "expr": "count(ALERTS{alertstate=\"firing\", severity=\"critical\"}) or vector(0)",
+         "instant": true,
+         "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+         }
+        }
+       ],
+       "fieldConfig": {
+        "defaults": {
+         "unit": "none",
+         "decimals": 0,
+         "thresholds": {
+          "mode": "absolute",
+          "steps": [
+           {
+            "color": "green",
+            "value": null
+           },
+           {
+            "color": "red",
+            "value": 1
+           }
+          ]
+         },
+         "color": {
+          "mode": "thresholds"
+         }
+        },
+        "overrides": []
+       },
+       "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value",
+        "reduceOptions": {
+         "calcs": [
+          "lastNotNull"
+         ],
+         "fields": "",
+         "values": false
+        }
+       }
+      },
+      {
+       "type": "stat",
+       "title": "Warnings",
+       "id": 3,
+       "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+       },
+       "description": "",
+       "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 3,
+        "y": 1
+       },
+       "targets": [
+        {
+         "refId": "A",
+         "expr": "count(ALERTS{alertstate=\"firing\", severity=\"warning\"}) or vector(0)",
+         "instant": true,
+         "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+         }
+        }
+       ],
+       "fieldConfig": {
+        "defaults": {
+         "unit": "none",
+         "decimals": 0,
+         "thresholds": {
+          "mode": "absolute",
+          "steps": [
+           {
+            "color": "green",
+            "value": null
+           },
+           {
+            "color": "orange",
+            "value": 1
+           }
+          ]
+         },
+         "color": {
+          "mode": "thresholds"
+         }
+        },
+        "overrides": []
+       },
+       "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value",
+        "reduceOptions": {
+         "calcs": [
+          "lastNotNull"
+         ],
+         "fields": "",
+         "values": false
+        }
+       }
+      },
+      {
+       "type": "stat",
+       "title": "Nodes not ready",
+       "id": 4,
+       "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+       },
+       "description": "",
+       "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 6,
+        "y": 1
+       },
+       "targets": [
+        {
+         "refId": "A",
+         "expr": "count(kube_node_info) - sum(kube_node_status_condition{condition=\"Ready\", status=\"true\"})",
+         "instant": true,
+         "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+         }
+        }
+       ],
+       "fieldConfig": {
+        "defaults": {
+         "unit": "none",
+         "decimals": 0,
+         "thresholds": {
+          "mode": "absolute",
+          "steps": [
+           {
+            "color": "green",
+            "value": null
+           },
+           {
+            "color": "red",
+            "value": 1
+           }
+          ]
+         },
+         "color": {
+          "mode": "thresholds"
+         }
+        },
+        "overrides": []
+       },
+       "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value",
+        "reduceOptions": {
+         "calcs": [
+          "lastNotNull"
+         ],
+         "fields": "",
+         "values": false
+        }
+       }
+      },
+      {
+       "type": "stat",
+       "title": "Pods stuck",
+       "id": 5,
+       "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+       },
+       "description": "Containers crashlooping / failing to start, plus pods Pending or Unknown.",
+       "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 9,
+        "y": 1
+       },
+       "targets": [
+        {
+         "refId": "A",
+         "expr": "(count(kube_pod_container_status_waiting_reason{reason=~\"CrashLoopBackOff|ImagePullBackOff|ErrImagePull|CreateContainerConfigError|CreateContainerError\"} == 1) or vector(0)) + (count(kube_pod_status_phase{phase=~\"Pending|Unknown\"} == 1) or vector(0))",
+         "instant": true,
+         "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+         }
+        }
+       ],
+       "fieldConfig": {
+        "defaults": {
+         "unit": "none",
+         "decimals": 0,
+         "thresholds": {
+          "mode": "absolute",
+          "steps": [
+           {
+            "color": "green",
+            "value": null
+           },
+           {
+            "color": "red",
+            "value": 1
+           }
+          ]
+         },
+         "color": {
+          "mode": "thresholds"
+         }
+        },
+        "overrides": []
+       },
+       "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value",
+        "reduceOptions": {
+         "calcs": [
+          "lastNotNull"
+         ],
+         "fields": "",
+         "values": false
+        }
+       }
+      },
+      {
+       "type": "stat",
+       "title": "Restarts (1h)",
+       "id": 6,
+       "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+       },
+       "description": "",
+       "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 12,
+        "y": 1
+       },
+       "targets": [
+        {
+         "refId": "A",
+         "expr": "round(sum(increase(kube_pod_container_status_restarts_total[1h])))",
+         "instant": true,
+         "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+         }
+        }
+       ],
+       "fieldConfig": {
+        "defaults": {
+         "unit": "none",
+         "decimals": 0,
+         "thresholds": {
+          "mode": "absolute",
+          "steps": [
+           {
+            "color": "green",
+            "value": null
+           },
+           {
+            "color": "orange",
+            "value": 1
+           }
+          ]
+         },
+         "color": {
+          "mode": "thresholds"
+         }
+        },
+        "overrides": []
+       },
+       "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value",
+        "reduceOptions": {
+         "calcs": [
+          "lastNotNull"
+         ],
+         "fields": "",
+         "values": false
+        }
+       }
+      },
+      {
+       "type": "stat",
+       "title": "Targets down",
+       "id": 7,
+       "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+       },
+       "description": "Prometheus scrape targets not answering.",
+       "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 15,
+        "y": 1
+       },
+       "targets": [
+        {
+         "refId": "A",
+         "expr": "count(up == 0) or vector(0)",
+         "instant": true,
+         "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+         }
+        }
+       ],
+       "fieldConfig": {
+        "defaults": {
+         "unit": "none",
+         "decimals": 0,
+         "thresholds": {
+          "mode": "absolute",
+          "steps": [
+           {
+            "color": "green",
+            "value": null
+           },
+           {
+            "color": "red",
+            "value": 1
+           }
+          ]
+         },
+         "color": {
+          "mode": "thresholds"
+         }
+        },
+        "overrides": []
+       },
+       "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value",
+        "reduceOptions": {
+         "calcs": [
+          "lastNotNull"
+         ],
+         "fields": "",
+         "values": false
+        }
+       }
+      },
+      {
+       "type": "stat",
+       "title": "Backups stale",
+       "id": 8,
+       "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+       },
+       "description": "Nightly backups with no success in 26h, or the weekly offsite backup with none in 8 days.",
+       "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 18,
+        "y": 1
+       },
+       "targets": [
+        {
+         "refId": "A",
+         "expr": "(count((time() - kube_cronjob_status_last_successful_time{namespace=~\"postgres|secrets-backup\", cronjob!~\".*restore-test.*\"}) > 26*3600) or vector(0)) + (count((time() - kube_cronjob_status_last_successful_time{namespace=\"offsite-backup\"}) > 8*86400) or vector(0))",
+         "instant": true,
+         "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+         }
+        }
+       ],
+       "fieldConfig": {
+        "defaults": {
+         "unit": "none",
+         "decimals": 0,
+         "thresholds": {
+          "mode": "absolute",
+          "steps": [
+           {
+            "color": "green",
+            "value": null
+           },
+           {
+            "color": "red",
+            "value": 1
+           }
+          ]
+         },
+         "color": {
+          "mode": "thresholds"
+         }
+        },
+        "overrides": []
+       },
+       "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value",
+        "reduceOptions": {
+         "calcs": [
+          "lastNotNull"
+         ],
+         "fields": "",
+         "values": false
+        }
+       }
+      },
+      {
+       "type": "stat",
+       "title": "Scrape jobs degraded",
+       "id": 9,
+       "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+       },
+       "description": "scrape-job-manager jobs whose recent runs failed (dev and prod).",
+       "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 21,
+        "y": 1
+       },
+       "targets": [
+        {
+         "refId": "A",
+         "expr": "count(scrape_job_phase{phase=\"Degraded\"} == 1) or vector(0)",
+         "instant": true,
+         "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+         }
+        }
+       ],
+       "fieldConfig": {
+        "defaults": {
+         "unit": "none",
+         "decimals": 0,
+         "thresholds": {
+          "mode": "absolute",
+          "steps": [
+           {
+            "color": "green",
+            "value": null
+           },
+           {
+            "color": "orange",
+            "value": 1
+           }
+          ]
+         },
+         "color": {
+          "mode": "thresholds"
+         }
+        },
+        "overrides": []
+       },
+       "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value",
+        "reduceOptions": {
+         "calcs": [
+          "lastNotNull"
+         ],
+         "fields": "",
+         "values": false
+        }
+       }
+      },
+      {
+       "type": "row",
+       "title": "Firing alerts",
+       "id": 10,
+       "collapsed": false,
+       "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 5
+       }
+      },
+      {
+       "type": "table",
+       "title": "Firing alerts (Watchdog/InfoInhibitor hidden)",
+       "id": 11,
+       "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+       },
+       "description": "",
+       "gridPos": {
+        "h": 7,
+        "w": 24,
+        "x": 0,
+        "y": 6
+       },
+       "targets": [
+        {
+         "refId": "A",
+         "expr": "ALERTS{alertstate=\"firing\", alertname!~\"Watchdog|InfoInhibitor\"}",
+         "instant": true,
+         "format": "table",
+         "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+         }
+        }
+       ],
+       "transformations": [
+        {
+         "id": "organize",
+         "options": {
+          "excludeByName": {
+           "Time": true,
+           "__name__": true,
+           "job": true,
+           "instance": true,
+           "endpoint": true,
+           "service": true,
+           "pod_template_hash": true,
+           "container": true,
+           "metrics_path": true,
+           "uid": true,
+           "prometheus": true,
+           "alertstate": true,
+           "Value": true
+          },
+          "renameByName": {
+           "Value": "Value"
+          }
+         }
+        }
+       ],
+       "fieldConfig": {
+        "defaults": {
+         "unit": "none",
+         "custom": {
+          "align": "auto"
+         },
+         "thresholds": {
+          "mode": "absolute",
+          "steps": [
+           {
+            "color": "text",
+            "value": null
+           }
+          ]
+         }
+        },
+        "overrides": []
+       },
+       "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "sortBy": [
+         {
+          "displayName": "severity",
+          "desc": false
+         }
+        ]
+       }
+      },
+      {
+       "type": "row",
+       "title": "Nodes",
+       "id": 12,
+       "collapsed": false,
+       "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 13
+       }
+      },
+      {
+       "type": "timeseries",
+       "title": "CPU used",
+       "id": 13,
+       "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+       },
+       "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 14
+       },
+       "targets": [
+        {
+         "refId": "A",
+         "expr": "100 * (1 - avg by (instance) (rate(node_cpu_seconds_total{mode=\"idle\"}[5m]))) * on(instance) group_left(nodename) node_uname_info",
+         "legendFormat": "{{nodename}}",
+         "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+         }
+        }
+       ],
+       "fieldConfig": {
+        "defaults": {
+         "unit": "percent",
+         "min": 0,
+         "max": 100,
+         "custom": {
+          "lineWidth": 2,
+          "fillOpacity": 10
+         }
+        },
+        "overrides": []
+       },
+       "options": {
+        "legend": {
+         "displayMode": "list",
+         "placement": "bottom"
+        },
+        "tooltip": {
+         "mode": "multi",
+         "sort": "desc"
+        }
+       }
+      },
+      {
+       "type": "timeseries",
+       "title": "Memory used",
+       "id": 14,
+       "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+       },
+       "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 8,
+        "y": 14
+       },
+       "targets": [
+        {
+         "refId": "A",
+         "expr": "100 * (1 - node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) * on(instance) group_left(nodename) node_uname_info",
+         "legendFormat": "{{nodename}}",
+         "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+         }
+        }
+       ],
+       "fieldConfig": {
+        "defaults": {
+         "unit": "percent",
+         "min": 0,
+         "max": 100,
+         "custom": {
+          "lineWidth": 2,
+          "fillOpacity": 10
+         }
+        },
+        "overrides": []
+       },
+       "options": {
+        "legend": {
+         "displayMode": "list",
+         "placement": "bottom"
+        },
+        "tooltip": {
+         "mode": "multi",
+         "sort": "desc"
+        }
+       }
+      },
+      {
+       "type": "timeseries",
+       "title": "Root disk used",
+       "id": 15,
+       "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+       },
+       "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 14
+       },
+       "targets": [
+        {
+         "refId": "A",
+         "expr": "100 * (1 - node_filesystem_avail_bytes{mountpoint=\"/\"} / node_filesystem_size_bytes{mountpoint=\"/\"}) * on(instance) group_left(nodename) node_uname_info",
+         "legendFormat": "{{nodename}}",
+         "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+         }
+        }
+       ],
+       "fieldConfig": {
+        "defaults": {
+         "unit": "percent",
+         "min": 0,
+         "max": 100,
+         "custom": {
+          "lineWidth": 2,
+          "fillOpacity": 10
+         }
+        },
+        "overrides": []
+       },
+       "options": {
+        "legend": {
+         "displayMode": "list",
+         "placement": "bottom"
+        },
+        "tooltip": {
+         "mode": "multi",
+         "sort": "desc"
+        }
+       }
+      },
+      {
+       "type": "row",
+       "title": "Volumes",
+       "id": 16,
+       "collapsed": false,
+       "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 22
+       }
+      },
+      {
+       "type": "table",
+       "title": "Volume use (NFS volumes report their whole share)",
+       "id": 17,
+       "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+       },
+       "description": "",
+       "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 0,
+        "y": 23
+       },
+       "targets": [
+        {
+         "refId": "A",
+         "expr": "100 * max by (namespace, persistentvolumeclaim) (kubelet_volume_stats_used_bytes{job=\"kubelet\"}) / max by (namespace, persistentvolumeclaim) (kubelet_volume_stats_capacity_bytes{job=\"kubelet\"})",
+         "instant": true,
+         "format": "table",
+         "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+         }
+        }
+       ],
+       "transformations": [
+        {
+         "id": "organize",
+         "options": {
+          "excludeByName": {
+           "Time": true,
+           "__name__": true,
+           "job": true,
+           "instance": true,
+           "endpoint": true,
+           "service": true,
+           "pod_template_hash": true,
+           "container": true,
+           "metrics_path": true,
+           "uid": true,
+           "prometheus": true,
+           "alertstate": true
+          },
+          "renameByName": {
+           "Value": "Used"
+          }
+         }
+        }
+       ],
+       "fieldConfig": {
+        "defaults": {
+         "unit": "percent",
+         "custom": {
+          "align": "auto"
+         },
+         "thresholds": {
+          "mode": "absolute",
+          "steps": [
+           {
+            "color": "text",
+            "value": null
+           }
+          ]
+         }
+        },
+        "overrides": [
+         {
+          "matcher": {
+           "id": "byName",
+           "options": "Used"
+          },
+          "properties": [
+           {
+            "id": "custom.cellOptions",
+            "value": {
+             "type": "color-background"
+            }
+           },
+           {
+            "id": "thresholds",
+            "value": {
+             "mode": "absolute",
+             "steps": [
+              {
+               "color": "green",
+               "value": null
+              },
+              {
+               "color": "orange",
+               "value": 80
+              },
+              {
+               "color": "red",
+               "value": 90
+              }
+             ]
+            }
+           }
+          ]
+         }
+        ]
+       },
+       "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "sortBy": [
+         {
+          "displayName": "Used",
+          "desc": true
+         }
+        ]
+       }
+      },
+      {
+       "type": "table",
+       "title": "Backups: last success",
+       "id": 18,
+       "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+       },
+       "description": "Nightly: dumps, buckets, volumes, tracks, secrets. Weekly: offsite (MEGA), restore tests.",
+       "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 12,
+        "y": 23
+       },
+       "targets": [
+        {
+         "refId": "A",
+         "expr": "kube_cronjob_status_last_successful_time{namespace=~\"postgres|secrets-backup|offsite-backup\"} * 1000",
+         "instant": true,
+         "format": "table",
+         "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+         }
+        }
+       ],
+       "transformations": [
+        {
+         "id": "organize",
+         "options": {
+          "excludeByName": {
+           "Time": true,
+           "__name__": true,
+           "job": true,
+           "instance": true,
+           "endpoint": true,
+           "service": true,
+           "pod_template_hash": true,
+           "container": true,
+           "metrics_path": true,
+           "uid": true,
+           "prometheus": true,
+           "alertstate": true
+          },
+          "renameByName": {
+           "Value": "Last success"
+          }
+         }
+        }
+       ],
+       "fieldConfig": {
+        "defaults": {
+         "unit": "dateTimeFromNow",
+         "custom": {
+          "align": "auto"
+         },
+         "thresholds": {
+          "mode": "absolute",
+          "steps": [
+           {
+            "color": "text",
+            "value": null
+           }
+          ]
+         }
+        },
+        "overrides": []
+       },
+       "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "sortBy": [
+         {
+          "displayName": "Last success",
+          "desc": false
+         }
+        ]
+       }
+      },
+      {
+       "type": "row",
+       "title": "Workloads",
+       "id": 19,
+       "collapsed": false,
+       "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 32
+       }
+      },
+      {
+       "type": "table",
+       "title": "Deployments / StatefulSets short of replicas",
+       "id": 20,
+       "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+       },
+       "description": "",
+       "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 33
+       },
+       "targets": [
+        {
+         "refId": "A",
+         "expr": "(kube_deployment_spec_replicas > 0) - kube_deployment_status_replicas_available > 0 or (kube_statefulset_replicas > 0) - kube_statefulset_status_replicas_ready > 0",
+         "instant": true,
+         "format": "table",
+         "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+         }
+        }
+       ],
+       "transformations": [
+        {
+         "id": "organize",
+         "options": {
+          "excludeByName": {
+           "Time": true,
+           "__name__": true,
+           "job": true,
+           "instance": true,
+           "endpoint": true,
+           "service": true,
+           "pod_template_hash": true,
+           "container": true,
+           "metrics_path": true,
+           "uid": true,
+           "prometheus": true,
+           "alertstate": true
+          },
+          "renameByName": {
+           "Value": "Missing"
+          }
+         }
+        }
+       ],
+       "fieldConfig": {
+        "defaults": {
+         "unit": "none",
+         "custom": {
+          "align": "auto"
+         },
+         "thresholds": {
+          "mode": "absolute",
+          "steps": [
+           {
+            "color": "text",
+            "value": null
+           }
+          ]
+         }
+        },
+        "overrides": []
+       },
+       "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "sortBy": [
+         {
+          "displayName": "Missing",
+          "desc": true
+         }
+        ]
+       }
+      },
+      {
+       "type": "table",
+       "title": "Most restarted containers (24h)",
+       "id": 21,
+       "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+       },
+       "description": "",
+       "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 33
+       },
+       "targets": [
+        {
+         "refId": "A",
+         "expr": "topk(10, round(increase(kube_pod_container_status_restarts_total[24h])) > 0)",
+         "instant": true,
+         "format": "table",
+         "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+         }
+        }
+       ],
+       "transformations": [
+        {
+         "id": "organize",
+         "options": {
+          "excludeByName": {
+           "Time": true,
+           "__name__": true,
+           "job": true,
+           "instance": true,
+           "endpoint": true,
+           "service": true,
+           "pod_template_hash": true,
+           "container": true,
+           "metrics_path": true,
+           "uid": true,
+           "prometheus": true,
+           "alertstate": true
+          },
+          "renameByName": {
+           "container": "container",
+           "Value": "Restarts"
+          }
+         }
+        }
+       ],
+       "fieldConfig": {
+        "defaults": {
+         "unit": "none",
+         "custom": {
+          "align": "auto"
+         },
+         "thresholds": {
+          "mode": "absolute",
+          "steps": [
+           {
+            "color": "text",
+            "value": null
+           }
+          ]
+         }
+        },
+        "overrides": []
+       },
+       "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "sortBy": [
+         {
+          "displayName": "Restarts",
+          "desc": true
+         }
+        ]
+       }
+      },
+      {
+       "type": "row",
+       "title": "Scrapers (scrape-job-manager)",
+       "id": 22,
+       "collapsed": false,
+       "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 41
+       }
+      },
+      {
+       "type": "table",
+       "title": "Jobs failing",
+       "id": 23,
+       "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+       },
+       "description": "",
+       "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 0,
+        "y": 42
+       },
+       "targets": [
+        {
+         "refId": "A",
+         "expr": "scrape_job_consecutive_failures > 0",
+         "instant": true,
+         "format": "table",
+         "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+         }
+        }
+       ],
+       "transformations": [
+        {
+         "id": "organize",
+         "options": {
+          "excludeByName": {
+           "Time": true,
+           "__name__": true,
+           "job": true,
+           "instance": true,
+           "endpoint": true,
+           "service": true,
+           "pod_template_hash": true,
+           "container": true,
+           "metrics_path": true,
+           "uid": true,
+           "prometheus": true,
+           "alertstate": true,
+           "namespace": true,
+           "pod": true
+          },
+          "renameByName": {
+           "exported_namespace": "namespace",
+           "Value": "Failures in a row"
+          }
+         }
+        }
+       ],
+       "fieldConfig": {
+        "defaults": {
+         "unit": "none",
+         "custom": {
+          "align": "auto"
+         },
+         "thresholds": {
+          "mode": "absolute",
+          "steps": [
+           {
+            "color": "text",
+            "value": null
+           }
+          ]
+         }
+        },
+        "overrides": []
+       },
+       "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "sortBy": [
+         {
+          "displayName": "Failures in a row",
+          "desc": true
+         }
+        ]
+       }
+      },
+      {
+       "type": "bargauge",
+       "title": "Jobs by phase",
+       "id": 24,
+       "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+       },
+       "gridPos": {
+        "h": 9,
+        "w": 6,
+        "x": 12,
+        "y": 42
+       },
+       "targets": [
+        {
+         "refId": "A",
+         "expr": "count by (phase) (scrape_job_phase == 1)",
+         "instant": true,
+         "legendFormat": "{{phase}}",
+         "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+         }
+        }
+       ],
+       "fieldConfig": {
+        "defaults": {
+         "color": {
+          "mode": "fixed",
+          "fixedColor": "blue"
+         }
+        },
+        "overrides": [
+         {
+          "matcher": {
+           "id": "byName",
+           "options": "Healthy"
+          },
+          "properties": [
+           {
+            "id": "color",
+            "value": {
+             "mode": "fixed",
+             "fixedColor": "green"
+            }
+           }
+          ]
+         },
+         {
+          "matcher": {
+           "id": "byName",
+           "options": "Degraded"
+          },
+          "properties": [
+           {
+            "id": "color",
+            "value": {
+             "mode": "fixed",
+             "fixedColor": "orange"
+            }
+           }
+          ]
+         },
+         {
+          "matcher": {
+           "id": "byName",
+           "options": "Disabled"
+          },
+          "properties": [
+           {
+            "id": "color",
+            "value": {
+             "mode": "fixed",
+             "fixedColor": "text"
+            }
+           }
+          ]
+         }
+        ]
+       },
+       "options": {
+        "orientation": "horizontal",
+        "displayMode": "basic",
+        "reduceOptions": {
+         "calcs": [
+          "lastNotNull"
+         ],
+         "fields": "",
+         "values": false
+        }
+       }
+      },
+      {
+       "type": "stat",
+       "title": "Operator last tick",
+       "id": 25,
+       "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+       },
+       "description": "Seconds since scrape-job-manager's reconcile loop last ran.",
+       "gridPos": {
+        "h": 9,
+        "w": 6,
+        "x": 18,
+        "y": 42
+       },
+       "targets": [
+        {
+         "refId": "A",
+         "expr": "time() - scrape_operator_last_tick_timestamp_seconds",
+         "instant": true,
+         "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+         }
+        }
+       ],
+       "fieldConfig": {
+        "defaults": {
+         "unit": "s",
+         "decimals": 0,
+         "thresholds": {
+          "mode": "absolute",
+          "steps": [
+           {
+            "color": "green",
+            "value": null
+           },
+           {
+            "color": "orange",
+            "value": 120
+           },
+           {
+            "color": "red",
+            "value": 600
+           }
+          ]
+         },
+         "color": {
+          "mode": "thresholds"
+         }
+        },
+        "overrides": []
+       },
+       "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value",
+        "reduceOptions": {
+         "calcs": [
+          "lastNotNull"
+         ],
+         "fields": "",
+         "values": false
+        }
+       }
+      }
+     ]
+    }
