@@ -44,12 +44,12 @@ data:
               - set(attributes["remote_host"], cache["remotehost"])
               - set(attributes["user_agent"], cache["userAgent"])
       # Errors only: every successful request would be millions of lines a night (backup listings, image checks).
+      # Events whose status can't be read are kept, so a format change shows up instead of vanishing.
       filter/aistor-errors:
         error_mode: ignore
         logs:
           log_record:
-            - attributes["status"] == nil
-            - attributes["status"] < 400
+            - attributes["status"] != nil and attributes["status"] < 400
 
     exporters:
       prometheus:
