@@ -1,0 +1,759 @@
+# Backups dashboard: latest run per backup CronJob, when each ran, failures, and the runs Kubernetes still keeps.
+# Provisioned by the Grafana sidecar (label grafana_dashboard). Edit the generator, not the JSON:
+# python3 monitoring/dashboards/gen_backups.py > monitoring/manifests/backups-dashboard.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backups-dashboard
+  namespace: monitoring
+  labels:
+    grafana_dashboard: "1"
+data:
+  backups.json: |
+    {
+     "uid": "backups",
+     "title": "Backups",
+     "tags": [
+      "backups",
+      "overview"
+     ],
+     "timezone": "browser",
+     "schemaVersion": 39,
+     "refresh": "1m",
+     "editable": false,
+     "time": {
+      "from": "now-7d",
+      "to": "now"
+     },
+     "templating": {
+      "list": [
+       {
+        "type": "datasource",
+        "name": "datasource",
+        "label": "Prometheus",
+        "query": "prometheus",
+        "current": {},
+        "hide": 0
+       }
+      ]
+     },
+     "annotations": {
+      "list": []
+     },
+     "links": [
+      {
+       "title": "System Health",
+       "type": "link",
+       "url": "/d/system-health"
+      }
+     ],
+     "panels": [
+      {
+       "type": "row",
+       "title": "Latest run per backup",
+       "id": 1,
+       "collapsed": false,
+       "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+       }
+      },
+      {
+       "type": "table",
+       "title": "Backups",
+       "id": 2,
+       "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+       },
+       "description": "One row per backup CronJob. 'Failed Jobs kept' counts failed runs Kubernetes still keeps (up to 3); it clears as newer runs replace them.",
+       "gridPos": {
+        "h": 11,
+        "w": 24,
+        "x": 0,
+        "y": 1
+       },
+       "targets": [
+        {
+         "refId": "A",
+         "expr": "kube_cronjob_info{namespace=~\"postgres|secrets-backup|offsite-backup\"}",
+         "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+         },
+         "instant": true,
+         "format": "table"
+        },
+        {
+         "refId": "B",
+         "expr": "kube_cronjob_status_last_successful_time{namespace=~\"postgres|secrets-backup|offsite-backup\"} * 1000",
+         "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+         },
+         "instant": true,
+         "format": "table"
+        },
+        {
+         "refId": "C",
+         "expr": "kube_cronjob_status_last_schedule_time{namespace=~\"postgres|secrets-backup|offsite-backup\"} * 1000",
+         "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+         },
+         "instant": true,
+         "format": "table"
+        },
+        {
+         "refId": "D",
+         "expr": "max by (namespace, cronjob) (label_replace(kube_job_status_completion_time{namespace=~\"postgres|secrets-backup|offsite-backup\"} * on(namespace, job_name) group_left(owner_name) kube_job_owner{namespace=~\"postgres|secrets-backup|offsite-backup\", owner_kind=\"CronJob\"}, \"cronjob\", \"$1\", \"owner_name\", \"(.*)\") - on(namespace, job_name, cronjob) label_replace(kube_job_status_start_time{namespace=~\"postgres|secrets-backup|offsite-backup\"} * on(namespace, job_name) group_left(owner_name) kube_job_owner{namespace=~\"postgres|secrets-backup|offsite-backup\", owner_kind=\"CronJob\"}, \"cronjob\", \"$1\", \"owner_name\", \"(.*)\") and on(namespace, cronjob) (label_replace(kube_job_status_start_time{namespace=~\"postgres|secrets-backup|offsite-backup\"} * on(namespace, job_name) group_left(owner_name) kube_job_owner{namespace=~\"postgres|secrets-backup|offsite-backup\", owner_kind=\"CronJob\"}, \"cronjob\", \"$1\", \"owner_name\", \"(.*)\") == on(namespace, cronjob) group_left max by (namespace, cronjob) (label_replace(kube_job_status_start_time{namespace=~\"postgres|secrets-backup|offsite-backup\"} * on(namespace, job_name) group_left(owner_name) kube_job_owner{namespace=~\"postgres|secrets-backup|offsite-backup\", owner_kind=\"CronJob\"}, \"cronjob\", \"$1\", \"owner_name\", \"(.*)\"))))",
+         "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+         },
+         "instant": true,
+         "format": "table"
+        },
+        {
+         "refId": "E",
+         "expr": "sum by (namespace, cronjob) (label_replace(kube_job_status_failed{namespace=~\"postgres|secrets-backup|offsite-backup\"} * on(namespace, job_name) group_left(owner_name) kube_job_owner{namespace=~\"postgres|secrets-backup|offsite-backup\", owner_kind=\"CronJob\"}, \"cronjob\", \"$1\", \"owner_name\", \"(.*)\") > 0) or 0 * kube_cronjob_info{namespace=~\"postgres|secrets-backup|offsite-backup\"}",
+         "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+         },
+         "instant": true,
+         "format": "table"
+        },
+        {
+         "refId": "F",
+         "expr": "kube_cronjob_status_active{namespace=~\"postgres|secrets-backup|offsite-backup\"}",
+         "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+         },
+         "instant": true,
+         "format": "table"
+        },
+        {
+         "refId": "G",
+         "expr": "kube_cronjob_spec_suspend{namespace=~\"postgres|secrets-backup|offsite-backup\"}",
+         "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+         },
+         "instant": true,
+         "format": "table"
+        }
+       ],
+       "transformations": [
+        {
+         "id": "merge",
+         "options": {}
+        },
+        {
+         "id": "organize",
+         "options": {
+          "excludeByName": {
+           "Time": true,
+           "__name__": true,
+           "container": true,
+           "endpoint": true,
+           "instance": true,
+           "job": true,
+           "pod": true,
+           "service": true,
+           "concurrency_policy": true,
+           "Value #A": true
+          },
+          "indexByName": {
+           "namespace": 0,
+           "cronjob": 1,
+           "schedule": 2,
+           "timezone": 3,
+           "Value #B": 4,
+           "Value #C": 5,
+           "Value #D": 6,
+           "Value #E": 7,
+           "Value #F": 8,
+           "Value #G": 9
+          },
+          "renameByName": {
+           "Value #B": "Last success",
+           "Value #C": "Last started",
+           "Value #D": "Last duration",
+           "Value #E": "Failed Jobs kept",
+           "Value #F": "Running now",
+           "Value #G": "Suspended",
+           "cronjob": "Backup"
+          }
+         }
+        }
+       ],
+       "fieldConfig": {
+        "defaults": {
+         "custom": {
+          "align": "auto"
+         }
+        },
+        "overrides": [
+         {
+          "matcher": {
+           "id": "byName",
+           "options": "Last success"
+          },
+          "properties": [
+           {
+            "id": "unit",
+            "value": "dateTimeFromNow"
+           }
+          ]
+         },
+         {
+          "matcher": {
+           "id": "byName",
+           "options": "Last started"
+          },
+          "properties": [
+           {
+            "id": "unit",
+            "value": "dateTimeFromNow"
+           }
+          ]
+         },
+         {
+          "matcher": {
+           "id": "byName",
+           "options": "Last duration"
+          },
+          "properties": [
+           {
+            "id": "unit",
+            "value": "s"
+           }
+          ]
+         },
+         {
+          "matcher": {
+           "id": "byName",
+           "options": "Failed Jobs kept"
+          },
+          "properties": [
+           {
+            "id": "custom.cellOptions",
+            "value": {
+             "type": "color-background"
+            }
+           },
+           {
+            "id": "thresholds",
+            "value": {
+             "mode": "absolute",
+             "steps": [
+              {
+               "color": "green",
+               "value": null
+              },
+              {
+               "color": "red",
+               "value": 1
+              }
+             ]
+            }
+           }
+          ]
+         },
+         {
+          "matcher": {
+           "id": "byName",
+           "options": "Running now"
+          },
+          "properties": [
+           {
+            "id": "custom.cellOptions",
+            "value": {
+             "type": "color-background"
+            }
+           },
+           {
+            "id": "thresholds",
+            "value": {
+             "mode": "absolute",
+             "steps": [
+              {
+               "color": "transparent",
+               "value": null
+              },
+              {
+               "color": "blue",
+               "value": 1
+              }
+             ]
+            }
+           },
+           {
+            "id": "mappings",
+            "value": [
+             {
+              "type": "value",
+              "options": {
+               "0": {
+                "text": "-"
+               },
+               "1": {
+                "text": "running"
+               }
+              }
+             }
+            ]
+           }
+          ]
+         },
+         {
+          "matcher": {
+           "id": "byName",
+           "options": "Suspended"
+          },
+          "properties": [
+           {
+            "id": "custom.cellOptions",
+            "value": {
+             "type": "color-background"
+            }
+           },
+           {
+            "id": "thresholds",
+            "value": {
+             "mode": "absolute",
+             "steps": [
+              {
+               "color": "transparent",
+               "value": null
+              },
+              {
+               "color": "orange",
+               "value": 1
+              }
+             ]
+            }
+           },
+           {
+            "id": "mappings",
+            "value": [
+             {
+              "type": "value",
+              "options": {
+               "0": {
+                "text": "no"
+               },
+               "1": {
+                "text": "SUSPENDED"
+               }
+              }
+             }
+            ]
+           }
+          ]
+         }
+        ]
+       },
+       "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "sortBy": [
+         {
+          "displayName": "Backup",
+          "desc": false
+         }
+        ]
+       }
+      },
+      {
+       "type": "row",
+       "title": "History (last 10 days at most)",
+       "id": 3,
+       "collapsed": false,
+       "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 12
+       }
+      },
+      {
+       "type": "state-timeline",
+       "title": "When each backup ran",
+       "id": 4,
+       "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+       },
+       "description": "Blue while a backup Job is active; the bar's width is how long it ran.",
+       "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 13
+       },
+       "targets": [
+        {
+         "refId": "A",
+         "expr": "max by (cronjob) (label_replace(kube_job_status_active{namespace=~\"postgres|secrets-backup|offsite-backup\"} * on(namespace, job_name) group_left(owner_name) kube_job_owner{namespace=~\"postgres|secrets-backup|offsite-backup\", owner_kind=\"CronJob\"}, \"cronjob\", \"$1\", \"owner_name\", \"(.*)\"))",
+         "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+         },
+         "range": true,
+         "legendFormat": "{{cronjob}}"
+        }
+       ],
+       "fieldConfig": {
+        "defaults": {
+         "mappings": [
+          {
+           "type": "value",
+           "options": {
+            "0": {
+             "text": "idle",
+             "color": "transparent"
+            },
+            "1": {
+             "text": "running",
+             "color": "blue"
+            }
+           }
+          }
+         ],
+         "color": {
+          "mode": "thresholds"
+         },
+         "thresholds": {
+          "mode": "absolute",
+          "steps": [
+           {
+            "color": "transparent",
+            "value": null
+           },
+           {
+            "color": "blue",
+            "value": 1
+           }
+          ]
+         },
+         "custom": {
+          "fillOpacity": 80,
+          "lineWidth": 0
+         }
+        },
+        "overrides": []
+       },
+       "options": {
+        "showValue": "never",
+        "mergeValues": true,
+        "rowHeight": 0.8,
+        "alignValue": "left",
+        "legend": {
+         "showLegend": false
+        }
+       }
+      },
+      {
+       "type": "state-timeline",
+       "title": "Failures",
+       "id": 5,
+       "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+       },
+       "description": "Red while a failed backup Job exists (Kubernetes keeps the last 3 failed per CronJob).",
+       "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 23
+       },
+       "targets": [
+        {
+         "refId": "A",
+         "expr": "max by (cronjob) (label_replace(kube_job_status_failed{namespace=~\"postgres|secrets-backup|offsite-backup\"} * on(namespace, job_name) group_left(owner_name) kube_job_owner{namespace=~\"postgres|secrets-backup|offsite-backup\", owner_kind=\"CronJob\"}, \"cronjob\", \"$1\", \"owner_name\", \"(.*)\") > bool 0) or max by (cronjob) (0 * kube_cronjob_info{namespace=~\"postgres|secrets-backup|offsite-backup\"})",
+         "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+         },
+         "range": true,
+         "legendFormat": "{{cronjob}}"
+        }
+       ],
+       "fieldConfig": {
+        "defaults": {
+         "mappings": [
+          {
+           "type": "value",
+           "options": {
+            "0": {
+             "text": "ok",
+             "color": "green"
+            },
+            "1": {
+             "text": "failed run",
+             "color": "red"
+            }
+           }
+          }
+         ],
+         "color": {
+          "mode": "thresholds"
+         },
+         "thresholds": {
+          "mode": "absolute",
+          "steps": [
+           {
+            "color": "green",
+            "value": null
+           },
+           {
+            "color": "red",
+            "value": 1
+           }
+          ]
+         },
+         "custom": {
+          "fillOpacity": 70,
+          "lineWidth": 0
+         }
+        },
+        "overrides": []
+       },
+       "options": {
+        "showValue": "never",
+        "mergeValues": true,
+        "rowHeight": 0.8,
+        "legend": {
+         "showLegend": false
+        }
+       }
+      },
+      {
+       "type": "row",
+       "title": "Runs Kubernetes still keeps (last 3 successful + 3 failed per backup)",
+       "id": 6,
+       "collapsed": false,
+       "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 31
+       }
+      },
+      {
+       "type": "table",
+       "title": "Runs",
+       "id": 7,
+       "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+       },
+       "gridPos": {
+        "h": 14,
+        "w": 24,
+        "x": 0,
+        "y": 32
+       },
+       "targets": [
+        {
+         "refId": "A",
+         "expr": "label_replace(kube_job_status_start_time{namespace=~\"postgres|secrets-backup|offsite-backup\"} * on(namespace, job_name) group_left(owner_name) kube_job_owner{namespace=~\"postgres|secrets-backup|offsite-backup\", owner_kind=\"CronJob\"}, \"cronjob\", \"$1\", \"owner_name\", \"(.*)\") * 1000",
+         "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+         },
+         "instant": true,
+         "format": "table"
+        },
+        {
+         "refId": "B",
+         "expr": "label_replace(kube_job_status_completion_time{namespace=~\"postgres|secrets-backup|offsite-backup\"} * on(namespace, job_name) group_left(owner_name) kube_job_owner{namespace=~\"postgres|secrets-backup|offsite-backup\", owner_kind=\"CronJob\"}, \"cronjob\", \"$1\", \"owner_name\", \"(.*)\") * 1000",
+         "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+         },
+         "instant": true,
+         "format": "table"
+        },
+        {
+         "refId": "C",
+         "expr": "label_replace(kube_job_status_completion_time{namespace=~\"postgres|secrets-backup|offsite-backup\"} * on(namespace, job_name) group_left(owner_name) kube_job_owner{namespace=~\"postgres|secrets-backup|offsite-backup\", owner_kind=\"CronJob\"}, \"cronjob\", \"$1\", \"owner_name\", \"(.*)\") - on(namespace, job_name, cronjob) label_replace(kube_job_status_start_time{namespace=~\"postgres|secrets-backup|offsite-backup\"} * on(namespace, job_name) group_left(owner_name) kube_job_owner{namespace=~\"postgres|secrets-backup|offsite-backup\", owner_kind=\"CronJob\"}, \"cronjob\", \"$1\", \"owner_name\", \"(.*)\")",
+         "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+         },
+         "instant": true,
+         "format": "table"
+        },
+        {
+         "refId": "D",
+         "expr": "label_replace(kube_job_status_succeeded{namespace=~\"postgres|secrets-backup|offsite-backup\"} * on(namespace, job_name) group_left(owner_name) kube_job_owner{namespace=~\"postgres|secrets-backup|offsite-backup\", owner_kind=\"CronJob\"}, \"cronjob\", \"$1\", \"owner_name\", \"(.*)\") - on(namespace, job_name, cronjob) label_replace(kube_job_status_failed{namespace=~\"postgres|secrets-backup|offsite-backup\"} * on(namespace, job_name) group_left(owner_name) kube_job_owner{namespace=~\"postgres|secrets-backup|offsite-backup\", owner_kind=\"CronJob\"}, \"cronjob\", \"$1\", \"owner_name\", \"(.*)\") * 2 + on(namespace, job_name, cronjob) label_replace(kube_job_status_active{namespace=~\"postgres|secrets-backup|offsite-backup\"} * on(namespace, job_name) group_left(owner_name) kube_job_owner{namespace=~\"postgres|secrets-backup|offsite-backup\", owner_kind=\"CronJob\"}, \"cronjob\", \"$1\", \"owner_name\", \"(.*)\") * 3",
+         "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+         },
+         "instant": true,
+         "format": "table"
+        }
+       ],
+       "transformations": [
+        {
+         "id": "merge",
+         "options": {}
+        },
+        {
+         "id": "organize",
+         "options": {
+          "excludeByName": {
+           "Time": true,
+           "__name__": true,
+           "container": true,
+           "endpoint": true,
+           "instance": true,
+           "job": true,
+           "pod": true,
+           "service": true,
+           "owner_is_controller": true,
+           "owner_kind": true,
+           "owner_name": true
+          },
+          "indexByName": {
+           "cronjob": 0,
+           "job_name": 1,
+           "Value #A": 2,
+           "Value #B": 3,
+           "Value #C": 4,
+           "Value #D": 5,
+           "namespace": 6
+          },
+          "renameByName": {
+           "cronjob": "Backup",
+           "job_name": "Run",
+           "Value #A": "Started",
+           "Value #B": "Finished",
+           "Value #C": "Duration",
+           "Value #D": "Result"
+          }
+         }
+        }
+       ],
+       "fieldConfig": {
+        "defaults": {
+         "custom": {
+          "align": "auto"
+         }
+        },
+        "overrides": [
+         {
+          "matcher": {
+           "id": "byName",
+           "options": "Started"
+          },
+          "properties": [
+           {
+            "id": "unit",
+            "value": "dateTimeAsLocal"
+           }
+          ]
+         },
+         {
+          "matcher": {
+           "id": "byName",
+           "options": "Finished"
+          },
+          "properties": [
+           {
+            "id": "unit",
+            "value": "dateTimeAsLocal"
+           }
+          ]
+         },
+         {
+          "matcher": {
+           "id": "byName",
+           "options": "Duration"
+          },
+          "properties": [
+           {
+            "id": "unit",
+            "value": "s"
+           }
+          ]
+         },
+         {
+          "matcher": {
+           "id": "byName",
+           "options": "Result"
+          },
+          "properties": [
+           {
+            "id": "custom.cellOptions",
+            "value": {
+             "type": "color-background"
+            }
+           },
+           {
+            "id": "thresholds",
+            "value": {
+             "mode": "absolute",
+             "steps": [
+              {
+               "color": "red",
+               "value": null
+              },
+              {
+               "color": "green",
+               "value": 1
+              },
+              {
+               "color": "blue",
+               "value": 3
+              }
+             ]
+            }
+           },
+           {
+            "id": "mappings",
+            "value": [
+             {
+              "type": "value",
+              "options": {
+               "1": {
+                "text": "succeeded",
+                "color": "green"
+               },
+               "-2": {
+                "text": "failed",
+                "color": "red"
+               },
+               "3": {
+                "text": "running",
+                "color": "blue"
+               }
+              }
+             }
+            ]
+           }
+          ]
+         }
+        ]
+       },
+       "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "sortBy": [
+         {
+          "displayName": "Started",
+          "desc": true
+         }
+        ]
+       }
+      }
+     ]
+    }
