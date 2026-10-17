@@ -29,7 +29,8 @@ data:
           - /var/log/pods/motorcycles-dev_*/scraper/*.log
           - /var/log/pods/rockauto-dev_*/scraper/*.log
         start_at: beginning
-        include_file_path: false
+        # The container parser reads namespace/pod/container from the path.
+        include_file_path: true
         storage: file_storage
         operators:
           # CRI log format -> body, stream, time; namespace/pod/uid/container from the file path.
