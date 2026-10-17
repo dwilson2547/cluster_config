@@ -1,0 +1,14 @@
+# Template for the weekly offsite backup (offsite-backup/backup.yaml). Fill in and apply; never commit real values.
+apiVersion: v1
+kind: Secret
+metadata:
+  name: offsite-backup-restic
+  namespace: offsite-backup
+type: Opaque
+stringData:
+  # s3:<MEGA S4 endpoint from the MEGA console>/<bucket>/<path>
+  RESTIC_REPOSITORY: "s3:https://REPLACE_ME_S4_ENDPOINT/REPLACE_ME_BUCKET/cluster-backup"
+  # Long random string; keep a copy off-cluster (password manager). Lost password = unreadable backup.
+  RESTIC_PASSWORD: "replace-me"
+  AWS_ACCESS_KEY_ID: "replace-me"
+  AWS_SECRET_ACCESS_KEY: "replace-me"

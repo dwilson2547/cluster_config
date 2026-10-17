@@ -1,0 +1,134 @@
+# Weekly offsite backup of the whole Unraid backup share (postgres dumps, bucket copies, secrets exports) to MEGA
+# S4 object storage with restic (runbook: docs/offsite_backup.md).
+#
+# restic encrypts everything with RESTIC_PASSWORD before upload, packs small files into larger ones (part-images is
+# millions of objects), uploads only what changed, and keeps snapshots rather than mirroring: a share wiped this week
+# still has last week's snapshot offsite. The share is mounted read-only, so this job cannot touch the local copies.
+#
+# Credentials: hand-applied secret `offsite-backup-restic` (RESTIC_REPOSITORY, RESTIC_PASSWORD, AWS_ACCESS_KEY_ID,
+# AWS_SECRET_ACCESS_KEY; template in example-secrets/offsite-backup/). The restic password is also held off-cluster
+# by the user: without it the repository is unreadable.
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: offsite-backup-nfs
+spec:
+  capacity:
+    storage: 100Gi
+  accessModes:
+    - ReadOnlyMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: nfs-backup
+  mountOptions:
+    - hard
+    - nfsvers=4.1
+  claimRef:
+    name: backup-share
+    namespace: offsite-backup
+  csi:
+    driver: nfs.csi.k8s.io
+    # Same share as postgres-backup-nfs (postgres/backup.yaml); a PV handle must be unique.
+    volumeHandle: 192.168.0.15-cluster-backup-offsite
+    volumeAttributes:
+      server: 192.168.0.15
+      share: /mnt/user/cluster_backup
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: backup-share
+  namespace: offsite-backup
+spec:
+  accessModes:
+    - ReadOnlyMany
+  storageClassName: nfs-backup
+  resources:
+    requests:
+      storage: 100Gi
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: offsite-backup-script
+  namespace: offsite-backup
+data:
+  offsite-backup.sh: |
+    #!/bin/sh
+    set -eu
+    # First run creates the repository; later runs find its config.
+    if ! restic cat config >/dev/null 2>&1; then
+      echo "== init repository"
+      restic init
+    fi
+    # Clears only locks left by a run that was killed.
+    restic unlock
+    echo "== backup"
+    # replaced/ is the local 28-day undo history of the bucket copies; offsite snapshots already give history.
+    restic backup /backups --host cluster --tag weekly \
+      --exclude '/backups/objects/*/replaced' --exclude '.*.tmp'
+    echo "== forget + prune"
+    restic forget --host cluster --keep-weekly 4 --keep-monthly 6 --prune --max-unused 10%
+    # First run of each month: read back 5% of the stored data to catch corruption at MEGA's end.
+    if [ "$(date +%d)" -le 7 ]; then
+      echo "== check (5% of data)"
+      restic check --read-data-subset 5%
+    fi
+    restic snapshots --host cluster --compact | tail -5
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: offsite-backup
+  namespace: offsite-backup
+  labels:
+    app: offsite-backup
+spec:
+  # Sunday 07:00 ET: after the nightly dumps/bucket copy (02:30-~04:00) and the Sunday restore tests (05:00/05:30),
+  # so nothing is writing to the share mid-snapshot.
+  schedule: "0 7 * * 0"
+  timeZone: "America/New_York"
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 7200
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      # The first upload (~140 GiB) can take most of a day; an interrupted run is not lost, the next one reuses
+      # every pack already uploaded.
+      activeDeadlineSeconds: 172800
+      template:
+        spec:
+          restartPolicy: Never
+          automountServiceAccountToken: false
+          # The Unraid export squashes to 99:100 (docs/postgres_backup.md, gotchas).
+          securityContext:
+            runAsUser: 99
+            runAsGroup: 100
+          containers:
+            - name: restic
+              image: restic/restic:0.17.3
+              command: ["/bin/sh", "/scripts/offsite-backup.sh"]
+              env:
+                - {name: HOME, value: /cache}
+                - {name: RESTIC_CACHE_DIR, value: /cache/restic}
+              envFrom:
+                - secretRef: {name: offsite-backup-restic}
+              resources:
+                requests: {cpu: 250m, memory: 1Gi}
+                limits: {memory: 4Gi}
+              volumeMounts:
+                - {name: share, mountPath: /backups, readOnly: true}
+                - {name: scripts, mountPath: /scripts}
+                - {name: cache, mountPath: /cache}
+          volumes:
+            - name: share
+              persistentVolumeClaim:
+                claimName: backup-share
+                readOnly: true
+            - name: scripts
+              configMap:
+                name: offsite-backup-script
+            # restic's local index cache; rebuilt from the repository when empty.
+            - name: cache
+              emptyDir: {sizeLimit: 10Gi}
