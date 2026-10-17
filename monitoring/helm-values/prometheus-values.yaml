@@ -1,12 +1,29 @@
 crds:
   enabled: false
 
+# microk8s runs kube-proxy, the scheduler and the controller manager inside kubelite, and uses dqlite rather than
+# etcd: there is nothing to scrape, so their Down alerts fire forever. Off.
+kubeProxy:
+  enabled: false
+kubeScheduler:
+  enabled: false
+kubeControllerManager:
+  enabled: false
+kubeEtcd:
+  enabled: false
+defaultRules:
+  disabled:
+    # Replaced by monitoring/manifests/cluster-alerts.yaml, which leaves out scrape-job-manager's retried Jobs.
+    KubeJobFailed: true
 alertmanager:
   alertmanagerSpec:
     # Pick up AlertmanagerConfig CRs from any namespace (e.g. the postgres-backup
     # email config in postgres/). The operator routes each config by its own namespace.
     alertmanagerConfigSelector: {}
     alertmanagerConfigNamespaceSelector: {}
+    # Root route and receivers: the cluster-wide config in monitoring/manifests/cluster-alerts.yaml.
+    alertmanagerConfiguration:
+      name: cluster-alerts
     storage:
       volumeClaimTemplate:
         spec:

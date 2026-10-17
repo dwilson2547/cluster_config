@@ -1,0 +1,76 @@
+# Cluster-wide alert routing: which alerts mail the user (runbook: docs/alerting.md).
+#
+# Alertmanager's root config comes from the AlertmanagerConfig `cluster-alerts` below
+# (prometheus-values.yaml: alertmanager.alertmanagerSpec.alertmanagerConfiguration). Unlike the namespaced configs
+# (postgres-backup-email, secrets-backup-email, offsite-backup-email), it sees alerts from every namespace. Those
+# namespaced routes are evaluated first and stop there, so backup alerts are not mailed twice.
+#
+# Mailed: every critical alert, plus the warnings listed in the second route. Everything else stays visible in
+# Alertmanager/Grafana only. Scrape jobs are left to scrape-job-manager, which retries and mails on its own.
+#
+# SMTP: hand-applied secret `alertmanager-smtp` in namespace monitoring (key SMTP_PASSWORD), a copy of the one in
+# postgres.
+apiVersion: monitoring.coreos.com/v1alpha1
+kind: AlertmanagerConfig
+metadata:
+  name: cluster-alerts
+  namespace: monitoring
+spec:
+  route:
+    receiver: "null"
+    groupBy: [alertname, namespace]
+    groupWait: 1m
+    groupInterval: 10m
+    repeatInterval: 24h
+    routes:
+      - receiver: "null"
+        matchers:
+          - {name: alertname, matchType: "=~", value: "Watchdog|InfoInhibitor"}
+      - receiver: email
+        matchers:
+          - {name: severity, matchType: "=", value: critical}
+      - receiver: email
+        matchers:
+          - name: alertname
+            matchType: "=~"
+            value: >-
+              KubePodCrashLooping|KubeNodeNotReady|KubeNodeUnreachable|KubeNodeReadinessFlapping|KubePersistentVolumeFillingUp|NodeFilesystemSpaceFillingUp|NodeFilesystemAlmostOutOfSpace|NodeMemoryHighUtilization|NodeClockNotSynchronising|KubeDeploymentReplicasMismatch|KubeStatefulSetReplicasMismatch|KubeDeploymentRolloutStuck|KubeDaemonSetRolloutStuck|KubeJobFailed|TargetDown
+  receivers:
+    - name: "null"
+    - name: email
+      emailConfigs:
+        - to: dwilson2547@gmail.com
+          from: "alertmanager <dwilson2547@gmail.com>"
+          smarthost: smtp.gmail.com:587
+          authUsername: dwilson2547@gmail.com
+          authPassword:
+            name: alertmanager-smtp
+            key: SMTP_PASSWORD
+          requireTLS: true
+          sendResolved: true
+---
+# Replaces the chart's KubeJobFailed (disabled in prometheus-values.yaml): scrape-job-manager's Jobs fail and retry
+# as part of normal operation and it mails on its own, and the backup namespaces have their own job alerts.
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: cluster-job-alerts
+  namespace: monitoring
+  labels:
+    release: prometheus
+spec:
+  groups:
+    - name: cluster-jobs
+      rules:
+        - alert: KubeJobFailed
+          expr: >-
+            kube_job_status_failed{job="kube-state-metrics", namespace!~"postgres|secrets-backup|offsite-backup"} > 0
+            unless on(namespace, job_name) kube_job_owner{owner_kind="ScrapeJob"}
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Job {{ $labels.namespace }}/{{ $labels.job_name }} failed"
+            description: >-
+              Check `kubectl -n {{ $labels.namespace }} describe job {{ $labels.job_name }}` and its pod logs.
+              The alert clears when the failed Job is deleted.
