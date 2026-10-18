@@ -100,6 +100,12 @@ data:
         errors
     }
 
+    home.arpa:53 {
+        file /etc/coredns/db.home.arpa
+        log
+        errors
+    }
+
     .:53 {
         forward . 8.8.8.8 1.1.1.1
         cache 30
@@ -396,6 +402,88 @@ data:
     ; All subdomains → Traefik ingress controller
     @   IN  A    192.168.0.60
     *   IN  A    192.168.0.60
+
+  db.home.arpa: |
+    ; RFC 8375 home-network domain. Consolidated replacement for the per-service
+    ; .local zones: every service lives as a subdomain of home.arpa (e.g.
+    ; api.scrapestack.home.arpa). Records mirror the .local zones exactly — the
+    ; .local zones are kept until the migration completes, then removed.
+    $ORIGIN home.arpa.
+    $TTL 300
+
+    @   IN  SOA  ns1.home.arpa. admin.home.arpa. (
+                    2026101801 ; serial
+                    3600       ; refresh
+                    900        ; retry
+                    86400      ; expire
+                    300        ; minimum TTL
+                 )
+
+    @   IN  NS   ns1.home.arpa.
+    ns1 IN  A    192.168.0.61
+
+    ; scrapestack (prod) — apex+wildcard to Traefik, gRPC LB explicit
+    scrapestack                           IN  A  192.168.0.60
+    *.scrapestack                         IN  A  192.168.0.60
+    request-auth-server.scrapestack       IN  A  192.168.0.62
+
+    ; scrapestack-dev — dev gRPC LB on .63
+    scrapestack-dev                       IN  A  192.168.0.60
+    *.scrapestack-dev                     IN  A  192.168.0.60
+    request-auth-server.scrapestack-dev   IN  A  192.168.0.63
+
+    ; monitoring
+    monitoring                            IN  A  192.168.0.60
+    *.monitoring                          IN  A  192.168.0.60
+
+    ; argocd
+    argocd                                IN  A  192.168.0.60
+
+    ; ai-services — explicit hosts only, as in the .local zone
+    notes.ai-services                     IN  A  192.168.0.60
+    context-store.ai-services              IN  A  192.168.0.60
+    docs.ai-services                      IN  A  192.168.0.60
+    todo.ai-services                      IN  A  192.168.0.60
+
+    ; gyopart + gyopart-dev
+    gyopart                               IN  A  192.168.0.60
+    *.gyopart                             IN  A  192.168.0.60
+    gyopart-dev                           IN  A  192.168.0.60
+    *.gyopart-dev                         IN  A  192.168.0.60
+
+    ; danwiki-dev (no prod .local zone exists)
+    danwiki-dev                           IN  A  192.168.0.60
+    *.danwiki-dev                         IN  A  192.168.0.60
+
+    ; photo-dump-dev (no prod .local zone exists)
+    photo-dump-dev                        IN  A  192.168.0.60
+    *.photo-dump-dev                      IN  A  192.168.0.60
+
+    ; robo-services — explicit hosts only (no apex/wildcard in the .local zone)
+    ntrip.robo-services                   IN  A  192.168.0.72
+    registry.robo-services                IN  A  192.168.0.60
+
+    ; pub-sub — UDP receiver and MQTT broker LBs explicit
+    pub-sub                               IN  A  192.168.0.60
+    *.pub-sub                             IN  A  192.168.0.60
+    kreceiver.pub-sub                     IN  A  192.168.0.70
+    mqtt.pub-sub                          IN  A  192.168.0.71
+
+    ; cluster (homepage dashboard: home.cluster.home.arpa)
+    cluster                               IN  A  192.168.0.60
+    *.cluster                             IN  A  192.168.0.60
+
+    ; dxf-converter
+    dxf-converter                         IN  A  192.168.0.60
+    *.dxf-converter                       IN  A  192.168.0.60
+
+    ; build-sim
+    build-sim                             IN  A  192.168.0.60
+    *.build-sim                           IN  A  192.168.0.60
+
+    ; webworkflows
+    webworkflows                          IN  A  192.168.0.60
+    *.webworkflows                        IN  A  192.168.0.60
 
 ---
 apiVersion: apps/v1

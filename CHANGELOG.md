@@ -1,3 +1,17 @@
+## 2026-10-18 - dns: add consolidated home.arpa zone (RFC 8375), first step off .local
+
+### Added
+
+- `dns/dns.yaml`: new `home.arpa` zone, consolidating every per-service `.local`
+  zone as subdomains (`scrapestack.home.arpa`, `api.scrapestack.home.arpa`,
+  `argocd.home.arpa`, `home.cluster.home.arpa`, ...). Records mirror the `.local`
+  zones exactly. Both namespaces are served during the transition; the `.local`
+  zones are removed once references are migrated. Motivation: `.local` is
+  RFC 6762-reserved for mDNS, so systemd-resolved hosts (the vmk8 VMs) refuse to
+  resolve it via unicast DNS; `home.arpa` is the RFC 8375 domain intended for
+  exactly this. Also removes the shadowing between the external `cluster.local`
+  zone and the in-cluster Kubernetes domain of the same name.
+
 ## 2026-10-15 - docs: postgres backup runbook
 
 ### Added
