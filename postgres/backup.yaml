@@ -130,17 +130,36 @@ data:
     # into a _restore_test_ scratch DB, verifies nonzero user tables, drops the scratch
     # DB. Reads /backups read-only; only touches the postgres server.
     set -u
+    shopt -s nullglob
     ROOT=/backups
     FAILURES=0
+    TESTED=0
+
+    # An unreadable share must fail the test, not shrink it: on 2026-10-18 a share that went away mid-run
+    # turned every remaining database into a silent skip and the job reported success
+    # (docs/issues/2026_10_18_unraid_nfs_v41_client_wedge.md).
+    if ! ls "$ROOT/$INSTANCE_DIR" >/dev/null; then
+      echo "[$INSTANCE_DIR] FAILED: cannot read $ROOT/$INSTANCE_DIR"
+      exit 1
+    fi
 
     for dbdir in "$ROOT/$INSTANCE_DIR"/*/; do
-      [ -d "$dbdir" ] || continue
       db=$(basename "$dbdir")
-      dump=$(ls -1t "$dbdir"/*.dump 2>/dev/null | head -n 1)
-      if [ -z "$dump" ]; then
-        echo "[$INSTANCE_DIR] $db: no dumps found, skipping"
+      if [ ! -d "$dbdir" ] || ! ls "$dbdir" >/dev/null; then
+        echo "[$INSTANCE_DIR] $db: FAILED, cannot read $dbdir"
+        FAILURES=$((FAILURES + 1))
         continue
       fi
+      dumps=("$dbdir"*.dump)
+      dump=""
+      [ "${#dumps[@]}" -gt 0 ] && dump=$(ls -1t "${dumps[@]}" | head -n 1)
+      if [ -z "$dump" ]; then
+        # The nightly dump runs before this test, so a database directory without dumps lost them.
+        echo "[$INSTANCE_DIR] $db: FAILED, no dumps found"
+        FAILURES=$((FAILURES + 1))
+        continue
+      fi
+      TESTED=$((TESTED + 1))
       target="_restore_test_$db"
       dropdb -h "$PGHOST" --if-exists "$target" 2>/dev/null
       if ! createdb -h "$PGHOST" "$target"; then
@@ -164,10 +183,14 @@ data:
     done
 
     if [ "$FAILURES" -gt 0 ]; then
-      echo "restore test completed with $FAILURES failures"
+      echo "restore test completed with $FAILURES failures ($TESTED databases tested)"
       exit 1
     fi
-    echo "restore test completed cleanly"
+    if [ "$TESTED" -eq 0 ]; then
+      echo "restore test FAILED: no databases found under $ROOT/$INSTANCE_DIR"
+      exit 1
+    fi
+    echo "restore test completed cleanly ($TESTED databases tested)"
 ---
 apiVersion: batch/v1
 kind: CronJob
