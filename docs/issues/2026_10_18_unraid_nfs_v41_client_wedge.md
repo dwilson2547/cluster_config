@@ -9,8 +9,9 @@ workqueue, `nfsd4_shutdown_callback`, `nfsd4_cb_sequence_done`. Linux NFSv4.1 cl
 that touches the share, and it needs reboots to clear. The live data is unaffected because primary storage is on
 TrueNAS.
 
-> Status: **root cause identified** (known upstream nfsd bugs, fixed in kernels Tower doesn't run).
-> Fix: _TBD_, pending application on Tower and verification.
+> Status: **fixed 2026-10-18.** Tower was upgraded to Unraid 7.x (kernel `6.18.54-Unraid`, which contains both
+> upstream fixes) and delegations were disabled (`fs.leases-enable=0`). Every client recovered without a reboot. The fix is
+> considered verified once `backup-objects` runs under full load without a wedge (see "Verification").
 
 ---
 
@@ -50,6 +51,11 @@ client on another machine kept reading and writing. Only session setup and teard
 | ~14:40 | `rc.nfsd restart` on Tower. No effect: the stuck nfsd threads survive it (elapsed 218 days afterwards) | Tower `ps` |
 | 14:56 | `sysrq-w` blocked-task dump on worker2 | worker2 kernel journal |
 | 15:19 | Stack traces of Tower's D-state nfsd threads and kworkers taken | Tower `/proc/<pid>/stack` |
+| ~15:40 | `fs.leases-enable=0` added to `/boot/config/go`; Unraid upgrade started | user |
+| 15:43:19 | Tower drops off the network for the reboot. worker1's stuck state manager clears; worker2's exits and restarts against the down server | watcher, worker ps |
+| 15:43–16:37 | Tower hangs right after the boot splash, before the OS loads. Fixed with a **motherboard BIOS update**: the new kernel wouldn't boot on the 2024 BIOS | user |
+| 16:37 | Tower NFS back. worker2's queued I/O completes (D-state tasks 259 → 0, no worker reboot); the stuck restore test errors out and ends | worker ps, pod logs |
+| 16:55 | Exports up, all pending pods mounted, `uname -r` = `6.18.54-Unraid`, `fs.leases-enable = 0` | showmount, Tower |
 
 A smaller stall burst happened on **2026-10-17 10:09–10:37**, also during a `backup-objects` run (07:15–11:34), and
 recovered without intervention. Both stall episodes on record fall inside `backup-objects` runs.
@@ -116,7 +122,8 @@ fixed in 6.1.129 by two upstream fixes:
 
 Tower runs **6.1.82**, which predates both. Its client table during the incident showed a `courtesy` client for
 worker1 next to an `unconfirmed` one, which is the state the second fix addresses. The fix versions are as stated
-by the Debian/Launchpad trackers and the CVE announcement; ⚠ unverified against Unraid's kernel patch set.
+by the Debian/Launchpad trackers and the CVE announcement. Tower now runs mainline-based `6.18.54-Unraid`, newer
+than every fix version listed (both fixes are in mainline from 6.9 and 6.14).
 
 The Unraid forum thread ["NFS shares stop working beyond 6.12.9"](https://forums.unraid.net/topic/174163-nfs-shares-stop-working-beyond-6129/)
 describes the same silent "NFS stops responding, nothing in the logs, reboot fixes it" pattern on Unraid 6.12.11–6.12.13
@@ -154,6 +161,8 @@ networking problem.
 - **`rc.nfsd restart` on Tower**: the stuck nfsd threads are in D state and can't exit, so `rpc.nfsd 8` finds 8
   threads already running and changes nothing. After the restart the same threads were still there, 218 days old.
   Clearing them needs a **Tower reboot**.
+- **Rebooting Tower** does clear it. Once the server restarts, the clients' stuck calls error out and their state
+  managers recover by themselves. On 2026-10-18 neither worker needed a reboot.
 - **Restarting the CSI `nfs` pods**: that fixes a stale CSI-level mount, not a wedged kernel `nfs_client`. This is
   why it "sometimes" helped in past incidents (the other failure mode, not this one).
 - **More nfsd threads alone**: once the callback queue is stuck, each session setup or teardown takes one more
@@ -193,36 +202,58 @@ networking problem.
 
 ## Fix
 
-_TBD_, pending application. The plan is below.
+### Tower kernel: Unraid 7.x on kernel 6.18.54 (the actual fix)
 
-### Tower kernel: run a kernel with both fixes (the actual fix)
+Upgraded from Unraid 6.12.9 (kernel 6.1.82) to a 7.x release on kernel `6.18.54-Unraid`. That contains both
+`961b4b5e86bf` (mainline 6.9) and the CVE-2025-21795 fix (mainline 6.14). Unraid 7.0.1 (6.6.78) would **not**
+have been enough: it's one stable release short of the shutdown-callback fix (6.6.79).
 
-Upgrade Unraid to a release whose kernel is **≥ 6.12.16** (6.12 line) or **≥ 6.6.79** (6.6 line). From Unraid's
-release notes: 7.0.1 ships 6.6.78, **one stable release short** of the shutdown-callback fix, so it isn't enough.
-7.1.0–7.1.4 ship 6.12.24, which contains both. After the upgrade, confirm with `uname -r`.
+**Upgrade gotcha:** after the upgrade Tower hung right after the motherboard's boot splash, before the OS loaded
+(no network, screen black, the power button cut it off instantly). The new kernel wouldn't boot with the board's 2024
+BIOS. **A BIOS update fixed it.** Before a future Unraid major upgrade, update the BIOS first, or keep a monitor and
+keyboard handy.
 
-### Tower: disable delegations (defence in depth, applies immediately)
+### Tower: delegations disabled (defence in depth)
 
-Both bugs need a callback RPC in flight. On NFSv4.1 those are mostly `CB_RECALL`/`CB_RECALL_ANY` for delegations,
-and nfsd only grants delegations when kernel file leases are enabled. With `fs.leases-enable=0`, Tower stops handing
-them out. This reasoning comes from how nfsd works, ⚠ unverified by test: confirm that no client holds delegations
-afterwards. A backup target gains nothing from delegations.
+`sysctl -w fs.leases-enable=0` in `/boot/config/go`, so it applies before nfsd starts on every boot. Both bugs need
+a callback RPC in flight, and on NFSv4.1 those are mostly delegation recalls, which nfsd grants only while kernel
+leases are enabled. Effect on other services: Samba runs with `kernel oplocks = no` (checked with `testparm`), so
+SMB oplocks and SMB2 leases are handled by smbd itself and aren't affected. NFS clients lose delegation caching,
+which a backup target doesn't need.
 
-### `postgres/object-backup.yaml`: reduce the trigger load
+### `postgres/backup.yaml`: restore test fails on unreadable or empty backup directories
 
-_TBD_ after the kernel fix lands. Consider lowering `--transfers`/`--checkers` or adding `--tpslimit`, and raising
-Tower's nfsd thread count, so the share stops timing out clients during the nightly sync.
+When Tower went away mid-run, the stuck `stat` on the next database directory returned `Permission denied`. The old
+`[ -d "$dbdir" ] || continue` guard then skipped that directory and every one after it, and the job reported `restore
+test completed cleanly`. That would have cleared `PostgresRestoreTestStale` on a partial test. Now an unreadable
+instance or database directory, a database directory without dumps, or a run that tests zero databases each count
+as a failure, and the success line states how many databases were tested.
 
-### Recovery from a wedge (runbook)
+### Not changed (deliberately)
 
-1. Don't probe with new mounts from k8s nodes. Each one wedges that node too.
-2. On Tower, check `ps -eo pid,stat,etime,comm | awk '$2 ~ /^D/'`. nfsd threads or an `nfsd4_callbacks` kworker in
-   D means this bug. **Reboot Tower.** `rc.nfsd restart` can't clear D-state threads.
-3. Then check each worker for `[192.168.0.15-manager]` in D. If it's still stuck after Tower is back, drain and
-   reboot that worker.
+- **Client mounts stay `hard,nfsvers=4.1`.** `soft` would turn a server deadlock into lost writes on the backup
+  share, and 4.2 uses the same session and callback machinery.
+- **nfsd thread count** is still Unraid's default of 8. More threads would only delay starvation in the deadlock. Revisit
+  only if `backup-objects` still produces `not responding` flapping on the new kernel.
+- **`backup-objects` concurrency** is unchanged until a run on the fixed kernel shows whether the load still stalls Tower.
+
+### Verification
+
+- [x] `uname -r` on Tower = `6.18.54-Unraid`; `fs.leases-enable = 0` after reboot
+- [x] Both workers recovered with no reboot, and no `[192.168.0.15-manager]` thread in D
+- [x] `postgres-restore-test-pgvector` passed with the new script (2 databases tested)
+- [ ] Manual `postgres-restore-test` run passes with the new script
+- [ ] `backup-objects` completes on the fixed kernel without `not responding` flapping (`journalctl -k | grep 'nfs: server 192.168.0.15'` on the worker it ran on)
+- [ ] No client holds delegations: `grep -c deleg /proc/fs/nfsd/clients/*/states` on Tower
+
+### Recovery runbook
+
+Kept in `docs/postgres_backup.md` → "When the backup share hangs".
 
 ---
 
 ## Files changed
 
-_TBD_
+- `postgres/backup.yaml` — `restore-test.sh` (unreadable/empty dirs fail the test, tested-count reporting)
+- `docs/postgres_backup.md` — gotchas, "When the backup share hangs" runbook
+- Tower (not in git): Unraid 6.12.9 → 7.x (kernel 6.18.54), motherboard BIOS update, `fs.leases-enable=0` in `/boot/config/go`

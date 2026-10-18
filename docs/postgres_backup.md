@@ -160,3 +160,39 @@ kubectl -n postgres create job --from=cronjob/postgres-backup backup-manual-$(da
   staleness alerts (else they fire always)
 - The AlertmanagerConfig must live in namespace `postgres`: the operator routes configs
   by their own namespace and the job metrics carry `namespace=postgres`
+- Tower's nfsd on kernels below 6.12.16 / 6.6.79 / 6.1.129 can deadlock its NFSv4.1 callback
+  workqueue after a backchannel fault (typically under `backup-objects` load). Every session
+  setup/teardown then hangs and k8s mounts of the share wedge. Fixed by Unraid 7.x with kernel
+  6.18.54 (2026-10-18), plus `fs.leases-enable=0` (no delegations) set in `/boot/config/go`
+  (`docs/issues/2026_10_18_unraid_nfs_v41_client_wedge.md`)
+- The restore test treats an unreadable share or database directory as a failure. Before
+  2026-10-18 it skipped them silently and could report a partial test as `completed cleanly`
+
+## When the backup share hangs
+
+Symptoms: backup or restore jobs run into their deadline, pods sit in `ContainerCreating` with
+`MountVolume.SetUp failed ... timeout after 110s`, and a worker shows a huge load average from D-state `mount.nfs`.
+
+1. **Don't probe with new mounts from k8s nodes.** A new mount of a wedged server reuses its stuck client
+   state and wedges that node too. Look first:
+   ```bash
+   ps -eo etime,args | grep '[0]\.15-manager'          # on a worker: NFSv4 state manager in D = wedged
+   grep -A3 '^device 192.168.0.15' /proc/self/mountstats  # lease_expired > 0, xprt idle growing
+   journalctl -k | grep 'nfs: server 192.168.0.15'       # flapping not responding / OK (group adm, no sudo)
+   ```
+2. **Check Tower** (as root):
+   ```bash
+   uname -r
+   ps -eo pid,stat,etime,comm | awk '$2 ~ /^D/'           # nfsd / nfsd4_callbacks in D = server deadlock
+   for p in $(ps -eo pid,stat | awk '$2 ~ /^D/{print $1}'); do echo "== $p $(cat /proc/$p/comm)"; cat /proc/$p/stack; done
+   cat /proc/fs/nfsd/clients/*/info                       # per-client status, callback state
+   ```
+3. **nfsd threads in D → reboot Tower.** `rc.nfsd restart` can't clear threads stuck in D state. On
+   2026-10-18 the workers' stuck clients recovered by themselves once Tower went down and came back,
+   with no worker reboot needed.
+4. **Only if a worker's state manager is still in D after Tower is healthy**, drain and reboot that worker.
+   postgres-0 runs on k8s-worker2.
+5. Rerun the failed jobs (`kubectl -n postgres create job --from=cronjob/<name> <name>-manual-$(date +%s)`).
+
+Restarting the CSI `nfs` pods only helps with a stale CSI-level mount, not with a wedged kernel NFS client.
+

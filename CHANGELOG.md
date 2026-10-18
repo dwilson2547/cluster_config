@@ -1,3 +1,15 @@
+## 2026-10-18 - postgres backups: Unraid NFS wedge root-caused and fixed
+
+### Fixed
+- Backup share wedging k8s NFS clients until reboot: Tower's nfsd (kernel 6.1.82) deadlocked its NFSv4.1
+  callback workqueue (upstream 961b4b5e86bf / CVE-2025-21795). Tower is now on Unraid 7.x (kernel 6.18.54), with
+  delegations disabled. See [docs/issues/2026_10_18_unraid_nfs_v41_client_wedge.md](docs/issues/2026_10_18_unraid_nfs_v41_client_wedge.md)
+- `postgres/backup.yaml`: the restore test fails on unreadable or empty backup directories instead of silently
+  skipping them and reporting success
+
+### Added
+- `docs/postgres_backup.md`: "When the backup share hangs" runbook and two new gotchas
+
 ## 2026-10-18 - dns: add consolidated home.arpa zone (RFC 8375), first step off .local
 
 ### Added
