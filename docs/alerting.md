@@ -35,12 +35,16 @@ unreachable, `TargetDown` fires and is mailed.
 | Alert | Fires when | Mailed |
 |---|---|---|
 | `TowerConnectionCountHigh` | `node_nf_conntrack_entries` > 3000 for 10m (baseline < 100) | yes |
-| `TowerCPUSaturated` | CPU > 80% for 30m | yes |
-| `TowerCPUElevated` | CPU > 50% for 3h | no |
+| `TowerCPUSaturated` | CPU > 80% for 30m, outside the parity window | yes |
+| `TowerCPUElevated` | CPU > 50% for 3h, outside the parity window | no |
 | `TowerBtrfsDeviceErrors` | any btrfs device error counter rises | yes |
 
 These target the 2026-10 Plex compromise: a crypto miner (CPU) and a residential proxy (a flood of connections, with
 no unusual bandwidth). Write-up: workspace `docs/machines/2026_10_20_plex_owner_token_transcoder_codec_injection.md`.
+**Parity window:** the monthly parity check (starts on the 1st at local midnight, runs about 22h) pins every core.
+Both CPU alerts are suppressed from 00:00 UTC on the 1st to 12:00 UTC on the 2nd, because PromQL time is UTC. If the
+parity schedule moves, move the `unless` clause in both rules with it.
+
 There is no per-container CPU yet, which would need cAdvisor on Tower, so an alert says something is wrong on Tower
 but not which container.
 

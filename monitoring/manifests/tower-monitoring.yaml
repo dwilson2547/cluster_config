@@ -47,9 +47,14 @@ spec:
               On Tower, find the container responsible: `conntrack -L | awk '{print $5}' | sort | uniq -c | sort -rn | head`
               shows the busiest source addresses. Map them to containers with `docker network inspect bridge`.
 
-        # A miner pins every core. Plex hardware transcoding and the parity check stay well below this.
+        # A miner pins every core; Plex hardware transcoding stays well below this. The monthly parity check also
+        # pins every core: it starts on the 1st (local midnight, America/New_York) and runs about 22h. PromQL time
+        # is UTC, so both CPU alerts are suppressed from 00:00 UTC on the 1st to 12:00 UTC on the 2nd. That is about
+        # 8h of slack for a late start or a long run.
         - alert: TowerCPUSaturated
-          expr: 1 - avg by (instance) (rate(node_cpu_seconds_total{job="tower-node", mode="idle"}[5m])) > 0.8
+          expr: >-
+            1 - avg by (instance) (rate(node_cpu_seconds_total{job="tower-node", mode="idle"}[5m])) > 0.8
+            unless on() (day_of_month() == 1 or (day_of_month() == 2 and hour() < 12))
           for: 30m
           labels:
             severity: critical
@@ -61,7 +66,9 @@ spec:
 
         # A throttled miner can try to stay below the critical threshold. This catches that, without mailing.
         - alert: TowerCPUElevated
-          expr: 1 - avg by (instance) (rate(node_cpu_seconds_total{job="tower-node", mode="idle"}[15m])) > 0.5
+          expr: >-
+            1 - avg by (instance) (rate(node_cpu_seconds_total{job="tower-node", mode="idle"}[15m])) > 0.5
+            unless on() (day_of_month() == 1 or (day_of_month() == 2 and hour() < 12))
           for: 3h
           labels:
             severity: warning

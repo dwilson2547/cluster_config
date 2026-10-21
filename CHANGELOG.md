@@ -1,3 +1,10 @@
+## 2026-10-20 - monitoring: Tower CPU alerts skip the monthly parity check
+
+### Changed
+- `monitoring/manifests/tower-monitoring.yaml`: `TowerCPUSaturated` and `TowerCPUElevated` are suppressed from
+  00:00 UTC on the 1st to 12:00 UTC on the 2nd. The monthly parity check pins every core for about 22h from local
+  midnight on the 1st.
+
 ## 2026-10-20 - monitoring: scrape Tower and alert on compromise signals
 
 ### Added
