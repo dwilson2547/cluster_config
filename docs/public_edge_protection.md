@@ -8,6 +8,7 @@ three layers below. Status as of 2026-10-10.
 | Origin lockdown | Traefik `ingress/public-origin-lockdown`, default on both public entrypoints | verified |
 | Per-visitor flood limits | Traefik `ingress/public-inflight`, `ingress/public-ratelimit`, same | verified |
 | Per-app limits on expensive routes | the app's chart (dxf-converter: `heavyRateLimit`) | verified (dxf-converter) |
+| Cloudflare TLS minimum and HSTS | Cloudflare dashboard (not in git) | verified 2026-10-21 |
 | Cloudflare WAF and rate-limit rules | Cloudflare dashboard (not in git) | planned, see below |
 | Ban list from logs (CrowdSec) | — | not started |
 
@@ -63,6 +64,28 @@ criterion, and put the middleware on a second Ingress for just those paths, with
 cert-manager or external-dns markers; Traefik prefers the longer path rule. The example is
 `tools/dxf-converter/helm/dxf-converter/templates/ratelimit.yaml`: upload and convert, 12/min,
 burst 10.
+
+## Cloudflare TLS and HSTS (applied 2026-10-21; dashboard, SSL/TLS → Edge Certificates)
+
+Browsers terminate TLS at Cloudflare, not Traefik, so these live in the dashboard (user, 2026-10-21):
+
+- Minimum TLS Version: **1.2**. TLS 1.3 on.
+- HSTS: on, max-age **1 month** (2592000), includeSubDomains **on**, preload **off**, No-Sniff **on**.
+
+Verified 2026-10-21 on `danwils.com`, `sjm.danwils.com` and `auth.danwils.com`: TLS 1.0 and 1.1 refused with
+`protocol version` alerts, 1.2 and 1.3 accepted, and responses carry `strict-transport-security: max-age=2592000;
+includeSubDomains` and `x-content-type-options: nosniff`.
+
+includeSubDomains means a browser that has seen the header will reach no `*.danwils.com` host over plain HTTP until
+max-age runs out. Every public host is HTTPS behind Cloudflare, so nothing needs it. Next step: raise max-age to 6–12
+months once a few weeks pass without trouble. Keep preload off: removal from browser preload lists takes months.
+
+Check from any machine:
+
+```bash
+openssl s_client -connect danwils.com:443 -servername danwils.com -tls1_1 -cipher 'DEFAULT:@SECLEVEL=0' </dev/null   # expect "alert protocol version"
+curl -sI https://danwils.com/ | grep -i strict-transport
+```
 
 ## Cloudflare (planned; dashboard, zone danwils.com, Free plan)
 

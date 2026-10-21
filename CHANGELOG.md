@@ -1,3 +1,10 @@
+## 2026-10-21 - public edge: TLS 1.2 minimum and HSTS at Cloudflare
+
+### Changed
+- Cloudflare (dashboard): minimum TLS raised to 1.2, HSTS on (1 month, includeSubDomains, no preload), No-Sniff on.
+  Cloudflare's security insights flagged legacy TLS and missing HSTS. Settings and checks recorded in
+  `docs/public_edge_protection.md` → "Cloudflare TLS and HSTS".
+
 ## 2026-10-20 - monitoring: catch a throttled, churning miner on Tower
 
 ### Added
