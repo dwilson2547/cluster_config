@@ -13,7 +13,16 @@ spec:
     - name: secrets-backup
       rules:
         - alert: SecretsBackupJobFailed
-          expr: kube_job_status_failed{namespace="secrets-backup", job_name=~"backup-secrets.*"} > 0
+          # Fires only while the failed job is newer than the CronJob's last success. A bare
+          # kube_job_status_failed > 0 stays true as long as failedJobsHistoryLimit keeps the Job, so one
+          # failure re-mailed daily after later runs had already succeeded. Never-succeeded is *Stale's job.
+          expr: >-
+            label_replace(
+              (kube_job_status_start_time{namespace="secrets-backup", job_name=~"backup-secrets.*"}
+                and on(namespace, job_name) kube_job_status_failed > 0)
+              * on(namespace, job_name) group_left(owner_name) kube_job_owner{owner_kind="CronJob"},
+              "cronjob", "$1", "owner_name", "(.*)")
+            > on(namespace, cronjob) group_left() kube_cronjob_status_last_successful_time
           labels:
             severity: critical
           annotations:

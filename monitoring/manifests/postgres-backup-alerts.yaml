@@ -23,7 +23,16 @@ spec:
     - name: postgres-backup
       rules:
         - alert: PostgresBackupJobFailed
-          expr: kube_job_status_failed{namespace="postgres", job_name=~"(postgres-(backup|restore-test)|backup-(objects|volumes)).*"} > 0
+          # Fires only while the failed job is newer than the CronJob's last success. A bare
+          # kube_job_status_failed > 0 stays true as long as failedJobsHistoryLimit keeps the Job, so one
+          # failure re-mailed daily after later runs had already succeeded. Never-succeeded is *Stale's job.
+          expr: >-
+            label_replace(
+              (kube_job_status_start_time{namespace="postgres", job_name=~"(postgres-(backup|restore-test)|backup-(objects|volumes)).*"}
+                and on(namespace, job_name) kube_job_status_failed > 0)
+              * on(namespace, job_name) group_left(owner_name) kube_job_owner{owner_kind="CronJob"},
+              "cronjob", "$1", "owner_name", "(.*)")
+            > on(namespace, cronjob) group_left() kube_cronjob_status_last_successful_time
           labels:
             severity: critical
           annotations:
@@ -31,7 +40,7 @@ spec:
             description: >-
               A postgres backup or restore-test job failed. Check
               `kubectl -n postgres describe job {{ $labels.job_name }}` and its pod logs.
-              failedJobsHistoryLimit keeps the last 3 failed jobs.
+              Resolves on its own once a later run of the same CronJob succeeds.
         - alert: PostgresBackupStale
           expr: >-
             time() - kube_cronjob_status_last_successful_time{namespace="postgres", cronjob=~"postgres-backup(-pgvector|-tracks)?|backup-(objects|volumes)"} > 26*3600
