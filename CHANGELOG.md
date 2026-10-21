@@ -1,3 +1,11 @@
+## 2026-10-20 - monitoring: scrape Tower and alert on compromise signals
+
+### Added
+- `monitoring/manifests/tower-monitoring.yaml`: a `ScrapeConfig` for Tower's node_exporter (job `tower-node`), and
+  `tower-alerts` with four alerts: connection-table flood, sustained CPU saturation, long elevated CPU (not mailed),
+  and btrfs device errors. These target the signals of the 2026-10 Plex compromise, a miner plus a residential
+  proxy, neither of which showed up as router bandwidth. See `docs/alerting.md` → "Tower (Unraid)".
+
 ## 2026-10-18 - postgres backups: Unraid NFS wedge root-caused and fixed
 
 ### Fixed

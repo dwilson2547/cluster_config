@@ -1,0 +1,79 @@
+# Tower (Unraid backup box): scrape its node_exporter and alert on the signals the 2026-10 Plex compromise produced.
+#
+# The miner pinned Tower's CPU and the residential proxy flooded it with short-lived connections. Neither showed up
+# as extra bandwidth on the router, so these alert on CPU and on Tower's own conntrack table instead. Background:
+# workspace docs/machines/2026_10_20_plex_owner_token_transcoder_codec_injection.md.
+#
+# Separate job name (tower-node), so the chart's node-exporter rules and dashboards keep covering cluster nodes only.
+# Critical alerts are mailed by the cluster-alerts route (cluster-alerts.yaml).
+apiVersion: monitoring.coreos.com/v1alpha1
+kind: ScrapeConfig
+metadata:
+  name: tower-node
+  namespace: monitoring
+  labels:
+    release: prometheus
+spec:
+  jobName: tower-node
+  scrapeInterval: 30s
+  staticConfigs:
+    - targets: ["192.168.0.15:9100"]
+      labels:
+        instance: tower
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: tower-alerts
+  namespace: monitoring
+  labels:
+    release: prometheus
+spec:
+  groups:
+    - name: tower
+      rules:
+        # No down alert here: the chart's TargetDown covers job tower-node and is already mailed.
+
+        # Baseline is under 100 entries. The proxy needed thousands.
+        - alert: TowerConnectionCountHigh
+          expr: node_nf_conntrack_entries{job="tower-node"} > 3000
+          for: 10m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Tower is tracking {{ $value | humanize }} connections (baseline < 100)"
+            description: >-
+              Something on Tower is opening connections in bulk: a proxy, a scanner, or a misbehaving container.
+              On Tower, find the container responsible: `conntrack -L | awk '{print $5}' | sort | uniq -c | sort -rn | head`
+              shows the busiest source addresses. Map them to containers with `docker network inspect bridge`.
+
+        # A miner pins every core. Plex hardware transcoding and the parity check stay well below this.
+        - alert: TowerCPUSaturated
+          expr: 1 - avg by (instance) (rate(node_cpu_seconds_total{job="tower-node", mode="idle"}[5m])) > 0.8
+          for: 30m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Tower CPU has been above 80% for 30 minutes ({{ $value | humanizePercentage }})"
+            description: >-
+              Check `docker stats --no-stream` on Tower for the container using it, and `docker top <container>` for
+              processes that don't belong (xmrig and similar).
+
+        # A throttled miner can try to stay below the critical threshold. This catches that, without mailing.
+        - alert: TowerCPUElevated
+          expr: 1 - avg by (instance) (rate(node_cpu_seconds_total{job="tower-node", mode="idle"}[15m])) > 0.5
+          for: 3h
+          labels:
+            severity: warning
+          annotations:
+            summary: "Tower CPU has been above 50% for 3 hours ({{ $value | humanizePercentage }})"
+
+        - alert: TowerBtrfsDeviceErrors
+          expr: increase(node_btrfs_device_errors_total{job="tower-node"}[1h]) > 0
+          labels:
+            severity: critical
+          annotations:
+            summary: "btrfs {{ $labels.type }} errors on Tower device {{ $labels.device }}"
+            description: >-
+              The lifetime counters went up. Check `btrfs device stats` on the pool and scrub it. Checksum errors on
+              more than one device point to something the devices share (RAM, controller, cabling), not one disk.

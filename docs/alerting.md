@@ -26,6 +26,24 @@ scrape-job-manager's own Jobs are left out of `KubeJobFailed`: they fail and ret
 scrape-job-manager mails on its own (`ScrapeJob*` alerts stay unmailed for the same reason; `ScrapeOperatorDown` is
 critical and is mailed). A failed Job keeps `KubeJobFailed` firing until the Job is deleted.
 
+## Tower (Unraid)
+
+`monitoring/manifests/tower-monitoring.yaml` scrapes Tower's node_exporter (Unraid plugin, `192.168.0.15:9100`) as
+job `tower-node`. That job name keeps it out of the chart's node-exporter rules and dashboards. If the exporter is
+unreachable, `TargetDown` fires and is mailed.
+
+| Alert | Fires when | Mailed |
+|---|---|---|
+| `TowerConnectionCountHigh` | `node_nf_conntrack_entries` > 3000 for 10m (baseline < 100) | yes |
+| `TowerCPUSaturated` | CPU > 80% for 30m | yes |
+| `TowerCPUElevated` | CPU > 50% for 3h | no |
+| `TowerBtrfsDeviceErrors` | any btrfs device error counter rises | yes |
+
+These target the 2026-10 Plex compromise: a crypto miner (CPU) and a residential proxy (a flood of connections, with
+no unusual bandwidth). Write-up: workspace `docs/machines/2026_10_20_plex_owner_token_transcoder_codec_injection.md`.
+There is no per-container CPU yet, which would need cAdvisor on Tower, so an alert says something is wrong on Tower
+but not which container.
+
 ## Turned off
 
 `kubeProxy`, `kubeScheduler`, `kubeControllerManager` and `kubeEtcd` monitoring are disabled: microk8s runs the
