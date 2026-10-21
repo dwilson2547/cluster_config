@@ -41,6 +41,7 @@ unreachable, `TargetDown` fires and is mailed.
 
 These target the 2026-10 Plex compromise: a crypto miner (CPU) and a residential proxy (a flood of connections, with
 no unusual bandwidth). Write-up: workspace `docs/machines/2026_10_20_plex_owner_token_transcoder_codec_injection.md`.
+
 **Parity window:** the monthly parity check (starts on the 1st at local midnight, runs about 22h) pins every core.
 Both CPU alerts are suppressed from 00:00 UTC on the 1st to 12:00 UTC on the 2nd, because PromQL time is UTC. If the
 parity schedule moves, move the `unless` clause in both rules with it.
