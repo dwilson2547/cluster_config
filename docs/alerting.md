@@ -37,6 +37,7 @@ the chart's node-exporter rules and dashboards. If either exporter is unreachabl
 |---|---|---|
 | `TowerConnectionCountHigh` | `node_nf_conntrack_entries` > 3000 for 10m (baseline < 100) | yes |
 | `TowerContainerCPUHigh` | one container uses more than 6 of 12 cores for 30m (names the container) | yes |
+| `TowerContainerCPUSustained` | one container's 1h average CPU is above 1 core, held for 2h | yes |
 | `TowerCPUSaturated` | CPU > 80% for 30m, outside the parity window | yes |
 | `TowerCPUElevated` | CPU > 50% for 3h, outside the parity window | no |
 | `TowerBtrfsDeviceErrors` | any btrfs device error counter rises | yes |
@@ -48,7 +49,13 @@ no unusual bandwidth). Write-up: workspace `docs/machines/2026_10_20_plex_owner_
 Both CPU alerts are suppressed from 00:00 UTC on the 1st to 12:00 UTC on the 2nd, because PromQL time is UTC. If the
 parity schedule moves, move the `unless` clause in both rules with it.
 
-`TowerContainerCPUHigh` needs no parity window, because the parity check runs in the host, not in a container.
+`TowerContainerCPUSustained` is the one that fits the real incident. The miner ran as short-lived processes using
+1–2 cores between them and hopping between cores, far below every other CPU threshold. Container CPU time sums across
+cores and includes exited processes, so the churn still shows up as a steady load. Idle containers sit near 0.001
+cores. Process-creation rate (`node_forks_total`) was considered and rejected: Unraid itself creates 20–60
+processes a second, which hides a miner restarting every few seconds.
+
+`TowerContainerCPUHigh` and `TowerContainerCPUSustained` need no parity window, because the parity check runs in the host, not in a container.
 
 ## Turned off
 

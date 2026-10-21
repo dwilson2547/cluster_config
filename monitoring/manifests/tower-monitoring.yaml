@@ -101,6 +101,22 @@ spec:
               Tower has 12 cores. Check `docker top {{ $labels.name }}` for processes that don't belong (xmrig and
               similar). If it's a long Plex software transcode, that's expected.
 
+        # The real miner stayed small: 1-2 cores at a time, as short-lived processes hopping between cores. Container CPU
+        # time includes processes that have exited and sums across cores, so that churn still shows up as a steady 1-2
+        # cores. Idle containers here sit near 0.001 cores. A 1h average above 1 core, held for 2h, is far outside what
+        # direct-play Plex does.
+        - alert: TowerContainerCPUSustained
+          expr: avg_over_time((sum by (name) (rate(container_cpu_usage_seconds_total{job="tower-cadvisor", name!=""}[5m])))[1h:1m]) > 1
+          for: 2h
+          labels:
+            severity: critical
+          annotations:
+            summary: "Container {{ $labels.name }} on Tower has averaged {{ $value | humanize }} cores for hours"
+            description: >-
+              A low, steady load like this is what a throttled miner looks like. Check `docker top {{ $labels.name }}`
+              repeatedly: short-lived unknown processes may only show up for a few seconds at a time. For Plex, also
+              check Settings → Status → Dashboard for a long transcode.
+
         # A throttled miner can try to stay below the critical threshold. This catches that, without mailing.
         - alert: TowerCPUElevated
           expr: >-

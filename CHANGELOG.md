@@ -1,3 +1,10 @@
+## 2026-10-20 - monitoring: catch a throttled, churning miner on Tower
+
+### Added
+- `TowerContainerCPUSustained`: a container's 1h average CPU above 1 core, held for 2h. The real miner used 1–2 cores
+  as short-lived processes hopping between cores, which slipped under every other CPU threshold. See
+  `docs/alerting.md` → "Tower (Unraid)".
+
 ## 2026-10-20 - monitoring: per-container CPU on Tower via cAdvisor
 
 ### Added
