@@ -1,3 +1,10 @@
+## 2026-10-20 - monitoring: per-container CPU on Tower via cAdvisor
+
+### Added
+- `monitoring/manifests/tower-monitoring.yaml`: `ScrapeConfig` `tower-cadvisor` (Tower's cAdvisor on :8080, filtered
+  to CPU/memory/network, with `container_label_*` dropped), and alert `TowerContainerCPUHigh`, which fires when one
+  container uses more than 6 of 12 cores for 30m and names it.
+
 ## 2026-10-20 - monitoring: Tower CPU alerts skip the monthly parity check
 
 ### Changed

@@ -21,6 +21,30 @@ spec:
       labels:
         instance: tower
 ---
+# cAdvisor on Tower (Unraid Docker container): per-container CPU, memory and network, so an alert can name the
+# container. Each series carries about 17 copies of image metadata as container_label_* labels. Those are dropped,
+# and only the metric families used here are kept, since a full scrape is about 1 MB.
+apiVersion: monitoring.coreos.com/v1alpha1
+kind: ScrapeConfig
+metadata:
+  name: tower-cadvisor
+  namespace: monitoring
+  labels:
+    release: prometheus
+spec:
+  jobName: tower-cadvisor
+  scrapeInterval: 30s
+  staticConfigs:
+    - targets: ["192.168.0.15:8080"]
+      labels:
+        instance: tower
+  metricRelabelings:
+    - sourceLabels: [__name__]
+      regex: container_(cpu_usage_seconds_total|memory_working_set_bytes|network_(receive|transmit)_bytes_total|start_time_seconds|last_seen)|cadvisor_version_info|machine_cpu_cores
+      action: keep
+    - regex: container_label_.*
+      action: labeldrop
+---
 apiVersion: monitoring.coreos.com/v1
 kind: PrometheusRule
 metadata:
@@ -63,6 +87,19 @@ spec:
             description: >-
               Check `docker stats --no-stream` on Tower for the container using it, and `docker top <container>` for
               processes that don't belong (xmrig and similar).
+
+        # Names the container. A miner takes every core; a Plex software transcode takes a few. The parity check runs in
+        # the host, not in a container, so this needs no parity window.
+        - alert: TowerContainerCPUHigh
+          expr: sum by (name) (rate(container_cpu_usage_seconds_total{job="tower-cadvisor", name!=""}[5m])) > 6
+          for: 30m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Container {{ $labels.name }} on Tower has used {{ $value | humanize }} cores for 30 minutes"
+            description: >-
+              Tower has 12 cores. Check `docker top {{ $labels.name }}` for processes that don't belong (xmrig and
+              similar). If it's a long Plex software transcode, that's expected.
 
         # A throttled miner can try to stay below the critical threshold. This catches that, without mailing.
         - alert: TowerCPUElevated
