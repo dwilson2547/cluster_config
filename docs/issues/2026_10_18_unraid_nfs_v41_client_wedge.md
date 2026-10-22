@@ -260,11 +260,33 @@ On worker1 the two `mount.nfs` started at 2026-10-18 14:28:11 and 14:30:02 UTC w
 there. Today's dumps were rerun with an anti-affinity to worker1 and completed cleanly on worker2. Tower itself was
 not the cause this time.
 
-worker2 logged `not responding` / `OK` flapping again from 07:18 UTC, 3 minutes into `backup-objects` (which still
-completed in 171m). So the load trigger is still there on the new kernel. It no longer escalates into a wedge.
+Fix for worker1: deleting its `csi-nfs-node` pod killed all 102 stuck `mount.nfs`. They wait in a killable
+state, so no reboot was needed. A throwaway pod on worker1 then mounted the share and read `.last-success` in
+seconds. Runbook step 4 now checks for any D-state NFS task that started before Tower's reboot.
 
-Fix: drain and reboot k8s-worker1 (a D-state `mount.nfs` can't be killed). Runbook step 4 now checks for any D-state
-NFS task that started before Tower's reboot.
+#### The load trigger: a nightly full walk of part-images
+
+worker2 logged `not responding` / `OK` flapping again from 07:18 UTC, 3 minutes into `backup-objects` (~200 messages
+07:10–09:30). There has been flapping on every night since 10-17. Tower's node-exporter for the same window:
+
+| Metric (07:20–08:20 UTC) | Value |
+|---|---|
+| `sdh` (ST8000VN004, array disk) busy | 100% |
+| `sdh` reads | 305–346/s, ~4.4 MB/s (~14 KB each), 24–33 ms avg |
+| writes on any disk | none above 1/s |
+| nfsd RPCs served | 0.06–10/s (vs ~2,000/s once the disk freed up) |
+| Tower iowait / dirty memory | ~0 / <1 MB |
+
+The run transferred 0 bytes. `part-images` (6,867,545 objects, 145 GB) is unchanged night to night, so the run was
+pure metadata: `rclone sync` stats every object in `current/`, and the old `rclone size` of `current/` walked all
+6.9M again. That is random small reads on one 7200 rpm disk through `shfs`. The disk tops out around 330 IOPS, and
+every other client's NFS request queues behind the walk past the 60s `timeo`. More nfsd threads (64 per
+`node_nfsd_server_threads`) don't help: they deepen the queue on the same spindle. Which `/mnt/diskN` `sdh` is
+⚠ unverified (Unraid's md devices report no I/O); this doc's earlier "data on `/mnt/disk4`" fits.
+
+Fix (`postgres/object-backup.yaml`): nightly runs copy only objects modified in the last 26h with
+`--no-traverse` (no walk of `current/`). A full `sync` runs Wednesdays with 2 checkers, away from Sunday's restore
+tests. The size line is read from the bucket, not the share.
 
 ### Recovery runbook
 

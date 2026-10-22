@@ -36,6 +36,12 @@ One nightly set is ~2.5GB (parts_interchange dominates: 23GB raw → ~2.4GB comp
 (remote `aistor`) (TrueNAS, `192.168.0.10:30320`) to the same share. AIStor's free tier no longer allows replicating
 between two instances, so this copy is the backup.
 
+Schedule: Wednesday is a full `rclone sync` with 2 checkers. Every other night copies only objects modified in the
+last 26h (`--max-age 26h --no-traverse`) and never walks `current/`. So a deletion in a bucket shows up in
+`current/` and `replaced/` on the next Wednesday. A full sync of `part-images` every night was ~14M metadata lookups
+on one spinning array disk behind Unraid's FUSE layer. It kept that disk at 100% for ~2h a night and stalled every
+NFS client of the share. For a one-off full sync, set `FULL_SYNC=1` on a manual Job.
+
 | Bucket | What |
 |---|---|
 | `nodewright` | nodewright attachments |
@@ -196,8 +202,10 @@ Symptoms: backup or restore jobs run into their deadline, pods sit in `Container
    ```
    A `mount.nfs` stuck from before Tower's reboot means that node's client to Tower never recovered, even if
    no state manager is in D. Every later pod that mounts the share on that node hangs to its deadline. Drain and
-   reboot that worker. postgres-0 runs on k8s-worker2. On 2026-10-22, k8s-worker1 still had two `mount.nfs`
-   from the 2026-10-18 diagnostic mount and failed both nightly dumps scheduled onto it.
+   delete that node's `csi-nfs-node` pod first: the stuck `mount.nfs` are its children, waiting killably, and die
+   with it. Reboot the worker only if D-state NFS tasks remain afterwards. postgres-0 runs on k8s-worker2. On
+   2026-10-22, k8s-worker1 still had two `mount.nfs` from the 2026-10-18 diagnostic mount and failed both nightly
+   dumps scheduled onto it. Deleting its CSI pod cleared all 102 and the share mounted again.
 5. Rerun the failed jobs (`kubectl -n postgres create job --from=cronjob/<name> <name>-manual-$(date +%s)`).
 
 Restarting the CSI `nfs` pods only helps with a stale CSI-level mount, not with a wedged kernel NFS client.
