@@ -3,6 +3,8 @@ kind: ConfigMap
 metadata:
   name: scrape-stack-webcache-dashboard
   namespace: monitoring
+  annotations:
+    grafana_folder: Scrape Stack
   labels:
     grafana_dashboard: '1'
 data:
@@ -432,6 +434,8 @@ kind: ConfigMap
 metadata:
   name: scrape-stack-imgcache-dashboard
   namespace: monitoring
+  annotations:
+    grafana_folder: Scrape Stack
   labels:
     grafana_dashboard: '1'
 data:
@@ -813,6 +817,8 @@ kind: ConfigMap
 metadata:
   name: scrape-stack-filecache-dashboard
   namespace: monitoring
+  annotations:
+    grafana_folder: Scrape Stack
   labels:
     grafana_dashboard: '1'
 data:
@@ -1195,6 +1201,8 @@ kind: ConfigMap
 metadata:
   name: scrape-stack-vidcache-dashboard
   namespace: monitoring
+  annotations:
+    grafana_folder: Scrape Stack
   labels:
     grafana_dashboard: '1'
 data:
@@ -1598,6 +1606,8 @@ kind: ConfigMap
 metadata:
   name: scrape-stack-request-authorization-dashboard
   namespace: monitoring
+  annotations:
+    grafana_folder: Scrape Stack
   labels:
     grafana_dashboard: '1'
 data:
@@ -2132,6 +2142,8 @@ kind: ConfigMap
 metadata:
   name: scrape-stack-http-test-service-dashboard
   namespace: monitoring
+  annotations:
+    grafana_folder: Scrape Stack
   labels:
     grafana_dashboard: '1'
 data:

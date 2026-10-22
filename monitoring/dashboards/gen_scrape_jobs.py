@@ -252,6 +252,8 @@ kind: ConfigMap
 metadata:
   name: scrape-jobs-dashboard
   namespace: monitoring
+  annotations:
+    grafana_folder: Scrape Stack
   labels:
     grafana_dashboard: "1"
 data:

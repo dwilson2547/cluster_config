@@ -40,6 +40,14 @@ grafana:
     storageClassName: nfs-dataset
   sidecar:
     skipTlsVerify: true
+    # Folders from the grafana_folder annotation on each dashboard ConfigMap; no annotation = General.
+    # `annotations` is applied to the chart's own dashboards only.
+    dashboards:
+      folderAnnotation: grafana_folder
+      annotations:
+        grafana_folder: Kubernetes
+      provider:
+        foldersFromFilesStructure: true
   # Sign-in only through authentik (authentik/blueprints/grafana.yaml); no login form.
   # Basic auth stays on for the API: the datasource sidecar reloads provisioning
   # with the chart's admin credentials (secret prometheus-grafana).
