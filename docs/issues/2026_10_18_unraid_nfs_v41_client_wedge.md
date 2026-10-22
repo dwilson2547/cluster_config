@@ -240,11 +240,31 @@ as a failure, and the success line states how many databases were tested.
 ### Verification
 
 - [x] `uname -r` on Tower = `6.18.54-Unraid`; `fs.leases-enable = 0` after reboot
-- [x] Both workers recovered with no reboot, and no `[192.168.0.15-manager]` thread in D
+- [ ] ~~Both workers recovered with no reboot~~ **Wrong for k8s-worker1** (found 2026-10-22, see "Recurrence" below). worker2 recovered; worker1's state manager cleared, but its two `mount.nfs` from the 14:28 diagnostic mount stayed in D
 - [x] `postgres-restore-test-pgvector` passed with the new script (2 databases tested)
 - [ ] Manual `postgres-restore-test` run passes with the new script
 - [ ] `backup-objects` completes on the fixed kernel without `not responding` flapping (`journalctl -k | grep 'nfs: server 192.168.0.15'` on the worker it ran on)
 - [ ] No client holds delegations: `grep -c deleg /proc/fs/nfsd/clients/*/states` on Tower
+
+### Recurrence 2026-10-22: k8s-worker1 never recovered
+
+`postgres-backup-29877510` and `postgres-backup-pgvector-29877520` both hit `DeadlineExceeded` after 6h. Both pods
+were scheduled on k8s-worker1, and both were the first Unraid-mounting pods on worker1 since 10-18. Every backup pod
+between 10-18 and 10-22 ran on worker2 or k8s-main and succeeded (`kube_pod_info`). The same night,
+`postgres-backup-tracks` on worker2 used the same PVC and succeeded.
+
+On worker1 the two `mount.nfs` started at 2026-10-18 14:28:11 and 14:30:02 UTC were still in D. From
+06:30:00 UTC on 10-22, kubelet added a new `mount.nfs` roughly every 2 minutes (102 in D, load ~104). There was no
+`[192.168.0.15-manager]` thread, so the "state manager in D" check in the runbook missed it. The node's
+`nfs_client` for Tower stayed wedged from the diagnostic mount on. It was silent because nothing mounted the share
+there. Today's dumps were rerun with an anti-affinity to worker1 and completed cleanly on worker2. Tower itself was
+not the cause this time.
+
+worker2 logged `not responding` / `OK` flapping again from 07:18 UTC, 3 minutes into `backup-objects` (which still
+completed in 171m). So the load trigger is still there on the new kernel. It no longer escalates into a wedge.
+
+Fix: drain and reboot k8s-worker1 (a D-state `mount.nfs` can't be killed). Runbook step 4 now checks for any D-state
+NFS task that started before Tower's reboot.
 
 ### Recovery runbook
 

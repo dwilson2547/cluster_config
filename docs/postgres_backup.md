@@ -190,8 +190,14 @@ Symptoms: backup or restore jobs run into their deadline, pods sit in `Container
 3. **nfsd threads in D → reboot Tower.** `rc.nfsd restart` can't clear threads stuck in D state. On
    2026-10-18 the workers' stuck clients recovered by themselves once Tower went down and came back,
    with no worker reboot needed.
-4. **Only if a worker's state manager is still in D after Tower is healthy**, drain and reboot that worker.
-   postgres-0 runs on k8s-worker2.
+4. **After Tower is healthy, check every worker for leftover D-state NFS tasks**, not just the state manager:
+   ```bash
+   ps -eo pid,stat,lstart,comm --sort=start_time | awk '$2 ~ /^D/'   # any mount.nfs older than Tower's reboot = still wedged
+   ```
+   A `mount.nfs` stuck from before Tower's reboot means that node's client to Tower never recovered, even if
+   no state manager is in D. Every later pod that mounts the share on that node hangs to its deadline. Drain and
+   reboot that worker. postgres-0 runs on k8s-worker2. On 2026-10-22, k8s-worker1 still had two `mount.nfs`
+   from the 2026-10-18 diagnostic mount and failed both nightly dumps scheduled onto it.
 5. Rerun the failed jobs (`kubectl -n postgres create job --from=cronjob/<name> <name>-manual-$(date +%s)`).
 
 Restarting the CSI `nfs` pods only helps with a stale CSI-level mount, not with a wedged kernel NFS client.
