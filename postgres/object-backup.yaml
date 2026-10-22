@@ -47,8 +47,10 @@ data:
           --backup-dir "$ROOT/$b/replaced/$STAMP" \
           --list-cutoff 200000 --transfers 4 \
           --stats-one-line --stats 5m -v; then
-        # Sized from the bucket, not current/: walking current/ is the load this schedule avoids.
-        echo "   $(rclone size --json "$entry")"
+        # Sized from the bucket, not current/ (walking current/ is the load this schedule avoids), and only on the
+        # full run: listing part-images for its size takes ~85 min even from AIStor.
+        [ "$full" = 1 ] && echo "   $(rclone size --json "$entry")"
+        :
       else
         echo "   FAILED: $b"
         failed="$failed $b"

@@ -286,7 +286,11 @@ every other client's NFS request queues behind the walk past the 60s `timeo`. Mo
 
 Fix (`postgres/object-backup.yaml`): nightly runs copy only objects modified in the last 26h with
 `--no-traverse` (no walk of `current/`). A full `sync` runs Wednesdays with 2 checkers, away from Sunday's restore
-tests. The size line is read from the bucket, not the share.
+tests. The size line is read from the bucket, not the share, and only on the full run.
+
+Verified 2026-10-22 with a manual nightly-mode run (13:31–15:09 UTC; the copy took 13 min, the bucket size listing
+the rest, since dropped from nightly runs): 0 `nfs: server 192.168.0.15` messages on either worker, and no Tower
+disk above 1% busy (`max_over_time` of `node_disk_io_time_seconds_total` rate).
 
 ### Recovery runbook
 
