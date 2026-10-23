@@ -92,8 +92,10 @@ spec:
                 - {name: MAX_DELETE, value: "500"}
                 # Day (date +%w, UTC; the 04:30 ET run is the same day in UTC) of the weekly full sync.
                 - {name: FULL_SYNC_DOW, value: "3"}
-                # part-images objects average ~21 KB, so uploads are bound by round trips to Montreal, not bandwidth:
-                # 16 transfers moved ~19 objects/s (2026-10-23). Raise it on a manual Job for a big backlog.
+                # part-images objects average ~21 KB, so uploads are bound by S4's per-object latency (~1.8s per PUT),
+                # not bandwidth. Measured 2026-10-23 with 21 KB objects: 4 transfers ~4/s, 16 ~12/s, 64 ~30/s,
+                # 128 ~40/s, 256 no faster. For a big backlog use 128 on a manual Job (the 6.9M-object first upload
+                # is ~2 days at that rate).
                 - {name: TRANSFERS, value: "32"}
                 - {name: HOME, value: /tmp}
                 - {name: RCLONE_CONFIG, value: /tmp/rclone.conf}

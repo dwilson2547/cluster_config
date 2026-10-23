@@ -44,6 +44,12 @@ Nightly: copy objects modified in the last 26h (`--max-age 26h --no-traverse`). 
 `FULL_SYNC=1` on a manual Job. Unlike restic this is a mirror plus 28 days of undo, not snapshots. MEGA's object
 limit is roughly 20 million (user 2026-10-22). part-images is ~6.9M.
 
+S4 is slow per object: ~1.8s per PUT, and about 40 small uploads/s at most however wide rclone goes (128
+transfers; 256 is no faster; measured 2026-10-23). The first full upload of part-images is therefore ~2 days.
+Nightly runs carry only a day's new objects. A big backlog goes on a manual Job with `FULL_SYNC=1`,
+`TRANSFERS=128` and a longer `activeDeadlineSeconds`. A rerun skips what is already uploaded. S4 doesn't implement
+`GetBucketVersioning` (501). rclone logs that as an ERROR on `purge`/`delete` and carries on, so it's noise.
+
 Secret `offsite-objects`: the read-only AIStor key, and the crypt password and salt (`rclone obscure`d). The S4 key
 comes from `offsite-backup-restic`. Keep the crypt password and salt off-cluster next to the restic password: on
 a machine with kubectl, `rclone reveal $(kubectl -n offsite-backup get secret offsite-objects -o
