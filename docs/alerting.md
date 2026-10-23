@@ -32,6 +32,8 @@ critical and is mailed). A failed Job keeps `KubeJobFailed` firing until the Job
 job `tower-node`, and its cAdvisor (`192.168.0.15:8080`) as job `tower-cadvisor`, keeping only CPU, memory and
 network families and dropping cAdvisor's `container_label_*` labels. The `tower-node` job name keeps Tower out of
 the chart's node-exporter rules and dashboards. If either exporter is unreachable, `TargetDown` fires and is mailed.
+cAdvisor is an ordinary Unraid Docker container: it must have autostart on, or it stays down after every Unraid
+reboot and `TargetDown{job="tower-cadvisor"}` fires (seen 2026-10-23 after an update reboot; autostart now on).
 
 | Alert | Fires when | Mailed |
 |---|---|---|
