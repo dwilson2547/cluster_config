@@ -1,19 +1,27 @@
 # Offsite backup (MEGA S4)
 
-The Unraid backup share (`/mnt/user/cluster_backup`: postgres dumps, bucket copies, secrets exports;
-`docs/postgres_backup.md`, `docs/secrets_backup.md`) is copied weekly to MEGA S4 object storage, so a loss of the
-whole house still leaves a copy. Syncthing separately mirrors the share to other sites.
+Two jobs copy to the same MEGA S4 bucket (`cluster-backup`), so a loss of the whole house still leaves a copy:
 
-## What runs
+| Job | What | How | Prefix in the bucket |
+|---|---|---|---|
+| `offsite-backup` (Sunday 07:00 ET) | the Unraid backup share minus `objects/`: postgres dumps, volume copies, secrets exports (`docs/postgres_backup.md`, `docs/secrets_backup.md`) | restic snapshots | `cluster-backup/` |
+| `offsite-objects` (nightly 04:30 ET) | the AIStor buckets, straight from AIStor, no NFS | rclone + crypt | `objects/` |
+
+The buckets skip the share because walking part-images' ~6.9M files there stalls Tower's NFS for every client
+(`docs/issues/2026_10_18_unraid_nfs_v41_client_wedge.md`, "Recurrence"). restic snapshots from before 2026-10-23
+still contain `objects/`, including part-images, until `forget` ages them out (6 monthly). Syncthing separately
+mirrors the share to other sites.
+
+## What runs (restic)
 
 CronJob `offsite-backup` (namespace `offsite-backup`, Sunday 07:00 ET), `restic` 0.17.3:
 
-1. `restic backup /backups` (share mounted read-only). Skips `objects/*/replaced/` (local undo history).
+1. `restic backup /backups` (share mounted read-only). Skips `objects/`.
 2. `restic forget --keep-weekly 4 --keep-monthly 6 --prune`.
 3. First run of each month: `restic check --read-data-subset 5%` reads part of the stored data back.
 
-restic encrypts with the repository password before upload, packs small files (part-images is ~6.9M objects)
-into larger pack files, and uploads only new data. Snapshots, not a mirror: deleting something from the share
+restic encrypts with the repository password before upload, packs small files into larger pack files, and
+uploads only new data. Snapshots, not a mirror: deleting something from the share
 removes it from later snapshots only.
 
 Secret `offsite-backup-restic` holds the repository URL, the password and the S4 key
@@ -21,7 +29,32 @@ Secret `offsite-backup-restic` holds the repository URL, the password and the S4
 without it the repository cannot be read. Alerts (failed run, no success in 8 days, suspended) mail like the
 postgres backup alerts.
 
-## Restore
+## Buckets (rclone)
+
+`offsite-backup/objects.yaml`, rclone 1.71.1 with a `crypt` remote over `s4:cluster-backup/objects` (contents and
+names encrypted):
+
+```
+objects/current/<bucket>/...             mirror of the bucket
+objects/replaced/<stamp>/<bucket>/...    what a full sync overwrote or deleted, kept 28 days
+```
+
+Nightly: copy objects modified in the last 26h (`--max-age 26h --no-traverse`). Wednesday: full `rclone sync` with
+`--max-delete 500`, so a bucket deletion reaches the offsite copy on the next Wednesday. Force a full run with
+`FULL_SYNC=1` on a manual Job. Unlike restic this is a mirror plus 28 days of undo, not snapshots. MEGA's object
+limit is roughly 20 million (user 2026-10-22). part-images is ~6.9M.
+
+Secret `offsite-objects`: the read-only AIStor key, and the crypt password and salt (`rclone obscure`d). The S4 key
+comes from `offsite-backup-restic`. Keep the crypt password and salt off-cluster next to the restic password: on
+a machine with kubectl, `rclone reveal $(kubectl -n offsite-backup get secret offsite-objects -o
+jsonpath='{.data.CRYPT_PASSWORD}' | base64 -d)` prints the plain value, and the same for `CRYPT_PASSWORD2`.
+Alert `OffsiteBackupObjectsStale` fires after 2 days without success (failed runs share `OffsiteBackupJobFailed`).
+
+Restore: configure the `s4` and `s4crypt` remotes as in the CronJob (with the plain password and salt) and copy back, e.g.
+`rclone copy s4crypt:current/part-images dst:part-images`. `rclone cryptcheck aistor:<b> s4crypt:current/<b>`
+compares the copy with the bucket without downloading it.
+
+## Restore (restic)
 
 From any machine with restic and the four values in the secret exported as environment variables
 (`RESTIC_REPOSITORY`, `RESTIC_PASSWORD`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`):

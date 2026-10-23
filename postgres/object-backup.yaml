@@ -96,9 +96,11 @@ spec:
               imagePullPolicy: IfNotPresent
               command: ["/bin/sh", "/scripts/backup-objects.sh"]
               env:
-                # <remote>:<bucket>, space-separated: nodewright attachments, photo-dump's photos and gyopart's
-                # part-images (both moved from the old MinIO 2026-10-16).
-                - {name: BUCKETS, value: "aistor:nodewright aistor:photo-dump-prod aistor:photo-dump-dev aistor:part-images"}
+                # <remote>:<bucket>, space-separated: nodewright attachments and photo-dump's photos (moved from the
+                # old MinIO 2026-10-16). part-images (~6.9M objects) is left out: any walk of its copy on this share
+                # stalls Tower's NFS, so it is backed up only offsite, straight from AIStor
+                # (offsite-backup/objects.yaml). Its last copy here (2026-10-22) is stale from then on.
+                - {name: BUCKETS, value: "aistor:nodewright aistor:photo-dump-prod aistor:photo-dump-dev"}
                 - {name: MAX_DELETE, value: "500"}
                 # Day (date +%w, UTC; the 03:15 ET run is the same day in UTC) of the weekly full sync.
                 - {name: FULL_SYNC_DOW, value: "3"}

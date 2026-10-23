@@ -46,7 +46,7 @@ NFS client of the share. For a one-off full sync, set `FULL_SYNC=1` on a manual 
 |---|---|
 | `nodewright` | nodewright attachments |
 | `photo-dump-prod`, `photo-dump-dev` | photo-dump's photos (moved from the old MinIO on the Unraid box, 2026-10-16) |
-| `part-images` | gyopart part images and diagrams: 6,859,975 objects, 134.6 GiB (copied from the old MinIO and checked object-for-object, 2026-10-17) |
+| ~~`part-images`~~ | gyopart part images: **offsite only** since 2026-10-23 (`docs/offsite_backup.md`, "Buckets"). Any walk of its ~6.9M files on this share stalls Tower's NFS. The copy left here under `objects/part-images/` stopped updating 2026-10-22 |
 
 All on AIStor. `part-images` keeps millions of objects in flat per-make folders: the job uses rclone ≥ 1.70 with
 `--list-cutoff` so those listings sort on disk (`/tmp` emptyDir) instead of in memory. Left out: `dxf-converter`

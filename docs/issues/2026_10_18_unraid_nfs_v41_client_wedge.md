@@ -292,6 +292,13 @@ Verified 2026-10-22 with a manual nightly-mode run (13:31–15:09 UTC; the copy 
 the rest, since dropped from nightly runs): 0 `nfs: server 192.168.0.15` messages on either worker, and no Tower
 disk above 1% busy (`max_over_time` of `node_disk_io_time_seconds_total` rate).
 
+#### Follow-up 2026-10-23: part-images off the share entirely
+
+The weekly restic offsite run walked the same 6.9M files on the share (11h on 2026-10-18), and so would the
+Wednesday full sync. part-images now goes offsite straight from AIStor to MEGA S4 (`offsite-backup/objects.yaml`,
+rclone + crypt). restic skips `/backups/objects`, and `backup-objects` no longer copies part-images to the share.
+Nothing walks a large file tree on Tower any more.
+
 ### Recovery runbook
 
 Kept in `docs/postgres_backup.md` → "When the backup share hangs".

@@ -1,0 +1,132 @@
+# Nightly offsite copy of the object-store buckets straight from AIStor to MEGA S4 with rclone (runbook:
+# docs/offsite_backup.md, "Buckets"). No NFS: the weekly restic run (backup.yaml) used to walk the Unraid copy of
+# part-images (~6.9M files), and that walk stalls every NFS client of Tower's share
+# (docs/issues/2026_10_18_unraid_nfs_v41_client_wedge.md, "Recurrence"). restic now skips /backups/objects.
+#
+# Layout in the S4 bucket, under objects/, encrypted (rclone crypt: contents and file names):
+#   current/<bucket>/...               mirror of the bucket
+#   replaced/<stamp>/<bucket>/...      objects a full sync overwrote or deleted from current/, kept 28 days
+# Every night copies objects modified in the last 26h with --no-traverse (no listing of current/). The FULL_SYNC_DOW
+# run (Wednesday) is a full `rclone sync`, which is when bucket deletions reach current/. FULL_SYNC=1 on a manual Job
+# forces one; the first run must be one, since nightly runs only pick up recent objects.
+#
+# Credentials: hand-applied secret `offsite-objects` (AISTOR_ACCESS_KEY / AISTOR_SECRET_KEY: the read-only AIStor key
+# from postgres/object-backup-s3; CRYPT_PASSWORD / CRYPT_PASSWORD2: rclone-obscured crypt password and salt) plus the
+# S4 key in `offsite-backup-restic`. Template in example-secrets/offsite-backup/. Without both crypt values the copy
+# is unreadable, so keep them off-cluster too (`rclone reveal` turns an obscured value back into the password).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: offsite-objects-script
+  namespace: offsite-backup
+data:
+  offsite-objects.sh: |
+    #!/bin/sh
+    set -eu
+    STAMP=$(date -u +%Y%m%d-%H%M%S)
+    full=${FULL_SYNC:-0}
+    [ "$(date -u +%w)" = "$FULL_SYNC_DOW" ] && full=1
+    failed=""
+    for entry in $BUCKETS; do
+      b=${entry#*:}
+      if [ "$full" = 1 ]; then
+        echo "== $entry (full sync)"
+        set -- sync --max-delete "$MAX_DELETE" --backup-dir "s4crypt:replaced/$STAMP/$b"
+      else
+        echo "== $entry (objects modified in the last 26h)"
+        set -- copy --max-age 26h --no-traverse --use-server-modtime
+      fi
+      if ! rclone "$@" "$entry" "s4crypt:current/$b" \
+          --list-cutoff 200000 --transfers 16 --checkers 16 \
+          --stats-one-line --stats 5m -v; then
+        echo "   FAILED: $b"
+        failed="$failed $b"
+      fi
+    done
+    if [ "$full" = 1 ]; then
+      echo "== pruning replaced/ older than 28 days"
+      rclone delete s4crypt:replaced --min-age 28d -v || failed="$failed replaced-prune"
+    fi
+    if [ -n "$failed" ]; then
+      echo "failed:$failed"
+      exit 1
+    fi
+    echo "all buckets copied"
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: offsite-objects
+  namespace: offsite-backup
+  labels:
+    app: offsite-objects
+spec:
+  # 04:30 ET, after the local bucket copy has started its own run; the two don't share any storage.
+  schedule: "30 4 * * *"
+  timeZone: "America/New_York"
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 7200
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      # The first full upload (~145 GB, ~6.9M objects) can take days; an interrupted run is not lost, the next full
+      # sync skips every object already uploaded.
+      activeDeadlineSeconds: 172800
+      template:
+        spec:
+          restartPolicy: Never
+          automountServiceAccountToken: false
+          securityContext:
+            runAsUser: 65534
+            runAsGroup: 65534
+          containers:
+            - name: rclone
+              image: rclone/rclone:1.71.1
+              imagePullPolicy: IfNotPresent
+              command: ["/bin/sh", "/scripts/offsite-objects.sh"]
+              env:
+                # <remote>:<bucket>, space-separated; the same buckets as postgres/object-backup.yaml.
+                - {name: BUCKETS, value: "aistor:nodewright aistor:photo-dump-prod aistor:photo-dump-dev aistor:part-images"}
+                - {name: MAX_DELETE, value: "500"}
+                # Day (date +%w, UTC; the 04:30 ET run is the same day in UTC) of the weekly full sync.
+                - {name: FULL_SYNC_DOW, value: "3"}
+                - {name: HOME, value: /tmp}
+                - {name: RCLONE_CONFIG, value: /tmp/rclone.conf}
+                - {name: RCLONE_CONFIG_AISTOR_TYPE, value: s3}
+                - {name: RCLONE_CONFIG_AISTOR_PROVIDER, value: Minio}
+                - {name: RCLONE_CONFIG_AISTOR_ENDPOINT, value: "http://192.168.0.10:30320"}
+                - name: RCLONE_CONFIG_AISTOR_ACCESS_KEY_ID
+                  valueFrom: {secretKeyRef: {name: offsite-objects, key: AISTOR_ACCESS_KEY}}
+                - name: RCLONE_CONFIG_AISTOR_SECRET_ACCESS_KEY
+                  valueFrom: {secretKeyRef: {name: offsite-objects, key: AISTOR_SECRET_KEY}}
+                # MEGA S4, same bucket and key as the restic repository, under objects/.
+                - {name: RCLONE_CONFIG_S4_TYPE, value: s3}
+                - {name: RCLONE_CONFIG_S4_PROVIDER, value: Other}
+                - {name: RCLONE_CONFIG_S4_ENDPOINT, value: "https://s3.ca-montreal-1.megas4.com"}
+                - {name: RCLONE_CONFIG_S4_REGION, value: ca-montreal-1}
+                - name: RCLONE_CONFIG_S4_ACCESS_KEY_ID
+                  valueFrom: {secretKeyRef: {name: offsite-backup-restic, key: AWS_ACCESS_KEY_ID}}
+                - name: RCLONE_CONFIG_S4_SECRET_ACCESS_KEY
+                  valueFrom: {secretKeyRef: {name: offsite-backup-restic, key: AWS_SECRET_ACCESS_KEY}}
+                - {name: RCLONE_CONFIG_S4CRYPT_TYPE, value: crypt}
+                - {name: RCLONE_CONFIG_S4CRYPT_REMOTE, value: "s4:cluster-backup/objects"}
+                - name: RCLONE_CONFIG_S4CRYPT_PASSWORD
+                  valueFrom: {secretKeyRef: {name: offsite-objects, key: CRYPT_PASSWORD}}
+                - name: RCLONE_CONFIG_S4CRYPT_PASSWORD2
+                  valueFrom: {secretKeyRef: {name: offsite-objects, key: CRYPT_PASSWORD2}}
+              resources:
+                requests: {cpu: 250m, memory: 256Mi}
+                limits: {memory: 2Gi}
+              volumeMounts:
+                - {name: scripts, mountPath: /scripts}
+                # rclone >= 1.70 sorts listings above --list-cutoff here instead of in memory (part-images keeps
+                # millions of objects per flat folder).
+                - {name: tmp, mountPath: /tmp}
+          volumes:
+            - name: scripts
+              configMap:
+                name: offsite-objects-script
+            - name: tmp
+              emptyDir: {sizeLimit: 20Gi}

@@ -18,7 +18,7 @@ spec:
           # failure re-mailed daily after later runs had already succeeded. Never-succeeded is *Stale's job.
           expr: >-
             label_replace(
-              (kube_job_status_start_time{namespace="offsite-backup", job_name=~"offsite-backup.*"}
+              (kube_job_status_start_time{namespace="offsite-backup", job_name=~"offsite-.*"}
                 and on(namespace, job_name) kube_job_status_failed > 0)
               * on(namespace, job_name) group_left(owner_name) kube_job_owner{owner_kind="CronJob"},
               "cronjob", "$1", "owner_name", "(.*)")
@@ -42,12 +42,26 @@ spec:
             description: >-
               The weekly run (Sunday 07:00 ET) is not starting or not succeeding. Check
               `kubectl -n offsite-backup get jobs,cronjobs`.
+        - alert: OffsiteBackupObjectsStale
+          # Nightly bucket copy (objects.yaml). The first run is a multi-day full upload, hence the generous window.
+          expr: >-
+            time() - kube_cronjob_status_last_successful_time{namespace="offsite-backup", cronjob="offsite-objects"} > 2*86400
+            or (kube_cronjob_info{namespace="offsite-backup", cronjob="offsite-objects"}
+            unless on(namespace, cronjob) kube_cronjob_status_last_successful_time{namespace="offsite-backup", cronjob="offsite-objects"})
+          for: 3d
+          labels:
+            severity: critical
+          annotations:
+            summary: "Offsite bucket copy has no successful run in over 2 days"
+            description: >-
+              The nightly run (04:30 ET) is not starting or not succeeding. Check
+              `kubectl -n offsite-backup get jobs,cronjobs -l app=offsite-objects`.
         - alert: OffsiteBackupSuspended
-          expr: kube_cronjob_spec_suspend{namespace="offsite-backup", cronjob="offsite-backup"} == 1
+          expr: kube_cronjob_spec_suspend{namespace="offsite-backup"} == 1
           labels:
             severity: warning
           annotations:
-            summary: "Offsite backup CronJob is suspended"
+            summary: "Offsite CronJob {{ $labels.cronjob }} is suspended"
 ---
 apiVersion: monitoring.coreos.com/v1alpha1
 kind: AlertmanagerConfig
