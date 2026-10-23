@@ -8,6 +8,9 @@
 #   argocd-viewers  -> role:readonly
 # Membership is managed by hand in authentik, not here.
 #
+# Public client so `argocd login --sso` works: the CLI holds no secret and redeems the
+# code with PKCE on a localhost:8085 callback. argocd-server still sends its secret.
+#
 # Client secret: hand-applied Secret `authentik-argocd-oidc` (authentik ns); ArgoCD
 # reads the same value from `argocd-oidc-authentik` (argocd ns).
 # Full layout: docs/argocd_access.md.
@@ -29,7 +32,7 @@ entries:
     identifiers:
       name: argocd
     attrs:
-      client_type: confidential
+      client_type: public
       grant_types:
         - authorization_code
         - refresh_token
@@ -41,6 +44,9 @@ entries:
         # LAN host (argocd-cm additionalUrls); plain HTTP, never leaves the LAN.
         - matching_mode: strict
           url: http://argocd.local/auth/callback
+        # argocd CLI (`argocd login --sso`), on the machine running it.
+        - matching_mode: strict
+          url: http://localhost:8085/auth/callback
       property_mappings:
         - !Find [authentik_providers_oauth2.scopemapping, [managed, goauthentik.io/providers/oauth2/scope-openid]]
         - !Find [authentik_providers_oauth2.scopemapping, [managed, goauthentik.io/providers/oauth2/scope-email]]

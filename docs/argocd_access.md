@@ -33,9 +33,10 @@ fails with `x509: certificate signed by unknown authority` and the UI bounces ba
 
 The authentik side is Argo-managed (`argocd/authentik.yaml`):
 
-- `authentik/blueprints/argocd.yaml`: confidential OAuth2 provider + application `argocd`
-  (client id `argocd`, redirects `https://argocd.danwils.com/auth/callback` and
-  `http://argocd.local/auth/callback`), groups `argocd-admins` / `argocd-viewers`. The application is
+- `authentik/blueprints/argocd.yaml`: public OAuth2 provider + application `argocd`
+  (client id `argocd`, redirects `https://argocd.danwils.com/auth/callback`,
+  `http://argocd.local/auth/callback` and `http://localhost:8085/auth/callback` for the CLI),
+  groups `argocd-admins` / `argocd-viewers`. The application is
   bound to those two groups, so anyone else is refused at authentik.
 - `authentik/values.yaml`: `AUTHENTIK_ARGOCD_CLIENT_SECRET` from Secret `authentik-argocd-oidc`.
 
@@ -92,8 +93,10 @@ curl -s -o /dev/null -w '%{http_code}\n' --resolve argocd.local:80:192.168.0.60 
 
 ## Known limits
 
-- **CLI SSO (`argocd login --sso`) is not set up.** It needs a public client with a
-  `http://localhost:8085/auth/callback` redirect. Use `argocd login argocd.local` (admin) on the LAN.
+- CLI SSO: `argocd login argocd.danwils.com --sso --grpc-web` (configured 2026-10-23; ⚠ unverified until a
+  CLI login succeeds). The provider is public because the CLI
+  holds no client secret; a separate CLI provider would issue tokens under a different per-provider
+  issuer, which argocd-server rejects.
 - API tokens issued to `admin` would work from the public host too. Don't create any.
 - `/api/webhook` is reachable publicly, as with any exposed ArgoCD. No webhook secret is set; it can
   only trigger refreshes.
