@@ -93,8 +93,8 @@ curl -s -o /dev/null -w '%{http_code}\n' --resolve argocd.local:80:192.168.0.60 
 
 ## Known limits
 
-- CLI SSO: `argocd login argocd.danwils.com --sso --grpc-web` (configured 2026-10-23; ⚠ unverified until a
-  CLI login succeeds). The provider is public because the CLI
+- CLI SSO: `argocd login argocd.danwils.com --sso --grpc-web` (verified 2026-10-23, along
+  with browser SSO after the switch to public). The provider is public because the CLI
   holds no client secret; a separate CLI provider would issue tokens under a different per-provider
   issuer, which argocd-server rejects.
 - API tokens issued to `admin` would work from the public host too. Don't create any.
