@@ -1,3 +1,13 @@
+## 2026-10-25 - postgres: photo-dump moved to the pgvector instances
+
+### Changed
+- photo-dump's database moved to `postgres-pgvector` (prod) and `postgres-pgvector-dev` (dev), so its upcoming photo
+  embeddings live in the app's one database. Moved with `postgres/migrate-db-to-pgvector.sh`, and exact row counts
+  matched (prod: 587 images, 2248 tag links). `dburl` in `postgres-photo-dump-creds` / `postgres-photo-dump-dev-creds`
+  was repointed. Verified that the prod API holds its connection on postgres-pgvector, has none on postgres, and
+  serves `/api/tags/get` (34 tags). The sources are parked as `photo_dump_moved_20261025` on `postgres-0` /
+  `postgres-dev-0` for rollback. Drop them after 2026-11-01.
+
 ## 2026-10-25 - postgres: script to move an app database onto a pgvector instance
 
 ### Added
