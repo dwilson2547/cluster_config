@@ -1,3 +1,13 @@
+## 2026-10-25 - postgres: script to move an app database onto a pgvector instance
+
+### Added
+- `postgres/migrate-db-to-pgvector.sh`: moves one database from a plain v17 instance to a pgvector v16 instance. It
+  copies the owner role with its SCRAM hash, creates the database with the `vector` extension, and does a plain-SQL
+  dump and restore, dropping the v17-only `SET transaction_timeout` line. It stops before switching the app if exact
+  row counts differ. If they match, it repoints the app Secret's host, restarts the app, and renames the source
+  database to `<db>_moved_<date>` so it's kept for rollback. Rehearsed with photo-dump's dev database into a local
+  pgvector pg16: every row count matched, and ownership, sequences and the password hash all carried over.
+
 ## 2026-10-25 - gpu-scheduler: shared GPU model scheduler on k8s-ainode
 
 ### Added
