@@ -1,3 +1,14 @@
+## 2026-10-25 - gpu-scheduler: shared GPU model scheduler on k8s-ainode
+
+### Added
+- `argocd/gpu-scheduler.yaml`: deploys `dwilson2547/gpu-scheduler` (`helm/gpu-scheduler`, `values-prod.yaml`) to
+  namespace `gpu-scheduler`. Services queue work for a model, and one GPU loop pinned to `daniel-ainode1`
+  (`nvidia.com/gpu: 1`) loads models and works through the queues. Each model has its own `nfs-dataset` PVC
+  (`gpu-scheduler-model-<name>`). The first model is `siglip2` (image and text embeddings). The API is in-cluster only
+  (`gpu-scheduler-api.gpu-scheduler.svc`), with no Ingress.
+- `postgres/init-gpu-scheduler.sql`: role and database `gpu_scheduler` on the prod postgres. Hand-applied Secrets in
+  `gpu-scheduler`: `gpu-scheduler-db` (`DATABASE_URL`) and `gpu-scheduler-tokens` (`GPU_SCHEDULER_TOKENS`).
+
 ## 2026-10-21 - public edge: TLS 1.2 minimum and HSTS at Cloudflare
 
 ### Changed
