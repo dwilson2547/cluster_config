@@ -32,3 +32,26 @@ spec:
     - port: http
       path: /metrics
       interval: 15s
+---
+# DCGM exporter from the hand-installed NVIDIA GPU operator (gpu-operator-resources), GPU node only.
+# honorLabels keeps the exporter's pod/namespace labels (the workload holding the GPU) instead of
+# renaming them to exported_pod/exported_namespace.
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: nvidia-dcgm-exporter
+  namespace: monitoring
+  labels:
+    release: prometheus
+spec:
+  namespaceSelector:
+    matchNames:
+      - gpu-operator-resources
+  selector:
+    matchLabels:
+      app: nvidia-dcgm-exporter
+  endpoints:
+    - port: gpu-metrics
+      path: /metrics
+      interval: 15s
+      honorLabels: true

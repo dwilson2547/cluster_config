@@ -1,3 +1,14 @@
+## 2026-10-25 - monitoring: GPU metrics from the DCGM exporter
+
+### Added
+- ServiceMonitor `nvidia-dcgm-exporter` (in `monitoring/manifests/service-monitor.yaml`) so Prometheus scrapes the
+  DCGM exporter that the hand-installed NVIDIA GPU operator runs on the GPU node (`gpu-operator-resources`, port
+  `gpu-metrics`/9400). `honorLabels` keeps the exporter's `pod`/`namespace` labels, which name the workload holding
+  the GPU.
+- Grafana dashboard "NVIDIA DCGM Exporter Dashboard" (`monitoring/manifests/gpu-dashboard.yaml`, uid `nvidia-dcgm`),
+  imported from grafana.com 12239. Its Tensor Core panel is replaced with memory-copy utilization because the
+  exporter publishes no `DCGM_FI_PROF_*` metrics for the RTX 3080 (checked against its `/metrics`).
+
 ## 2026-10-25 - postgres: photo-dump moved to the pgvector instances
 
 ### Changed
