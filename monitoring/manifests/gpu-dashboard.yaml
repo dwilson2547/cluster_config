@@ -4,6 +4,9 @@
 # metrics (DCGM_FI_PROF_*) aren't exported for GeForce cards. Data: ServiceMonitor nvidia-dcgm-exporter.
 # The Power Total gauge reduces with lastNotNull (current draw); a sum reducer adds up watt samples
 # across the whole time range, so the reading grows with the range instead of showing watts.
+# GPU Energy Used is a local panel: sum(increase(energy counter)) over $__range, in kWh; the sum()
+# collapses the per-pod exporter series (one per gpu-scheduler replica) into a single value.
+# Memory Copy Utilization sits at x12: the imported grid had it stacked on GPU Utilization, hiding it.
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -206,7 +209,7 @@ data:
        "fillGradient": 0,
        "gridPos": {
         "h": 8,
-        "w": 18,
+        "w": 12,
         "x": 0,
         "y": 8
        },
@@ -353,6 +356,64 @@ data:
        "timeShift": null,
        "title": "GPU Power Total",
        "type": "gauge"
+      },
+      {
+       "cacheTimeout": null,
+       "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+       },
+       "description": "Energy consumed over the dashboard time range. sum() collapses the per-pod exporter series (one per gpu-scheduler replica) into a single value; the DCGM energy counter restarts when a pod is replaced, so a rollout can briefly double-count the overlap.",
+       "gridPos": {
+        "h": 8,
+        "w": 6,
+        "x": 12,
+        "y": 8
+       },
+       "id": 20,
+       "links": [],
+       "options": {
+        "fieldOptions": {
+         "calcs": [
+          "lastNotNull"
+         ],
+         "defaults": {
+          "color": {
+           "mode": "thresholds"
+          },
+          "mappings": [],
+          "min": 0,
+          "thresholds": {
+           "mode": "absolute",
+           "steps": [
+            {
+             "color": "green",
+             "value": null
+            }
+           ]
+          },
+          "unit": "kwatth"
+         },
+         "overrides": [],
+         "values": false
+        },
+        "orientation": "horizontal",
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true
+       },
+       "pluginVersion": "6.7.3",
+       "targets": [
+        {
+         "expr": "sum(increase(DCGM_FI_DEV_TOTAL_ENERGY_CONSUMPTION{instance=~\"${instance}\", gpu=~\"${gpu}\"}[${__range}])) / 3600000000",
+         "interval": "",
+         "legendFormat": "",
+         "refId": "A"
+        }
+       ],
+       "timeFrom": null,
+       "timeShift": null,
+       "title": "GPU Energy Used",
+       "type": "stat"
       },
       {
        "aliasColors": {},
@@ -651,7 +712,7 @@ data:
        "gridPos": {
         "h": 8,
         "w": 12,
-        "x": 0,
+        "x": 12,
         "y": 24
        },
        "hiddenSeries": false,
