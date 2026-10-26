@@ -2,6 +2,8 @@
 # Imported from grafana.com dashboard 12239 (NVIDIA DCGM Exporter Dashboard), datasource pinned to uid
 # "prometheus"; the Tensor Core panel is swapped for memory-copy utilization because DCGM profiling
 # metrics (DCGM_FI_PROF_*) aren't exported for GeForce cards. Data: ServiceMonitor nvidia-dcgm-exporter.
+# The Power Total gauge reduces with lastNotNull (current draw); a sum reducer adds up watt samples
+# across the whole time range, so the reading grows with the range instead of showing watts.
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -302,7 +304,7 @@ data:
        "options": {
         "fieldOptions": {
          "calcs": [
-          "sum"
+          "lastNotNull"
          ],
          "defaults": {
           "color": {
