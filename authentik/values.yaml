@@ -107,6 +107,12 @@ global:
         secretKeyRef:
           name: authentik-gyopart-admin-oidc
           key: client_secret
+    # gpu-scheduler dashboard OIDC client secret, read by blueprints/gpu-scheduler.yaml.
+    - name: AUTHENTIK_GPU_SCHEDULER_CLIENT_SECRET
+      valueFrom:
+        secretKeyRef:
+          name: authentik-gpu-scheduler-oidc
+          key: client_secret
   envFrom:
     # optional: authentik still starts (without mail) before the Secret exists.
     - secretRef:

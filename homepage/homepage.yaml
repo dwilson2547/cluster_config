@@ -259,7 +259,7 @@ data:
 
     - AI Services:
         - GPU Scheduler:
-            href: http://gpu-scheduler.cluster.local
+            href: https://gpu-scheduler.danwils.com
             description: GPU queues, model swaps, job stats and request/response browser
             icon: si-nvidia
         - AI Notes:
