@@ -1,3 +1,10 @@
+## 2026-10-26 - homepage: gpu-scheduler dashboard
+
+### Added
+- Homepage link "GPU Scheduler" (AI Services) to `http://gpu-scheduler.cluster.local`, the gpu-scheduler chart's
+  read-only dashboard. LAN only: its Ingress is on the internal Traefik, and the `cluster.local` wildcard already
+  resolves it, so no DNS change.
+
 ## 2026-10-25 - monitoring: GPU metrics from the DCGM exporter
 
 ### Added

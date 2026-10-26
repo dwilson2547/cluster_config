@@ -258,6 +258,10 @@ data:
             icon: si-googlephotos
 
     - AI Services:
+        - GPU Scheduler:
+            href: http://gpu-scheduler.cluster.local
+            description: GPU queues, model swaps, job stats and request/response browser
+            icon: si-nvidia
         - AI Notes:
             href: http://notes.ai-services.local
             description: Persistent agent knowledge base
