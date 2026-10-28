@@ -46,6 +46,14 @@ entries:
         # dev (scaled to zero; kept so it can be brought back)
         - matching_mode: strict
           url: http://photo-dump-dev.local/api/auth/oidc/callback
+        # Where authentik sends the browser after Logout (RP-initiated logout; the app passes
+        # id_token_hint, which authentik requires before it honours post_logout_redirect_uri).
+        - matching_mode: strict
+          url: https://photo-dump.danwils.com/
+          redirect_uri_type: logout
+        - matching_mode: strict
+          url: http://photo-dump-dev.local/
+          redirect_uri_type: logout
       property_mappings:
         - !Find [authentik_providers_oauth2.scopemapping, [managed, goauthentik.io/providers/oauth2/scope-openid]]
         - !Find [authentik_providers_oauth2.scopemapping, [managed, goauthentik.io/providers/oauth2/scope-email]]
