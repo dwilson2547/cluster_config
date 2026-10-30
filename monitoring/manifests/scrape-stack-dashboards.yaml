@@ -1634,7 +1634,7 @@ data:
     : false,\n        \"textMode\": \"auto\",\n        \"wideLayout\": true\n    \
     \  },\n      \"pluginVersion\": \"13.0.1\",\n      \"targets\": [\n        {\n\
     \          \"datasource\": {\n            \"type\": \"prometheus\",\n        \
-    \    \"uid\": \"prometheus\"\n          },\n          \"expr\": \"sum(rate(permit_issued_total{job=\\\
+    \    \"uid\": \"prometheus\"\n          },\n          \"expr\": \"sum(rate(permit_issued_total{exported_job=\\\
     \"$job\\\"}[$__rate_interval]))\",\n          \"instant\": true,\n          \"\
     legendFormat\": \"__auto\",\n          \"refId\": \"A\"\n        }\n      ],\n\
     \      \"title\": \"Permits Issued / sec\",\n      \"type\": \"stat\"\n    },\n\
@@ -1655,69 +1655,70 @@ data:
     ,\n        \"wideLayout\": true\n      },\n      \"pluginVersion\": \"13.0.1\"\
     ,\n      \"targets\": [\n        {\n          \"datasource\": {\n            \"\
     type\": \"prometheus\",\n            \"uid\": \"prometheus\"\n          },\n \
-    \         \"expr\": \"sum(permit_active{job=\\\"$job\\\"})\",\n          \"instant\"\
-    : true,\n          \"legendFormat\": \"__auto\",\n          \"refId\": \"A\"\n\
-    \        }\n      ],\n      \"title\": \"Active Permits\",\n      \"type\": \"\
-    stat\"\n    },\n    {\n      \"datasource\": {\n        \"type\": \"prometheus\"\
-    ,\n        \"uid\": \"prometheus\"\n      },\n      \"fieldConfig\": {\n     \
-    \   \"defaults\": {\n          \"color\": {\n            \"mode\": \"thresholds\"\
-    \n          },\n          \"thresholds\": {\n            \"mode\": \"absolute\"\
-    ,\n            \"steps\": [\n              {\n                \"color\": \"green\"\
-    ,\n                \"value\": 0\n              },\n              {\n         \
-    \       \"color\": \"yellow\",\n                \"value\": 10\n              },\n\
-    \              {\n                \"color\": \"orange\",\n                \"value\"\
-    : 50\n              },\n              {\n                \"color\": \"red\",\n\
-    \                \"value\": 100\n              }\n            ]\n          },\n\
-    \          \"unit\": \"short\"\n        }\n      },\n      \"gridPos\": {\n  \
-    \      \"h\": 4,\n        \"w\": 6,\n        \"x\": 12,\n        \"y\": 0\n  \
-    \    },\n      \"id\": 3,\n      \"options\": {\n        \"colorMode\": \"background\"\
-    ,\n        \"graphMode\": \"area\",\n        \"justifyMode\": \"auto\",\n    \
-    \    \"orientation\": \"auto\",\n        \"percentChangeColorMode\": \"standard\"\
-    ,\n        \"reduceOptions\": {\n          \"calcs\": [\n            \"lastNotNull\"\
-    \n          ],\n          \"fields\": \"\",\n          \"values\": false\n   \
-    \     },\n        \"showPercentChange\": false,\n        \"textMode\": \"auto\"\
-    ,\n        \"wideLayout\": true\n      },\n      \"pluginVersion\": \"13.0.1\"\
-    ,\n      \"targets\": [\n        {\n          \"datasource\": {\n            \"\
-    type\": \"prometheus\",\n            \"uid\": \"prometheus\"\n          },\n \
-    \         \"expr\": \"sum(permit_queued{job=\\\"$job\\\"})\",\n          \"instant\"\
-    : true,\n          \"legendFormat\": \"__auto\",\n          \"refId\": \"A\"\n\
-    \        }\n      ],\n      \"title\": \"Queued Requests\",\n      \"type\": \"\
-    stat\"\n    },\n    {\n      \"datasource\": {\n        \"type\": \"prometheus\"\
-    ,\n        \"uid\": \"prometheus\"\n      },\n      \"fieldConfig\": {\n     \
-    \   \"defaults\": {\n          \"color\": {\n            \"mode\": \"thresholds\"\
-    \n          },\n          \"thresholds\": {\n            \"mode\": \"absolute\"\
-    ,\n            \"steps\": [\n              {\n                \"color\": \"green\"\
-    ,\n                \"value\": 0\n              },\n              {\n         \
-    \       \"color\": \"yellow\",\n                \"value\": 500\n             \
-    \ },\n              {\n                \"color\": \"orange\",\n              \
-    \  \"value\": 2000\n              },\n              {\n                \"color\"\
-    : \"red\",\n                \"value\": 5000\n              }\n            ]\n\
-    \          },\n          \"unit\": \"ms\"\n        }\n      },\n      \"gridPos\"\
-    : {\n        \"h\": 4,\n        \"w\": 6,\n        \"x\": 18,\n        \"y\":\
-    \ 0\n      },\n      \"id\": 4,\n      \"options\": {\n        \"colorMode\":\
-    \ \"background\",\n        \"graphMode\": \"area\",\n        \"justifyMode\":\
-    \ \"auto\",\n        \"orientation\": \"auto\",\n        \"percentChangeColorMode\"\
+    \         \"expr\": \"sum(permit_active{exported_job=\\\"$job\\\"})\",\n     \
+    \     \"instant\": true,\n          \"legendFormat\": \"__auto\",\n          \"\
+    refId\": \"A\"\n        }\n      ],\n      \"title\": \"Active Permits\",\n  \
+    \    \"type\": \"stat\"\n    },\n    {\n      \"datasource\": {\n        \"type\"\
+    : \"prometheus\",\n        \"uid\": \"prometheus\"\n      },\n      \"fieldConfig\"\
+    : {\n        \"defaults\": {\n          \"color\": {\n            \"mode\": \"\
+    thresholds\"\n          },\n          \"thresholds\": {\n            \"mode\"\
+    : \"absolute\",\n            \"steps\": [\n              {\n                \"\
+    color\": \"green\",\n                \"value\": 0\n              },\n        \
+    \      {\n                \"color\": \"yellow\",\n                \"value\": 10\n\
+    \              },\n              {\n                \"color\": \"orange\",\n \
+    \               \"value\": 50\n              },\n              {\n           \
+    \     \"color\": \"red\",\n                \"value\": 100\n              }\n \
+    \           ]\n          },\n          \"unit\": \"short\"\n        }\n      },\n\
+    \      \"gridPos\": {\n        \"h\": 4,\n        \"w\": 6,\n        \"x\": 12,\n\
+    \        \"y\": 0\n      },\n      \"id\": 3,\n      \"options\": {\n        \"\
+    colorMode\": \"background\",\n        \"graphMode\": \"area\",\n        \"justifyMode\"\
+    : \"auto\",\n        \"orientation\": \"auto\",\n        \"percentChangeColorMode\"\
     : \"standard\",\n        \"reduceOptions\": {\n          \"calcs\": [\n      \
     \      \"lastNotNull\"\n          ],\n          \"fields\": \"\",\n          \"\
     values\": false\n        },\n        \"showPercentChange\": false,\n        \"\
     textMode\": \"auto\",\n        \"wideLayout\": true\n      },\n      \"pluginVersion\"\
     : \"13.0.1\",\n      \"targets\": [\n        {\n          \"datasource\": {\n\
     \            \"type\": \"prometheus\",\n            \"uid\": \"prometheus\"\n\
-    \          },\n          \"expr\": \"histogram_quantile(0.95, sum(rate(permit_wait_duration_ms_milliseconds_bucket{job=\\\
-    \"$job\\\"}[$__rate_interval])) by (le))\",\n          \"instant\": true,\n  \
-    \        \"legendFormat\": \"__auto\",\n          \"refId\": \"A\"\n        }\n\
-    \      ],\n      \"title\": \"P95 Wait Duration\",\n      \"type\": \"stat\"\n\
-    \    },\n    {\n      \"datasource\": {\n        \"type\": \"prometheus\",\n \
-    \       \"uid\": \"prometheus\"\n      },\n      \"fieldConfig\": {\n        \"\
-    defaults\": {\n          \"color\": {\n            \"mode\": \"thresholds\"\n\
-    \          },\n          \"max\": 100,\n          \"min\": 0,\n          \"thresholds\"\
+    \          },\n          \"expr\": \"sum(permit_queued{exported_job=\\\"$job\\\
+    \"})\",\n          \"instant\": true,\n          \"legendFormat\": \"__auto\"\
+    ,\n          \"refId\": \"A\"\n        }\n      ],\n      \"title\": \"Queued\
+    \ Requests\",\n      \"type\": \"stat\"\n    },\n    {\n      \"datasource\":\
+    \ {\n        \"type\": \"prometheus\",\n        \"uid\": \"prometheus\"\n    \
+    \  },\n      \"fieldConfig\": {\n        \"defaults\": {\n          \"color\"\
+    : {\n            \"mode\": \"thresholds\"\n          },\n          \"thresholds\"\
     : {\n            \"mode\": \"absolute\",\n            \"steps\": [\n         \
-    \     {\n                \"color\": \"red\",\n                \"value\": 0\n \
-    \             },\n              {\n                \"color\": \"orange\",\n  \
-    \              \"value\": 70\n              },\n              {\n            \
-    \    \"color\": \"yellow\",\n                \"value\": 90\n              },\n\
-    \              {\n                \"color\": \"green\",\n                \"value\"\
-    : 98\n              }\n            ]\n          },\n          \"unit\": \"percent\"\
+    \     {\n                \"color\": \"green\",\n                \"value\": 0\n\
+    \              },\n              {\n                \"color\": \"yellow\",\n \
+    \               \"value\": 500\n              },\n              {\n          \
+    \      \"color\": \"orange\",\n                \"value\": 2000\n             \
+    \ },\n              {\n                \"color\": \"red\",\n                \"\
+    value\": 5000\n              }\n            ]\n          },\n          \"unit\"\
+    : \"ms\"\n        }\n      },\n      \"gridPos\": {\n        \"h\": 4,\n     \
+    \   \"w\": 6,\n        \"x\": 18,\n        \"y\": 0\n      },\n      \"id\": 4,\n\
+    \      \"options\": {\n        \"colorMode\": \"background\",\n        \"graphMode\"\
+    : \"area\",\n        \"justifyMode\": \"auto\",\n        \"orientation\": \"auto\"\
+    ,\n        \"percentChangeColorMode\": \"standard\",\n        \"reduceOptions\"\
+    : {\n          \"calcs\": [\n            \"lastNotNull\"\n          ],\n     \
+    \     \"fields\": \"\",\n          \"values\": false\n        },\n        \"showPercentChange\"\
+    : false,\n        \"textMode\": \"auto\",\n        \"wideLayout\": true\n    \
+    \  },\n      \"pluginVersion\": \"13.0.1\",\n      \"targets\": [\n        {\n\
+    \          \"datasource\": {\n            \"type\": \"prometheus\",\n        \
+    \    \"uid\": \"prometheus\"\n          },\n          \"expr\": \"histogram_quantile(0.95,\
+    \ sum(rate(permit_wait_duration_ms_milliseconds_bucket{exported_job=\\\"$job\\\
+    \"}[$__rate_interval])) by (le))\",\n          \"instant\": true,\n          \"\
+    legendFormat\": \"__auto\",\n          \"refId\": \"A\"\n        }\n      ],\n\
+    \      \"title\": \"P95 Wait Duration\",\n      \"type\": \"stat\"\n    },\n \
+    \   {\n      \"datasource\": {\n        \"type\": \"prometheus\",\n        \"\
+    uid\": \"prometheus\"\n      },\n      \"fieldConfig\": {\n        \"defaults\"\
+    : {\n          \"color\": {\n            \"mode\": \"thresholds\"\n          },\n\
+    \          \"max\": 100,\n          \"min\": 0,\n          \"thresholds\": {\n\
+    \            \"mode\": \"absolute\",\n            \"steps\": [\n             \
+    \ {\n                \"color\": \"red\",\n                \"value\": 0\n     \
+    \         },\n              {\n                \"color\": \"orange\",\n      \
+    \          \"value\": 70\n              },\n              {\n                \"\
+    color\": \"yellow\",\n                \"value\": 90\n              },\n      \
+    \        {\n                \"color\": \"green\",\n                \"value\":\
+    \ 98\n              }\n            ]\n          },\n          \"unit\": \"percent\"\
     \n        }\n      },\n      \"gridPos\": {\n        \"h\": 4,\n        \"w\"\
     : 6,\n        \"x\": 0,\n        \"y\": 4\n      },\n      \"id\": 5,\n      \"\
     options\": {\n        \"colorMode\": \"background\",\n        \"graphMode\": \"\
@@ -1728,8 +1729,8 @@ data:
     : false,\n        \"textMode\": \"auto\",\n        \"wideLayout\": true\n    \
     \  },\n      \"pluginVersion\": \"13.0.1\",\n      \"targets\": [\n        {\n\
     \          \"datasource\": {\n            \"type\": \"prometheus\",\n        \
-    \    \"uid\": \"prometheus\"\n          },\n          \"expr\": \"100 * sum(rate(response_status_total{job=\\\
-    \"$job\\\",status_code=~\\\"2..\\\"}[$__rate_interval])) / sum(rate(response_status_total{job=\\\
+    \    \"uid\": \"prometheus\"\n          },\n          \"expr\": \"100 * sum(rate(response_status_total{exported_job=\\\
+    \"$job\\\",status_code=~\\\"2..\\\"}[$__rate_interval])) / sum(rate(response_status_total{exported_job=\\\
     \"$job\\\"}[$__rate_interval]))\",\n          \"instant\": true,\n          \"\
     legendFormat\": \"__auto\",\n          \"refId\": \"A\"\n        }\n      ],\n\
     \      \"title\": \"HTTP 2xx Rate\",\n      \"type\": \"stat\"\n    },\n    {\n\
@@ -1752,7 +1753,7 @@ data:
     : false,\n        \"textMode\": \"auto\",\n        \"wideLayout\": true\n    \
     \  },\n      \"pluginVersion\": \"13.0.1\",\n      \"targets\": [\n        {\n\
     \          \"datasource\": {\n            \"type\": \"prometheus\",\n        \
-    \    \"uid\": \"prometheus\"\n          },\n          \"expr\": \"sum(rate(response_status_total{job=\\\
+    \    \"uid\": \"prometheus\"\n          },\n          \"expr\": \"sum(rate(response_status_total{exported_job=\\\
     \"$job\\\",status_code=~\\\"[45]..\\\"}[$__rate_interval]))\",\n          \"instant\"\
     : true,\n          \"legendFormat\": \"__auto\",\n          \"refId\": \"A\"\n\
     \        }\n      ],\n      \"title\": \"HTTP Error Rate (4xx/5xx)\",\n      \"\
@@ -1773,7 +1774,7 @@ data:
     : \"auto\",\n        \"wideLayout\": true\n      },\n      \"pluginVersion\":\
     \ \"13.0.1\",\n      \"targets\": [\n        {\n          \"datasource\": {\n\
     \            \"type\": \"prometheus\",\n            \"uid\": \"prometheus\"\n\
-    \          },\n          \"expr\": \"histogram_quantile(0.95, sum(rate(permit_hold_duration_ms_milliseconds_bucket{job=\\\
+    \          },\n          \"expr\": \"histogram_quantile(0.95, sum(rate(permit_hold_duration_ms_milliseconds_bucket{exported_job=\\\
     \"$job\\\"}[$__rate_interval])) by (le))\",\n          \"instant\": true,\n  \
     \        \"legendFormat\": \"__auto\",\n          \"refId\": \"A\"\n        }\n\
     \      ],\n      \"title\": \"P95 Hold Duration\",\n      \"type\": \"stat\"\n\
@@ -1833,10 +1834,10 @@ data:
     multi\",\n          \"sort\": \"desc\"\n        }\n      },\n      \"pluginVersion\"\
     : \"13.0.1\",\n      \"targets\": [\n        {\n          \"datasource\": {\n\
     \            \"type\": \"prometheus\",\n            \"uid\": \"prometheus\"\n\
-    \          },\n          \"expr\": \"permit_active{job=\\\"$job\\\"}\",\n    \
-    \      \"legendFormat\": \"{{domain}}\",\n          \"range\": true,\n       \
-    \   \"refId\": \"A\"\n        }\n      ],\n      \"title\": \"Active Permits by\
-    \ Domain\",\n      \"type\": \"timeseries\"\n    },\n    {\n      \"datasource\"\
+    \          },\n          \"expr\": \"permit_active{exported_job=\\\"$job\\\"}\"\
+    ,\n          \"legendFormat\": \"{{domain}}\",\n          \"range\": true,\n \
+    \         \"refId\": \"A\"\n        }\n      ],\n      \"title\": \"Active Permits\
+    \ by Domain\",\n      \"type\": \"timeseries\"\n    },\n    {\n      \"datasource\"\
     : {\n        \"type\": \"prometheus\",\n        \"uid\": \"prometheus\"\n    \
     \  },\n      \"fieldConfig\": {\n        \"defaults\": {\n          \"color\"\
     : {\n            \"mode\": \"palette-classic\"\n          },\n          \"custom\"\
@@ -1868,9 +1869,9 @@ data:
     multi\",\n          \"sort\": \"desc\"\n        }\n      },\n      \"pluginVersion\"\
     : \"13.0.1\",\n      \"targets\": [\n        {\n          \"datasource\": {\n\
     \            \"type\": \"prometheus\",\n            \"uid\": \"prometheus\"\n\
-    \          },\n          \"expr\": \"permit_queued{job=\\\"$job\\\"}\",\n    \
-    \      \"legendFormat\": \"{{domain}}\",\n          \"range\": true,\n       \
-    \   \"refId\": \"A\"\n        }\n      ],\n      \"title\": \"Queued Requests\
+    \          },\n          \"expr\": \"permit_queued{exported_job=\\\"$job\\\"}\"\
+    ,\n          \"legendFormat\": \"{{domain}}\",\n          \"range\": true,\n \
+    \         \"refId\": \"A\"\n        }\n      ],\n      \"title\": \"Queued Requests\
     \ by Domain\",\n      \"type\": \"timeseries\"\n    },\n    {\n      \"datasource\"\
     : {\n        \"type\": \"prometheus\",\n        \"uid\": \"prometheus\"\n    \
     \  },\n      \"fieldConfig\": {\n        \"defaults\": {\n          \"color\"\
@@ -1903,51 +1904,52 @@ data:
     multi\",\n          \"sort\": \"desc\"\n        }\n      },\n      \"pluginVersion\"\
     : \"13.0.1\",\n      \"targets\": [\n        {\n          \"datasource\": {\n\
     \            \"type\": \"prometheus\",\n            \"uid\": \"prometheus\"\n\
-    \          },\n          \"expr\": \"sum(rate(permit_issued_total{job=\\\"$job\\\
-    \"}[$__rate_interval])) by (domain)\",\n          \"legendFormat\": \"{{domain}}\"\
-    ,\n          \"range\": true,\n          \"refId\": \"A\"\n        }\n      ],\n\
-    \      \"title\": \"Permit Issuance Rate by Domain\",\n      \"type\": \"timeseries\"\
-    \n    },\n    {\n      \"datasource\": {\n        \"type\": \"prometheus\",\n\
-    \        \"uid\": \"prometheus\"\n      },\n      \"fieldConfig\": {\n       \
-    \ \"defaults\": {\n          \"color\": {\n            \"mode\": \"palette-classic\"\
-    \n          },\n          \"custom\": {\n            \"axisBorderShow\": false,\n\
-    \            \"axisCenteredZero\": false,\n            \"axisColorMode\": \"text\"\
-    ,\n            \"axisLabel\": \"\",\n            \"axisPlacement\": \"auto\",\n\
-    \            \"barAlignment\": 0,\n            \"barWidthFactor\": 0.6,\n    \
-    \        \"drawStyle\": \"line\",\n            \"fillOpacity\": 10,\n        \
-    \    \"gradientMode\": \"none\",\n            \"hideFrom\": {\n              \"\
-    legend\": false,\n              \"tooltip\": false,\n              \"viz\": false\n\
-    \            },\n            \"insertNulls\": false,\n            \"lineInterpolation\"\
-    : \"linear\",\n            \"lineWidth\": 2,\n            \"pointSize\": 5,\n\
-    \            \"scaleDistribution\": {\n              \"type\": \"linear\"\n  \
-    \          },\n            \"showPoints\": \"never\",\n            \"showValues\"\
-    : false,\n            \"spanNulls\": false,\n            \"stacking\": {\n   \
-    \           \"group\": \"A\",\n              \"mode\": \"none\"\n            },\n\
-    \            \"thresholdsStyle\": {\n              \"mode\": \"off\"\n       \
-    \     }\n          },\n          \"thresholds\": {\n            \"mode\": \"absolute\"\
-    ,\n            \"steps\": [\n              {\n                \"color\": \"green\"\
-    ,\n                \"value\": 0\n              }\n            ]\n          },\n\
-    \          \"unit\": \"reqps\"\n        },\n        \"overrides\": [\n       \
-    \   {\n            \"__systemRef\": \"hideSeriesFrom\",\n            \"matcher\"\
-    : {\n              \"id\": \"byNames\",\n              \"options\": {\n      \
-    \          \"mode\": \"exclude\",\n                \"names\": [\n            \
-    \      \"loadtest.example.com 429\"\n                ],\n                \"prefix\"\
-    : \"All except:\",\n                \"readOnly\": true\n              }\n    \
-    \        },\n            \"properties\": [\n              {\n                \"\
-    id\": \"custom.hideFrom\",\n                \"value\": {\n                  \"\
-    legend\": false,\n                  \"tooltip\": true,\n                  \"viz\"\
-    : true\n                }\n              }\n            ]\n          }\n     \
-    \   ]\n      },\n      \"gridPos\": {\n        \"h\": 8,\n        \"w\": 12,\n\
-    \        \"x\": 12,\n        \"y\": 16\n      },\n      \"id\": 12,\n      \"\
-    options\": {\n        \"annotations\": {\n          \"clustering\": -1,\n    \
-    \      \"multiLane\": false\n        },\n        \"legend\": {\n          \"calcs\"\
-    : [\n            \"mean\",\n            \"max\"\n          ],\n          \"displayMode\"\
-    : \"table\",\n          \"placement\": \"bottom\",\n          \"showLegend\":\
-    \ true\n        },\n        \"tooltip\": {\n          \"hideZeros\": false,\n\
-    \          \"mode\": \"multi\",\n          \"sort\": \"desc\"\n        }\n   \
-    \   },\n      \"pluginVersion\": \"13.0.1\",\n      \"targets\": [\n        {\n\
-    \          \"datasource\": {\n            \"type\": \"prometheus\",\n        \
-    \    \"uid\": \"prometheus\"\n          },\n          \"expr\": \"sum(rate(response_status_total{job=\\\
+    \          },\n          \"expr\": \"sum(rate(permit_issued_total{exported_job=\\\
+    \"$job\\\"}[$__rate_interval])) by (domain)\",\n          \"legendFormat\": \"\
+    {{domain}}\",\n          \"range\": true,\n          \"refId\": \"A\"\n      \
+    \  }\n      ],\n      \"title\": \"Permit Issuance Rate by Domain\",\n      \"\
+    type\": \"timeseries\"\n    },\n    {\n      \"datasource\": {\n        \"type\"\
+    : \"prometheus\",\n        \"uid\": \"prometheus\"\n      },\n      \"fieldConfig\"\
+    : {\n        \"defaults\": {\n          \"color\": {\n            \"mode\": \"\
+    palette-classic\"\n          },\n          \"custom\": {\n            \"axisBorderShow\"\
+    : false,\n            \"axisCenteredZero\": false,\n            \"axisColorMode\"\
+    : \"text\",\n            \"axisLabel\": \"\",\n            \"axisPlacement\":\
+    \ \"auto\",\n            \"barAlignment\": 0,\n            \"barWidthFactor\"\
+    : 0.6,\n            \"drawStyle\": \"line\",\n            \"fillOpacity\": 10,\n\
+    \            \"gradientMode\": \"none\",\n            \"hideFrom\": {\n      \
+    \        \"legend\": false,\n              \"tooltip\": false,\n             \
+    \ \"viz\": false\n            },\n            \"insertNulls\": false,\n      \
+    \      \"lineInterpolation\": \"linear\",\n            \"lineWidth\": 2,\n   \
+    \         \"pointSize\": 5,\n            \"scaleDistribution\": {\n          \
+    \    \"type\": \"linear\"\n            },\n            \"showPoints\": \"never\"\
+    ,\n            \"showValues\": false,\n            \"spanNulls\": false,\n   \
+    \         \"stacking\": {\n              \"group\": \"A\",\n              \"mode\"\
+    : \"none\"\n            },\n            \"thresholdsStyle\": {\n             \
+    \ \"mode\": \"off\"\n            }\n          },\n          \"thresholds\": {\n\
+    \            \"mode\": \"absolute\",\n            \"steps\": [\n             \
+    \ {\n                \"color\": \"green\",\n                \"value\": 0\n   \
+    \           }\n            ]\n          },\n          \"unit\": \"reqps\"\n  \
+    \      },\n        \"overrides\": [\n          {\n            \"__systemRef\"\
+    : \"hideSeriesFrom\",\n            \"matcher\": {\n              \"id\": \"byNames\"\
+    ,\n              \"options\": {\n                \"mode\": \"exclude\",\n    \
+    \            \"names\": [\n                  \"loadtest.example.com 429\"\n  \
+    \              ],\n                \"prefix\": \"All except:\",\n            \
+    \    \"readOnly\": true\n              }\n            },\n            \"properties\"\
+    : [\n              {\n                \"id\": \"custom.hideFrom\",\n         \
+    \       \"value\": {\n                  \"legend\": false,\n                 \
+    \ \"tooltip\": true,\n                  \"viz\": true\n                }\n   \
+    \           }\n            ]\n          }\n        ]\n      },\n      \"gridPos\"\
+    : {\n        \"h\": 8,\n        \"w\": 12,\n        \"x\": 12,\n        \"y\"\
+    : 16\n      },\n      \"id\": 12,\n      \"options\": {\n        \"annotations\"\
+    : {\n          \"clustering\": -1,\n          \"multiLane\": false\n        },\n\
+    \        \"legend\": {\n          \"calcs\": [\n            \"mean\",\n      \
+    \      \"max\"\n          ],\n          \"displayMode\": \"table\",\n        \
+    \  \"placement\": \"bottom\",\n          \"showLegend\": true\n        },\n  \
+    \      \"tooltip\": {\n          \"hideZeros\": false,\n          \"mode\": \"\
+    multi\",\n          \"sort\": \"desc\"\n        }\n      },\n      \"pluginVersion\"\
+    : \"13.0.1\",\n      \"targets\": [\n        {\n          \"datasource\": {\n\
+    \            \"type\": \"prometheus\",\n            \"uid\": \"prometheus\"\n\
+    \          },\n          \"expr\": \"sum(rate(response_status_total{exported_job=\\\
     \"$job\\\"}[$__rate_interval])) by (domain, status_code)\",\n          \"legendFormat\"\
     : \"{{domain}} {{status_code}}\",\n          \"range\": true,\n          \"refId\"\
     : \"A\"\n        }\n      ],\n      \"title\": \"Response Status by Domain\",\n\
@@ -1983,23 +1985,25 @@ data:
     \      \"pluginVersion\": \"13.0.1\",\n      \"targets\": [\n        {\n     \
     \     \"datasource\": {\n            \"type\": \"prometheus\",\n            \"\
     uid\": \"prometheus\"\n          },\n          \"expr\": \"histogram_quantile(0.50,\
-    \ sum(rate(permit_wait_duration_ms_milliseconds_bucket{job=\\\"$job\\\"}[$__rate_interval]))\
-    \ by (le))\",\n          \"legendFormat\": \"P50\",\n          \"range\": true,\n\
-    \          \"refId\": \"A\"\n        },\n        {\n          \"datasource\":\
-    \ {\n            \"type\": \"prometheus\",\n            \"uid\": \"prometheus\"\
-    \n          },\n          \"expr\": \"histogram_quantile(0.90, sum(rate(permit_wait_duration_ms_milliseconds_bucket{job=\\\
-    \"$job\\\"}[$__rate_interval])) by (le))\",\n          \"legendFormat\": \"P90\"\
-    ,\n          \"range\": true,\n          \"refId\": \"B\"\n        },\n      \
-    \  {\n          \"datasource\": {\n            \"type\": \"prometheus\",\n   \
-    \         \"uid\": \"prometheus\"\n          },\n          \"expr\": \"histogram_quantile(0.95,\
-    \ sum(rate(permit_wait_duration_ms_milliseconds_bucket{job=\\\"$job\\\"}[$__rate_interval]))\
-    \ by (le))\",\n          \"legendFormat\": \"P95\",\n          \"range\": true,\n\
-    \          \"refId\": \"C\"\n        },\n        {\n          \"datasource\":\
-    \ {\n            \"type\": \"prometheus\",\n            \"uid\": \"prometheus\"\
-    \n          },\n          \"expr\": \"histogram_quantile(0.99, sum(rate(permit_wait_duration_ms_milliseconds_bucket{job=\\\
-    \"$job\\\"}[$__rate_interval])) by (le))\",\n          \"legendFormat\": \"P99\"\
-    ,\n          \"range\": true,\n          \"refId\": \"D\"\n        }\n      ],\n\
-    \      \"title\": \"Wait Duration Percentiles\",\n      \"type\": \"timeseries\"\
+    \ sum(rate(permit_wait_duration_ms_milliseconds_bucket{exported_job=\\\"$job\\\
+    \"}[$__rate_interval])) by (le))\",\n          \"legendFormat\": \"P50\",\n  \
+    \        \"range\": true,\n          \"refId\": \"A\"\n        },\n        {\n\
+    \          \"datasource\": {\n            \"type\": \"prometheus\",\n        \
+    \    \"uid\": \"prometheus\"\n          },\n          \"expr\": \"histogram_quantile(0.90,\
+    \ sum(rate(permit_wait_duration_ms_milliseconds_bucket{exported_job=\\\"$job\\\
+    \"}[$__rate_interval])) by (le))\",\n          \"legendFormat\": \"P90\",\n  \
+    \        \"range\": true,\n          \"refId\": \"B\"\n        },\n        {\n\
+    \          \"datasource\": {\n            \"type\": \"prometheus\",\n        \
+    \    \"uid\": \"prometheus\"\n          },\n          \"expr\": \"histogram_quantile(0.95,\
+    \ sum(rate(permit_wait_duration_ms_milliseconds_bucket{exported_job=\\\"$job\\\
+    \"}[$__rate_interval])) by (le))\",\n          \"legendFormat\": \"P95\",\n  \
+    \        \"range\": true,\n          \"refId\": \"C\"\n        },\n        {\n\
+    \          \"datasource\": {\n            \"type\": \"prometheus\",\n        \
+    \    \"uid\": \"prometheus\"\n          },\n          \"expr\": \"histogram_quantile(0.99,\
+    \ sum(rate(permit_wait_duration_ms_milliseconds_bucket{exported_job=\\\"$job\\\
+    \"}[$__rate_interval])) by (le))\",\n          \"legendFormat\": \"P99\",\n  \
+    \        \"range\": true,\n          \"refId\": \"D\"\n        }\n      ],\n \
+    \     \"title\": \"Wait Duration Percentiles\",\n      \"type\": \"timeseries\"\
     \n    },\n    {\n      \"datasource\": {\n        \"type\": \"prometheus\",\n\
     \        \"uid\": \"prometheus\"\n      },\n      \"fieldConfig\": {\n       \
     \ \"defaults\": {\n          \"color\": {\n            \"mode\": \"palette-classic\"\
@@ -2031,59 +2035,25 @@ data:
     multi\",\n          \"sort\": \"desc\"\n        }\n      },\n      \"pluginVersion\"\
     : \"13.0.1\",\n      \"targets\": [\n        {\n          \"datasource\": {\n\
     \            \"type\": \"prometheus\",\n            \"uid\": \"prometheus\"\n\
-    \          },\n          \"expr\": \"histogram_quantile(0.50, sum(rate(permit_hold_duration_ms_milliseconds_bucket{job=\\\
+    \          },\n          \"expr\": \"histogram_quantile(0.50, sum(rate(permit_hold_duration_ms_milliseconds_bucket{exported_job=\\\
     \"$job\\\"}[$__rate_interval])) by (le))\",\n          \"legendFormat\": \"P50\"\
     ,\n          \"range\": true,\n          \"refId\": \"A\"\n        },\n      \
     \  {\n          \"datasource\": {\n            \"type\": \"prometheus\",\n   \
     \         \"uid\": \"prometheus\"\n          },\n          \"expr\": \"histogram_quantile(0.90,\
-    \ sum(rate(permit_hold_duration_ms_milliseconds_bucket{job=\\\"$job\\\"}[$__rate_interval]))\
-    \ by (le))\",\n          \"legendFormat\": \"P90\",\n          \"range\": true,\n\
-    \          \"refId\": \"B\"\n        },\n        {\n          \"datasource\":\
-    \ {\n            \"type\": \"prometheus\",\n            \"uid\": \"prometheus\"\
-    \n          },\n          \"expr\": \"histogram_quantile(0.95, sum(rate(permit_hold_duration_ms_milliseconds_bucket{job=\\\
-    \"$job\\\"}[$__rate_interval])) by (le))\",\n          \"legendFormat\": \"P95\"\
-    ,\n          \"range\": true,\n          \"refId\": \"C\"\n        },\n      \
-    \  {\n          \"datasource\": {\n            \"type\": \"prometheus\",\n   \
-    \         \"uid\": \"prometheus\"\n          },\n          \"expr\": \"histogram_quantile(0.99,\
-    \ sum(rate(permit_hold_duration_ms_milliseconds_bucket{job=\\\"$job\\\"}[$__rate_interval]))\
-    \ by (le))\",\n          \"legendFormat\": \"P99\",\n          \"range\": true,\n\
-    \          \"refId\": \"D\"\n        }\n      ],\n      \"title\": \"Hold Duration\
-    \ Percentiles\",\n      \"type\": \"timeseries\"\n    },\n    {\n      \"datasource\"\
-    : {\n        \"type\": \"prometheus\",\n        \"uid\": \"prometheus\"\n    \
-    \  },\n      \"fieldConfig\": {\n        \"defaults\": {\n          \"color\"\
-    : {\n            \"mode\": \"palette-classic\"\n          },\n          \"custom\"\
-    : {\n            \"axisBorderShow\": false,\n            \"axisCenteredZero\"\
-    : false,\n            \"axisColorMode\": \"text\",\n            \"axisLabel\"\
-    : \"\",\n            \"axisPlacement\": \"auto\",\n            \"barAlignment\"\
-    : 0,\n            \"barWidthFactor\": 0.6,\n            \"drawStyle\": \"line\"\
-    ,\n            \"fillOpacity\": 10,\n            \"gradientMode\": \"none\",\n\
-    \            \"hideFrom\": {\n              \"legend\": false,\n             \
-    \ \"tooltip\": false,\n              \"viz\": false\n            },\n        \
-    \    \"insertNulls\": false,\n            \"lineInterpolation\": \"linear\",\n\
-    \            \"lineWidth\": 2,\n            \"pointSize\": 5,\n            \"\
-    scaleDistribution\": {\n              \"type\": \"linear\"\n            },\n \
-    \           \"showPoints\": \"never\",\n            \"showValues\": false,\n \
-    \           \"spanNulls\": false,\n            \"stacking\": {\n             \
-    \ \"group\": \"A\",\n              \"mode\": \"none\"\n            },\n      \
-    \      \"thresholdsStyle\": {\n              \"mode\": \"off\"\n            }\n\
-    \          },\n          \"thresholds\": {\n            \"mode\": \"absolute\"\
-    ,\n            \"steps\": [\n              {\n                \"color\": \"green\"\
-    ,\n                \"value\": 0\n              }\n            ]\n          },\n\
-    \          \"unit\": \"reqps\"\n        }\n      },\n      \"gridPos\": {\n  \
-    \      \"h\": 8,\n        \"w\": 24,\n        \"x\": 0,\n        \"y\": 32\n \
-    \     },\n      \"id\": 16,\n      \"options\": {\n        \"annotations\": {\n\
-    \          \"clustering\": -1,\n          \"multiLane\": false\n        },\n \
-    \       \"legend\": {\n          \"calcs\": [\n            \"mean\",\n       \
-    \     \"max\"\n          ],\n          \"displayMode\": \"table\",\n         \
-    \ \"placement\": \"bottom\",\n          \"showLegend\": true\n        },\n   \
-    \     \"tooltip\": {\n          \"hideZeros\": false,\n          \"mode\": \"\
-    multi\",\n          \"sort\": \"desc\"\n        }\n      },\n      \"pluginVersion\"\
-    : \"13.0.1\",\n      \"targets\": [\n        {\n          \"datasource\": {\n\
-    \            \"type\": \"prometheus\",\n            \"uid\": \"prometheus\"\n\
-    \          },\n          \"expr\": \"sum(rate(permit_request_total{job=\\\"$job\\\
-    \"}[$__rate_interval])) by (domain)\",\n          \"legendFormat\": \"{{domain}}\"\
-    ,\n          \"range\": true,\n          \"refId\": \"A\"\n        }\n      ],\n\
-    \      \"title\": \"Permit Requests / sec by Domain\",\n      \"type\": \"timeseries\"\
+    \ sum(rate(permit_hold_duration_ms_milliseconds_bucket{exported_job=\\\"$job\\\
+    \"}[$__rate_interval])) by (le))\",\n          \"legendFormat\": \"P90\",\n  \
+    \        \"range\": true,\n          \"refId\": \"B\"\n        },\n        {\n\
+    \          \"datasource\": {\n            \"type\": \"prometheus\",\n        \
+    \    \"uid\": \"prometheus\"\n          },\n          \"expr\": \"histogram_quantile(0.95,\
+    \ sum(rate(permit_hold_duration_ms_milliseconds_bucket{exported_job=\\\"$job\\\
+    \"}[$__rate_interval])) by (le))\",\n          \"legendFormat\": \"P95\",\n  \
+    \        \"range\": true,\n          \"refId\": \"C\"\n        },\n        {\n\
+    \          \"datasource\": {\n            \"type\": \"prometheus\",\n        \
+    \    \"uid\": \"prometheus\"\n          },\n          \"expr\": \"histogram_quantile(0.99,\
+    \ sum(rate(permit_hold_duration_ms_milliseconds_bucket{exported_job=\\\"$job\\\
+    \"}[$__rate_interval])) by (le))\",\n          \"legendFormat\": \"P99\",\n  \
+    \        \"range\": true,\n          \"refId\": \"D\"\n        }\n      ],\n \
+    \     \"title\": \"Hold Duration Percentiles\",\n      \"type\": \"timeseries\"\
     \n    },\n    {\n      \"datasource\": {\n        \"type\": \"prometheus\",\n\
     \        \"uid\": \"prometheus\"\n      },\n      \"fieldConfig\": {\n       \
     \ \"defaults\": {\n          \"color\": {\n            \"mode\": \"palette-classic\"\
@@ -2104,33 +2074,69 @@ data:
     \     }\n          },\n          \"thresholds\": {\n            \"mode\": \"absolute\"\
     ,\n            \"steps\": [\n              {\n                \"color\": \"green\"\
     ,\n                \"value\": 0\n              }\n            ]\n          },\n\
-    \          \"unit\": \"reqps\"\n        },\n        \"overrides\": [\n       \
-    \   {\n            \"matcher\": {\n              \"id\": \"byName\",\n       \
-    \       \"options\": \"error\"\n            },\n            \"properties\": [\n\
-    \              {\n                \"id\": \"color\",\n                \"value\"\
-    : {\n                  \"fixedColor\": \"red\",\n                  \"mode\": \"\
-    fixed\"\n                }\n              }\n            ]\n          },\n   \
-    \       {\n            \"matcher\": {\n              \"id\": \"byName\",\n   \
-    \           \"options\": \"not_found\"\n            },\n            \"properties\"\
-    : [\n              {\n                \"id\": \"color\",\n                \"value\"\
-    : {\n                  \"fixedColor\": \"orange\",\n                  \"mode\"\
-    : \"fixed\"\n                }\n              }\n            ]\n          },\n\
-    \          {\n            \"matcher\": {\n              \"id\": \"byName\",\n\
-    \              \"options\": \"success\"\n            },\n            \"properties\"\
-    : [\n              {\n                \"id\": \"color\",\n                \"value\"\
-    : {\n                  \"fixedColor\": \"green\",\n                  \"mode\"\
-    : \"fixed\"\n                }\n              }\n            ]\n          }\n\
-    \        ]\n      },\n      \"gridPos\": {\n        \"h\": 8,\n        \"w\":\
-    \ 24,\n        \"x\": 0,\n        \"y\": 40\n      },\n      \"id\": 15,\n   \
-    \   \"options\": {\n        \"annotations\": {\n          \"clustering\": -1,\n\
-    \          \"multiLane\": false\n        },\n        \"legend\": {\n         \
-    \ \"calcs\": [\n            \"mean\",\n            \"max\"\n          ],\n   \
-    \       \"displayMode\": \"table\",\n          \"placement\": \"bottom\",\n  \
-    \        \"showLegend\": true\n        },\n        \"tooltip\": {\n          \"\
-    hideZeros\": false,\n          \"mode\": \"multi\",\n          \"sort\": \"desc\"\
-    \n        }\n      },\n      \"pluginVersion\": \"13.0.1\",\n      \"targets\"\
-    : [\n        {\n          \"datasource\": {\n            \"type\": \"prometheus\"\
-    ,\n            \"uid\": \"prometheus\"\n          },\n          \"expr\": \"sum(rate(robots_txt_fetch_total[$__rate_interval]))\
+    \          \"unit\": \"reqps\"\n        }\n      },\n      \"gridPos\": {\n  \
+    \      \"h\": 8,\n        \"w\": 24,\n        \"x\": 0,\n        \"y\": 32\n \
+    \     },\n      \"id\": 16,\n      \"options\": {\n        \"annotations\": {\n\
+    \          \"clustering\": -1,\n          \"multiLane\": false\n        },\n \
+    \       \"legend\": {\n          \"calcs\": [\n            \"mean\",\n       \
+    \     \"max\"\n          ],\n          \"displayMode\": \"table\",\n         \
+    \ \"placement\": \"bottom\",\n          \"showLegend\": true\n        },\n   \
+    \     \"tooltip\": {\n          \"hideZeros\": false,\n          \"mode\": \"\
+    multi\",\n          \"sort\": \"desc\"\n        }\n      },\n      \"pluginVersion\"\
+    : \"13.0.1\",\n      \"targets\": [\n        {\n          \"datasource\": {\n\
+    \            \"type\": \"prometheus\",\n            \"uid\": \"prometheus\"\n\
+    \          },\n          \"expr\": \"sum(rate(permit_request_total{exported_job=\\\
+    \"$job\\\"}[$__rate_interval])) by (domain)\",\n          \"legendFormat\": \"\
+    {{domain}}\",\n          \"range\": true,\n          \"refId\": \"A\"\n      \
+    \  }\n      ],\n      \"title\": \"Permit Requests / sec by Domain\",\n      \"\
+    type\": \"timeseries\"\n    },\n    {\n      \"datasource\": {\n        \"type\"\
+    : \"prometheus\",\n        \"uid\": \"prometheus\"\n      },\n      \"fieldConfig\"\
+    : {\n        \"defaults\": {\n          \"color\": {\n            \"mode\": \"\
+    palette-classic\"\n          },\n          \"custom\": {\n            \"axisBorderShow\"\
+    : false,\n            \"axisCenteredZero\": false,\n            \"axisColorMode\"\
+    : \"text\",\n            \"axisLabel\": \"\",\n            \"axisPlacement\":\
+    \ \"auto\",\n            \"barAlignment\": 0,\n            \"barWidthFactor\"\
+    : 0.6,\n            \"drawStyle\": \"line\",\n            \"fillOpacity\": 10,\n\
+    \            \"gradientMode\": \"none\",\n            \"hideFrom\": {\n      \
+    \        \"legend\": false,\n              \"tooltip\": false,\n             \
+    \ \"viz\": false\n            },\n            \"insertNulls\": false,\n      \
+    \      \"lineInterpolation\": \"linear\",\n            \"lineWidth\": 2,\n   \
+    \         \"pointSize\": 5,\n            \"scaleDistribution\": {\n          \
+    \    \"type\": \"linear\"\n            },\n            \"showPoints\": \"never\"\
+    ,\n            \"showValues\": false,\n            \"spanNulls\": false,\n   \
+    \         \"stacking\": {\n              \"group\": \"A\",\n              \"mode\"\
+    : \"none\"\n            },\n            \"thresholdsStyle\": {\n             \
+    \ \"mode\": \"off\"\n            }\n          },\n          \"thresholds\": {\n\
+    \            \"mode\": \"absolute\",\n            \"steps\": [\n             \
+    \ {\n                \"color\": \"green\",\n                \"value\": 0\n   \
+    \           }\n            ]\n          },\n          \"unit\": \"reqps\"\n  \
+    \      },\n        \"overrides\": [\n          {\n            \"matcher\": {\n\
+    \              \"id\": \"byName\",\n              \"options\": \"error\"\n   \
+    \         },\n            \"properties\": [\n              {\n               \
+    \ \"id\": \"color\",\n                \"value\": {\n                  \"fixedColor\"\
+    : \"red\",\n                  \"mode\": \"fixed\"\n                }\n       \
+    \       }\n            ]\n          },\n          {\n            \"matcher\":\
+    \ {\n              \"id\": \"byName\",\n              \"options\": \"not_found\"\
+    \n            },\n            \"properties\": [\n              {\n           \
+    \     \"id\": \"color\",\n                \"value\": {\n                  \"fixedColor\"\
+    : \"orange\",\n                  \"mode\": \"fixed\"\n                }\n    \
+    \          }\n            ]\n          },\n          {\n            \"matcher\"\
+    : {\n              \"id\": \"byName\",\n              \"options\": \"success\"\
+    \n            },\n            \"properties\": [\n              {\n           \
+    \     \"id\": \"color\",\n                \"value\": {\n                  \"fixedColor\"\
+    : \"green\",\n                  \"mode\": \"fixed\"\n                }\n     \
+    \         }\n            ]\n          }\n        ]\n      },\n      \"gridPos\"\
+    : {\n        \"h\": 8,\n        \"w\": 24,\n        \"x\": 0,\n        \"y\":\
+    \ 40\n      },\n      \"id\": 15,\n      \"options\": {\n        \"annotations\"\
+    : {\n          \"clustering\": -1,\n          \"multiLane\": false\n        },\n\
+    \        \"legend\": {\n          \"calcs\": [\n            \"mean\",\n      \
+    \      \"max\"\n          ],\n          \"displayMode\": \"table\",\n        \
+    \  \"placement\": \"bottom\",\n          \"showLegend\": true\n        },\n  \
+    \      \"tooltip\": {\n          \"hideZeros\": false,\n          \"mode\": \"\
+    multi\",\n          \"sort\": \"desc\"\n        }\n      },\n      \"pluginVersion\"\
+    : \"13.0.1\",\n      \"targets\": [\n        {\n          \"datasource\": {\n\
+    \            \"type\": \"prometheus\",\n            \"uid\": \"prometheus\"\n\
+    \          },\n          \"expr\": \"sum(rate(robots_txt_fetch_total[$__rate_interval]))\
     \ by (result)\",\n          \"legendFormat\": \"{{result}}\",\n          \"range\"\
     : true,\n          \"refId\": \"A\"\n        }\n      ],\n      \"title\": \"\
     Robots.txt Fetches by Result\",\n      \"type\": \"timeseries\"\n    }\n  ],\n\
@@ -2146,13 +2152,13 @@ data:
     \  \"label\": \"Environment\",\n        \"type\": \"query\",\n        \"datasource\"\
     : {\n          \"type\": \"prometheus\",\n          \"uid\": \"prometheus\"\n\
     \        },\n        \"query\": {\n          \"query\": \"label_values(permit_request_total,\
-    \ job)\",\n          \"refId\": \"job\"\n        },\n        \"definition\": \"\
-    label_values(permit_request_total, job)\",\n        \"regex\": \".*request-auth-server\"\
-    ,\n        \"refresh\": 2,\n        \"includeAll\": false,\n        \"multi\"\
-    : false,\n        \"current\": {\n          \"selected\": true,\n          \"\
-    text\": \"scrape-stack/request-auth-server\",\n          \"value\": \"scrape-stack/request-auth-server\"\
-    \n        },\n        \"options\": [],\n        \"hide\": 0,\n        \"sort\"\
-    : 1\n      }\n    ]\n  }\n}"
+    \ exported_job)\",\n          \"refId\": \"job\"\n        },\n        \"definition\"\
+    : \"label_values(permit_request_total, exported_job)\",\n        \"regex\": \"\
+    .*request-auth-server\",\n        \"refresh\": 2,\n        \"includeAll\": false,\n\
+    \        \"multi\": false,\n        \"current\": {\n          \"selected\": true,\n\
+    \          \"text\": \"scrape-stack/request-auth-server\",\n          \"value\"\
+    : \"scrape-stack/request-auth-server\"\n        },\n        \"options\": [],\n\
+    \        \"hide\": 0,\n        \"sort\": 1\n      }\n    ]\n  }\n}"
 ---
 apiVersion: v1
 kind: ConfigMap
