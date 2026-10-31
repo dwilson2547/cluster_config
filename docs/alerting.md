@@ -59,6 +59,21 @@ processes a second, which hides a miner restarting every few seconds.
 
 `TowerContainerCPUHigh` and `TowerContainerCPUSustained` need no parity window, because the parity check runs in the host, not in a container.
 
+## Mac mini (inference node)
+
+`monitoring/manifests/mac-monitoring.yaml` scrapes the Mac mini's node_exporter (Homebrew, started at login; the Mac
+auto-logs in) at `192.168.0.30:9100` as job `mac-node`, instance `mac-mini`. It's gpu-scheduler's first remote
+inference node (LM Studio): setup in `ai/gpu-scheduler/docs/remote-worker-mac.md`. The Mac being unreachable is the
+chart's `TargetDown` for `mac-node`, already mailed.
+
+A launchd keepalive on the Mac restarts LM Studio's server within a minute and writes text-file metrics on each run:
+`lmstudio_server_up` and `lmstudio_keepalive_last_run_timestamp_seconds`.
+
+| Alert | Fires when | Mailed |
+|---|---|---|
+| `MacLMStudioServerDown` | `lmstudio_server_up == 0` for 10m: the keepalive can't start the server | yes (critical) |
+| `MacLMStudioKeepaliveStale` | the keepalive hasn't run for 5m, held 10m: launchd stopped running it, or no one is logged in | yes (critical) |
+
 ## Turned off
 
 `kubeProxy`, `kubeScheduler`, `kubeControllerManager` and `kubeEtcd` monitoring are disabled: microk8s runs the

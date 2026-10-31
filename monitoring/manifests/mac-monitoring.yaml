@@ -1,0 +1,62 @@
+# Mac mini (192.168.0.30): gpu-scheduler's first remote inference node (LM Studio, MLX models). Setup and what keeps
+# it up: ai/gpu-scheduler docs/remote-worker-mac.md.
+#
+# node_exporter runs from Homebrew at login (auto-login is on). Separate job name (mac-node), as for Tower, so the
+# chart's node-exporter rules and dashboards keep covering cluster nodes only. The Mac going away entirely is the
+# chart's TargetDown for job mac-node, which is already mailed.
+#
+# The rules here cover LM Studio itself: a launchd keepalive on the Mac restarts its server within a minute and writes
+# node_exporter text-file metrics each run (remote-workers/mac/lmstudio-keepalive.sh in gpu-scheduler).
+apiVersion: monitoring.coreos.com/v1alpha1
+kind: ScrapeConfig
+metadata:
+  name: mac-node
+  namespace: monitoring
+  labels:
+    release: prometheus
+spec:
+  jobName: mac-node
+  scrapeInterval: 30s
+  staticConfigs:
+    - targets: ["192.168.0.30:9100"]
+      labels:
+        instance: mac-mini
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: mac-alerts
+  namespace: monitoring
+  labels:
+    release: prometheus
+spec:
+  groups:
+    - name: mac-mini
+      rules:
+        # The keepalive restarts the server within a minute, so ten minutes down means it can't.
+        - alert: MacLMStudioServerDown
+          expr: lmstudio_server_up{job="mac-node"} == 0
+          for: 10m
+          labels:
+            severity: critical
+          annotations:
+            summary: "LM Studio's server on the Mac mini has not answered for 10 minutes"
+            description: >-
+              The keepalive is running but can't start the server. On the Mac (`ssh mac`):
+              `tail ~/Library/Logs/lmstudio-keepalive.log`, then `~/.lmstudio/bin/lms server status`. If LM Studio
+              itself isn't running, it starts with the login: check auto-login and that LM Studio's local service
+              setting is on.
+
+        # The keepalive writes its timestamp every minute. Stale means launchd stopped running it (unloaded, or no
+        # one is logged in), so nothing will restart the server if it goes down.
+        - alert: MacLMStudioKeepaliveStale
+          expr: time() - lmstudio_keepalive_last_run_timestamp_seconds{job="mac-node"} > 300
+          for: 10m
+          labels:
+            severity: critical
+          annotations:
+            summary: "The Mac mini's LM Studio keepalive hasn't run for {{ $value | humanizeDuration }}"
+            description: >-
+              On the Mac: `launchctl print gui/$(id -u)/com.danwils.lmstudio-server`. Reload with
+              `launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.danwils.lmstudio-server.plist`.
+              After a reboot this also fires if auto-login didn't happen.
