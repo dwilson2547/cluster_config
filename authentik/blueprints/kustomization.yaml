@@ -17,5 +17,6 @@ configMapGenerator:
       - scrape-job-manager.yaml
       - gyopart-admin.yaml
       - gpu-scheduler.yaml
+      - incident-operator.yaml
 generatorOptions:
   disableNameSuffixHash: true

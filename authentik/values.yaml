@@ -113,6 +113,14 @@ global:
         secretKeyRef:
           name: authentik-gpu-scheduler-oidc
           key: client_secret
+    # incident-operator page OIDC client secret, read by blueprints/incident-operator.yaml. optional: authentik
+    # starts before infra/incident-operator/scripts/create-secrets.sh has made it (the script restarts authentik).
+    - name: AUTHENTIK_INCIDENT_OPERATOR_CLIENT_SECRET
+      valueFrom:
+        secretKeyRef:
+          name: authentik-incident-operator-oidc
+          key: client_secret
+          optional: true
   envFrom:
     # optional: authentik still starts (without mail) before the Secret exists.
     - secretRef:
