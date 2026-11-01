@@ -30,9 +30,6 @@ entries:
       redirect_uris:
         - matching_mode: strict
           url: https://incident-operator.danwils.com/api/auth/oidc/callback
-        # LAN page, until the public host is released; then removed.
-        - matching_mode: strict
-          url: http://incident-operator.cluster.local/api/auth/oidc/callback
       property_mappings:
         - !Find [authentik_providers_oauth2.scopemapping, [managed, goauthentik.io/providers/oauth2/scope-openid]]
         - !Find [authentik_providers_oauth2.scopemapping, [managed, goauthentik.io/providers/oauth2/scope-email]]
