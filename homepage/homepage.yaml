@@ -320,6 +320,10 @@ data:
             href: https://webdoc.danwils.com
             description: Shared notes and documents for people and agents
             icon: mdi-file-document-multiple-outline
+        - genai:
+            href: https://genai.danwils.com
+            description: Generate and keep images by project (FLUX.2 klein)
+            icon: mdi-image-auto-adjust
         - DXF Converter:
             href: https://dxf-converter.danwils.com
             description: Scanned pen tracing to clean, to-scale DXF

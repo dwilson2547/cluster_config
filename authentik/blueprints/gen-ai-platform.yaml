@@ -1,0 +1,59 @@
+# gen-ai-platform (https://genai.danwils.com) as an OIDC client of authentik.
+#
+# Access is by group only: the application is bound to gen-ai-platform-users, so a user outside it is refused by
+# authentik and never reaches the app (the app checks the groups claim too). Add members (the user and friends) in the
+# authentik admin UI.
+#
+# Client secret: hand-applied Secret `authentik-gen-ai-platform-oidc` (authentik ns); the app reads the same value
+# from `gen-ai-platform-oidc` (gen-ai-platform ns), key client_secret in both. Both are made by
+# ai/gen-ai-platform/scripts/create-secrets.sh.
+version: 1
+metadata:
+  name: danwils - gen-ai-platform OIDC application
+entries:
+  - model: authentik_core.group
+    id: users
+    identifiers:
+      name: gen-ai-platform-users
+
+  - model: authentik_providers_oauth2.oauth2provider
+    id: provider
+    identifiers:
+      name: gen-ai-platform
+    attrs:
+      client_type: confidential
+      # Code flow only: the app issues its own session cookie and never refreshes authentik's tokens.
+      grant_types:
+        - authorization_code
+      client_id: gen-ai-platform
+      client_secret: !Env [AUTHENTIK_GEN_AI_PLATFORM_CLIENT_SECRET, ""]
+      redirect_uris:
+        - matching_mode: strict
+          url: https://genai.danwils.com/api/auth/oidc/callback
+      property_mappings:
+        - !Find [authentik_providers_oauth2.scopemapping, [managed, goauthentik.io/providers/oauth2/scope-openid]]
+        - !Find [authentik_providers_oauth2.scopemapping, [managed, goauthentik.io/providers/oauth2/scope-email]]
+        - !Find [authentik_providers_oauth2.scopemapping, [managed, goauthentik.io/providers/oauth2/scope-profile]]
+      signing_key: !Find [authentik_crypto.certificatekeypair, [name, authentik Self-signed Certificate]]
+      authorization_flow: !Find [authentik_flows.flow, [slug, default-provider-authorization-implicit-consent]]
+      invalidation_flow: !Find [authentik_flows.flow, [slug, default-provider-invalidation-flow]]
+      sub_mode: hashed_user_id
+      issuer_mode: per_provider
+
+  - model: authentik_core.application
+    id: app
+    identifiers:
+      slug: gen-ai-platform
+    attrs:
+      name: genai
+      provider: !KeyOf provider
+      policy_engine_mode: any
+      meta_launch_url: https://genai.danwils.com
+      meta_description: Generate, store and tweak images by project
+
+  - model: authentik_policies.policybinding
+    identifiers:
+      target: !KeyOf app
+      order: 0
+    attrs:
+      group: !KeyOf users

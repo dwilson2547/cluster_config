@@ -18,5 +18,6 @@ configMapGenerator:
       - gyopart-admin.yaml
       - gpu-scheduler.yaml
       - incident-operator.yaml
+      - gen-ai-platform.yaml
 generatorOptions:
   disableNameSuffixHash: true

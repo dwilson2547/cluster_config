@@ -1,3 +1,18 @@
+## 2026-11-01 - gen-ai-platform at genai.danwils.com
+
+### Added
+- `argocd/gen-ai-platform.yaml`: gen-ai-platform (chart `helm/gen-ai-platform` in `dwilson2547/gen-ai-platform`,
+  `main`) into namespace `gen-ai-platform`; image `dwilson2547/gen-ai-platform:0.1.0`. Public on pubsecure
+  (letsencrypt-prod, external-dns), but only a splash page without a session.
+- `authentik/blueprints/gen-ai-platform.yaml` (+ kustomization, `AUTHENTIK_GEN_AI_PLATFORM_CLIENT_SECRET` in
+  `authentik/values.yaml`, optional until the Secret exists): confidential OIDC client `gen-ai-platform`, code flow,
+  per-provider issuer; the application is bound to group `gen-ai-platform-users` (membership by hand), so only members
+  can sign in.
+- `postgres/init-gen-ai-platform.sql`: role and database `gen_ai_platform` on the plain postgres. Run by
+  `ai/gen-ai-platform/scripts/create-secrets.sh`, which also makes the namespace's Secrets (database URL, a
+  gpu-scheduler client token, AIStor bucket keys, the OIDC client secret in both namespaces).
+- Homepage link "genai" (Tools).
+
 ## 2026-10-26 - homepage: gpu-scheduler dashboard
 
 ### Added

@@ -121,6 +121,14 @@ global:
           name: authentik-incident-operator-oidc
           key: client_secret
           optional: true
+    # gen-ai-platform OIDC client secret, read by blueprints/gen-ai-platform.yaml. optional: authentik starts before
+    # ai/gen-ai-platform/scripts/create-secrets.sh has made it (the script restarts authentik and re-applies the blueprint).
+    - name: AUTHENTIK_GEN_AI_PLATFORM_CLIENT_SECRET
+      valueFrom:
+        secretKeyRef:
+          name: authentik-gen-ai-platform-oidc
+          key: client_secret
+          optional: true
   envFrom:
     # optional: authentik still starts (without mail) before the Secret exists.
     - secretRef:
