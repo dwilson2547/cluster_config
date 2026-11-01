@@ -151,6 +151,7 @@ Contains legacy and one-off manifests that predate the ArgoCD setup (postgres, b
 | `sjm.danwils.com` | scrape-job-manager UI (public; authentik sign-in, group `sjm-admins`) |
 | `gyopart.danwils.com` | gyopart UI (public, anonymous, read-only; `/v1/vin/` rate-limited) |
 | `gyopart-admin.danwils.com` | gyopart admin (public; authentik sign-in, group `gyopart-admin`); dev: `gyopart-admin-dev.danwils.com` |
+| `incident-operator.danwils.com` | incident-operator incident page (public; authentik sign-in, group `incident-operator-admins`, who can approve fixes) |
 
 ## Notes
 
