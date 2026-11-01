@@ -33,3 +33,30 @@ type: Opaque
 stringData:
   WW_PLEX_URL: "http://192.168.0.15:32400"
   WW_PLEX_TOKEN: "CHANGE_ME_plex_token"
+---
+# Optional: lets the web-workflows ai-worker submit ai-page jobs to the
+# cluster's gpu-scheduler. The token is this app's own client entry
+# (`web-workflows:<token>`) in the gpu-scheduler-tokens Secret
+# (ai/gpu-scheduler/helm/gpu-scheduler/values.yaml `tokensSecret`).
+# Chart: helm/web-workflows values `gpu.tokenSecret`.
+apiVersion: v1
+kind: Secret
+metadata:
+  name: web-workflows-gpu-scheduler
+  namespace: web-workflows
+type: Opaque
+stringData:
+  token: "CHANGE_ME_gpu_scheduler_client_token"
+---
+# Optional: knowledge-store sink — finished AI summaries are pushed to webdoc
+# (apps/webdoc) as notes over its MCP endpoint. The token is a personal access
+# token (wdp_…) from webdoc's Agents page; `domain` in values must be one the
+# token may write to. Chart: values `webdoc.*`.
+apiVersion: v1
+kind: Secret
+metadata:
+  name: web-workflows-webdoc
+  namespace: web-workflows
+type: Opaque
+stringData:
+  token: "CHANGE_ME_webdoc_pat"
