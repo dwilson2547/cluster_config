@@ -8,6 +8,10 @@
 # Mailed: every critical alert, plus the warnings listed in the second route. Everything else stays visible in
 # Alertmanager/Grafana only. Scrape jobs are left to scrape-job-manager, which retries and mails on its own.
 #
+# The same alerts also go to incident-operator (infra/incident-operator), which triages each one with a local model
+# and mails its own suggestion: its webhook sits on the `email` receiver, so what is triaged is always what is mailed.
+# In-cluster Service only, no Ingress.
+#
 # SMTP: hand-applied secret `alertmanager-smtp` in namespace monitoring (key SMTP_PASSWORD), a copy of the one in
 # postgres.
 apiVersion: monitoring.coreos.com/v1alpha1
@@ -47,6 +51,9 @@ spec:
             name: alertmanager-smtp
             key: SMTP_PASSWORD
           requireTLS: true
+          sendResolved: true
+      webhookConfigs:
+        - url: http://incident-operator-webhook.incident-operator.svc/alertmanager
           sendResolved: true
 ---
 # Replaces the chart's KubeJobFailed (disabled in prometheus-values.yaml): scrape-job-manager's Jobs fail and retry

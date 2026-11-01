@@ -22,6 +22,14 @@ filling, node memory, clock sync, deployment/statefulset replicas or rollouts st
 down. To mail another alert, add its name to the regex in the second route. Repeats every 24h while firing; a
 resolved notice follows.
 
+### Triage (incident-operator)
+
+The `email` receiver of `cluster-alerts` also posts to incident-operator's in-cluster webhook
+(`incident-operator-webhook.incident-operator.svc/alertmanager`, `sendResolved`). So every alert mailed by
+`cluster-alerts` is also triaged: incident-operator collects read-only evidence, asks a local model through
+gpu-scheduler, and mails one suggestion per incident (subject `[triage] …`). Alerts mailed by the namespaced backup
+configs are not triaged (they stop before the root route). Details: `infra/incident-operator/README.md`.
+
 scrape-job-manager's own Jobs are left out of `KubeJobFailed`: they fail and retry as normal operation, and
 scrape-job-manager mails on its own (`ScrapeJob*` alerts stay unmailed for the same reason; `ScrapeOperatorDown` is
 critical and is mailed). A failed Job keeps `KubeJobFailed` firing until the Job is deleted.
