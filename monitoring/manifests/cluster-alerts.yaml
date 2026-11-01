@@ -35,6 +35,11 @@ spec:
       - receiver: triage
         matchers:
           - {name: alertname, matchType: "=~", value: "ScrapeJobStale|ScrapeJobSuspended"}
+      # incident-operator's own health alerts (its chart): mailed, never sent to its webhook, since a stuck operator
+      # can't triage its own outage.
+      - receiver: email-direct
+        matchers:
+          - {name: alertname, matchType: "=~", value: "IncidentOperator.*"}
       - receiver: email
         matchers:
           - {name: severity, matchType: "=", value: critical}
@@ -46,6 +51,17 @@ spec:
               KubePodCrashLooping|KubeNodeNotReady|KubeNodeUnreachable|KubeNodeReadinessFlapping|KubePersistentVolumeFillingUp|NodeFilesystemSpaceFillingUp|NodeFilesystemAlmostOutOfSpace|NodeMemoryHighUtilization|NodeClockNotSynchronising|KubeDeploymentReplicasMismatch|KubeStatefulSetReplicasMismatch|KubeDeploymentRolloutStuck|KubeDaemonSetRolloutStuck|KubeJobFailed|TargetDown|NodeLoadHighCPUIdle
   receivers:
     - name: "null"
+    - name: email-direct
+      emailConfigs:
+        - to: dwilson2547@gmail.com
+          from: "alertmanager <dwilson2547@gmail.com>"
+          smarthost: smtp.gmail.com:587
+          authUsername: dwilson2547@gmail.com
+          authPassword:
+            name: alertmanager-smtp
+            key: SMTP_PASSWORD
+          requireTLS: true
+          sendResolved: true
     - name: email
       emailConfigs:
         - to: dwilson2547@gmail.com

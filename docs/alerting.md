@@ -34,6 +34,10 @@ gpu-scheduler, and mails one suggestion per incident (subject `[triage] …`). D
 - `ScrapeJobStale` and `ScrapeJobSuspended`, through the root config's `triage` receiver (webhook only, not mailed by
   Alertmanager: scrape-job-manager mails its own run failures).
 
+incident-operator's own alerts (`IncidentOperatorDown`, `IncidentOperatorTriageStalled`, `IncidentOperatorEmailFailing`,
+from its chart) take the `email-direct` route: the same email without the webhook, since a stuck operator can't
+triage its own outage.
+
 `NodeLoadHighCPUIdle` (PrometheusRule `cluster-node-alerts` in `cluster-alerts.yaml`, warning, mailed): load over 2x a
 node's cores while its CPU is under half busy, for 20 minutes: the NFS client wedge signature
 (`docs/issues/2026_10_18_unraid_nfs_v41_client_wedge.md`). Backtested 2026-11-01 over 14 days: true only on
