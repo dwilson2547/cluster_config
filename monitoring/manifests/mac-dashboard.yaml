@@ -1,0 +1,1408 @@
+# Mac mini dashboard: gpu-scheduler's remote inference node (host + LM Studio keepalive metrics, job mac-node).
+# Provisioned by the Grafana sidecar (label grafana_dashboard); edit the generator, not the JSON:
+# monitoring/dashboards/gen_mac_node.py > monitoring/manifests/mac-dashboard.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mac-dashboard
+  namespace: monitoring
+  labels:
+    grafana_dashboard: "1"
+data:
+  mac-mini.json: |
+    {
+     "uid": "mac-mini",
+     "title": "Mac mini (inference node)",
+     "tags": [
+      "mac",
+      "gpu-scheduler",
+      "inference"
+     ],
+     "timezone": "browser",
+     "schemaVersion": 39,
+     "refresh": "30s",
+     "editable": false,
+     "time": {
+      "from": "now-6h",
+      "to": "now"
+     },
+     "templating": {
+      "list": [
+       {
+        "type": "datasource",
+        "name": "datasource",
+        "label": "Prometheus",
+        "query": "prometheus",
+        "current": {},
+        "hide": 0
+       }
+      ]
+     },
+     "annotations": {
+      "list": []
+     },
+     "panels": [
+      {
+       "type": "row",
+       "title": "At a glance",
+       "id": 1,
+       "collapsed": false,
+       "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+       }
+      },
+      {
+       "type": "stat",
+       "title": "Exporter",
+       "id": 2,
+       "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+       },
+       "description": "Prometheus can scrape node_exporter on the Mac (192.168.0.30:9100).",
+       "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 0,
+        "y": 1
+       },
+       "targets": [
+        {
+         "refId": "A",
+         "expr": "max(up{job=\"mac-node\"}) or vector(0)",
+         "instant": true,
+         "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+         }
+        }
+       ],
+       "fieldConfig": {
+        "defaults": {
+         "unit": "none",
+         "decimals": 0,
+         "mappings": [
+          {
+           "type": "value",
+           "options": {
+            "0": {
+             "text": "DOWN",
+             "color": "red"
+            },
+            "1": {
+             "text": "UP",
+             "color": "green"
+            }
+           }
+          }
+         ],
+         "thresholds": {
+          "mode": "absolute",
+          "steps": [
+           {
+            "color": "red",
+            "value": null
+           },
+           {
+            "color": "green",
+            "value": 1
+           }
+          ]
+         },
+         "color": {
+          "mode": "thresholds"
+         }
+        },
+        "overrides": []
+       },
+       "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value",
+        "reduceOptions": {
+         "calcs": [
+          "lastNotNull"
+         ],
+         "fields": "",
+         "values": false
+        }
+       }
+      },
+      {
+       "type": "stat",
+       "title": "LM Studio server",
+       "id": 3,
+       "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+       },
+       "description": "Written by the keepalive each minute: TCP connect to LM Studio's server on :1234.",
+       "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 3,
+        "y": 1
+       },
+       "targets": [
+        {
+         "refId": "A",
+         "expr": "lmstudio_server_up{job=\"mac-node\"}",
+         "instant": true,
+         "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+         }
+        }
+       ],
+       "fieldConfig": {
+        "defaults": {
+         "unit": "none",
+         "decimals": 0,
+         "mappings": [
+          {
+           "type": "value",
+           "options": {
+            "0": {
+             "text": "DOWN",
+             "color": "red"
+            },
+            "1": {
+             "text": "UP",
+             "color": "green"
+            }
+           }
+          }
+         ],
+         "thresholds": {
+          "mode": "absolute",
+          "steps": [
+           {
+            "color": "red",
+            "value": null
+           },
+           {
+            "color": "green",
+            "value": 1
+           }
+          ]
+         },
+         "color": {
+          "mode": "thresholds"
+         }
+        },
+        "overrides": []
+       },
+       "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value",
+        "reduceOptions": {
+         "calcs": [
+          "lastNotNull"
+         ],
+         "fields": "",
+         "values": false
+        }
+       }
+      },
+      {
+       "type": "stat",
+       "title": "Keepalive last ran",
+       "id": 4,
+       "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+       },
+       "description": "Seconds since the launchd keepalive last ran. It runs every minute; MacLMStudioKeepaliveStale fires past 300 s for 10 min.",
+       "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 6,
+        "y": 1
+       },
+       "targets": [
+        {
+         "refId": "A",
+         "expr": "time() - lmstudio_keepalive_last_run_timestamp_seconds{job=\"mac-node\"}",
+         "instant": true,
+         "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+         }
+        }
+       ],
+       "fieldConfig": {
+        "defaults": {
+         "unit": "s",
+         "decimals": 0,
+         "mappings": [],
+         "thresholds": {
+          "mode": "absolute",
+          "steps": [
+           {
+            "color": "green",
+            "value": null
+           },
+           {
+            "color": "orange",
+            "value": 180
+           },
+           {
+            "color": "red",
+            "value": 300
+           }
+          ]
+         },
+         "color": {
+          "mode": "thresholds"
+         }
+        },
+        "overrides": []
+       },
+       "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value",
+        "reduceOptions": {
+         "calcs": [
+          "lastNotNull"
+         ],
+         "fields": "",
+         "values": false
+        }
+       }
+      },
+      {
+       "type": "stat",
+       "title": "Uptime",
+       "id": 5,
+       "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+       },
+       "description": "",
+       "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 9,
+        "y": 1
+       },
+       "targets": [
+        {
+         "refId": "A",
+         "expr": "time() - node_boot_time_seconds{job=\"mac-node\"}",
+         "instant": true,
+         "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+         }
+        }
+       ],
+       "fieldConfig": {
+        "defaults": {
+         "unit": "s",
+         "decimals": 0,
+         "mappings": [],
+         "thresholds": {
+          "mode": "absolute",
+          "steps": [
+           {
+            "color": "orange",
+            "value": null
+           },
+           {
+            "color": "green",
+            "value": 3600
+           }
+          ]
+         },
+         "color": {
+          "mode": "thresholds"
+         }
+        },
+        "overrides": []
+       },
+       "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value",
+        "reduceOptions": {
+         "calcs": [
+          "lastNotNull"
+         ],
+         "fields": "",
+         "values": false
+        }
+       }
+      },
+      {
+       "type": "stat",
+       "title": "CPU busy",
+       "id": 6,
+       "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+       },
+       "description": "",
+       "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 12,
+        "y": 1
+       },
+       "targets": [
+        {
+         "refId": "A",
+         "expr": "100 * (1 - avg(rate(node_cpu_seconds_total{job=\"mac-node\", mode=\"idle\"}[$__rate_interval])))",
+         "instant": false,
+         "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+         }
+        }
+       ],
+       "fieldConfig": {
+        "defaults": {
+         "unit": "percent",
+         "decimals": 0,
+         "mappings": [],
+         "thresholds": {
+          "mode": "absolute",
+          "steps": [
+           {
+            "color": "green",
+            "value": null
+           },
+           {
+            "color": "orange",
+            "value": 70
+           },
+           {
+            "color": "red",
+            "value": 90
+           }
+          ]
+         },
+         "color": {
+          "mode": "thresholds"
+         }
+        },
+        "overrides": []
+       },
+       "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "textMode": "value",
+        "reduceOptions": {
+         "calcs": [
+          "lastNotNull"
+         ],
+         "fields": "",
+         "values": false
+        }
+       }
+      },
+      {
+       "type": "stat",
+       "title": "Memory used",
+       "id": 7,
+       "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+       },
+       "description": "Activity Monitor's 'Memory Used' (app + wired + compressed) as a share of unified memory. Models must fit here alongside macOS.",
+       "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 15,
+        "y": 1
+       },
+       "targets": [
+        {
+         "refId": "A",
+         "expr": "100 * ((node_memory_internal_bytes{job=\"mac-node\"} - node_memory_purgeable_bytes{job=\"mac-node\"}) + node_memory_wired_bytes{job=\"mac-node\"} + node_memory_compressed_bytes{job=\"mac-node\"}) / node_memory_total_bytes{job=\"mac-node\"}",
+         "instant": false,
+         "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+         }
+        }
+       ],
+       "fieldConfig": {
+        "defaults": {
+         "unit": "percent",
+         "decimals": 0,
+         "mappings": [],
+         "thresholds": {
+          "mode": "absolute",
+          "steps": [
+           {
+            "color": "green",
+            "value": null
+           },
+           {
+            "color": "orange",
+            "value": 75
+           },
+           {
+            "color": "red",
+            "value": 90
+           }
+          ]
+         },
+         "color": {
+          "mode": "thresholds"
+         }
+        },
+        "overrides": []
+       },
+       "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "textMode": "value",
+        "reduceOptions": {
+         "calcs": [
+          "lastNotNull"
+         ],
+         "fields": "",
+         "values": false
+        }
+       }
+      },
+      {
+       "type": "stat",
+       "title": "Swap used",
+       "id": 8,
+       "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+       },
+       "description": "",
+       "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 18,
+        "y": 1
+       },
+       "targets": [
+        {
+         "refId": "A",
+         "expr": "node_memory_swap_used_bytes{job=\"mac-node\"}",
+         "instant": true,
+         "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+         }
+        }
+       ],
+       "fieldConfig": {
+        "defaults": {
+         "unit": "bytes",
+         "decimals": 1,
+         "mappings": [],
+         "thresholds": {
+          "mode": "absolute",
+          "steps": [
+           {
+            "color": "green",
+            "value": null
+           },
+           {
+            "color": "orange",
+            "value": 2147483648
+           },
+           {
+            "color": "red",
+            "value": 4294967296
+           }
+          ]
+         },
+         "color": {
+          "mode": "thresholds"
+         }
+        },
+        "overrides": []
+       },
+       "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value",
+        "reduceOptions": {
+         "calcs": [
+          "lastNotNull"
+         ],
+         "fields": "",
+         "values": false
+        }
+       }
+      },
+      {
+       "type": "stat",
+       "title": "Disk free",
+       "id": 9,
+       "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+       },
+       "description": "Free space in the APFS container (Data volume), where model files live.",
+       "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 21,
+        "y": 1
+       },
+       "targets": [
+        {
+         "refId": "A",
+         "expr": "node_filesystem_avail_bytes{job=\"mac-node\", mountpoint=\"/System/Volumes/Data\"}",
+         "instant": true,
+         "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+         }
+        }
+       ],
+       "fieldConfig": {
+        "defaults": {
+         "unit": "bytes",
+         "decimals": 0,
+         "mappings": [],
+         "thresholds": {
+          "mode": "absolute",
+          "steps": [
+           {
+            "color": "red",
+            "value": null
+           },
+           {
+            "color": "orange",
+            "value": 30000000000
+           },
+           {
+            "color": "green",
+            "value": 60000000000
+           }
+          ]
+         },
+         "color": {
+          "mode": "thresholds"
+         }
+        },
+        "overrides": []
+       },
+       "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value",
+        "reduceOptions": {
+         "calcs": [
+          "lastNotNull"
+         ],
+         "fields": "",
+         "values": false
+        }
+       }
+      },
+      {
+       "type": "row",
+       "title": "LM Studio",
+       "id": 10,
+       "collapsed": false,
+       "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 5
+       }
+      },
+      {
+       "type": "state-timeline",
+       "title": "Availability",
+       "id": 11,
+       "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+       },
+       "description": "Gaps in 'exporter' mean the Mac (or node_exporter) was unreachable.",
+       "gridPos": {
+        "h": 5,
+        "w": 16,
+        "x": 0,
+        "y": 6
+       },
+       "targets": [
+        {
+         "refId": "A",
+         "expr": "up{job=\"mac-node\"}",
+         "legendFormat": "exporter",
+         "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+         }
+        },
+        {
+         "refId": "B",
+         "expr": "lmstudio_server_up{job=\"mac-node\"}",
+         "legendFormat": "LM Studio server",
+         "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+         }
+        }
+       ],
+       "fieldConfig": {
+        "defaults": {
+         "mappings": [
+          {
+           "type": "value",
+           "options": {
+            "0": {
+             "text": "DOWN",
+             "color": "red"
+            },
+            "1": {
+             "text": "UP",
+             "color": "green"
+            }
+           }
+          }
+         ],
+         "color": {
+          "mode": "thresholds"
+         },
+         "thresholds": {
+          "mode": "absolute",
+          "steps": [
+           {
+            "color": "red",
+            "value": null
+           },
+           {
+            "color": "green",
+            "value": 1
+           }
+          ]
+         }
+        },
+        "overrides": []
+       },
+       "options": {
+        "showValue": "never",
+        "mergeValues": true,
+        "rowHeight": 0.8,
+        "legend": {
+         "showLegend": false
+        },
+        "tooltip": {
+         "mode": "single"
+        }
+       }
+      },
+      {
+       "type": "timeseries",
+       "title": "Keepalive age",
+       "id": 12,
+       "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+       },
+       "description": "",
+       "gridPos": {
+        "h": 5,
+        "w": 8,
+        "x": 16,
+        "y": 6
+       },
+       "targets": [
+        {
+         "refId": "A",
+         "expr": "time() - lmstudio_keepalive_last_run_timestamp_seconds{job=\"mac-node\"}",
+         "legendFormat": "age",
+         "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+         }
+        }
+       ],
+       "fieldConfig": {
+        "defaults": {
+         "unit": "s",
+         "min": 0,
+         "custom": {
+          "lineWidth": 2,
+          "fillOpacity": 10,
+          "stacking": {
+           "mode": "none"
+          }
+         }
+        },
+        "overrides": []
+       },
+       "options": {
+        "legend": {
+         "displayMode": "list",
+         "placement": "bottom"
+        },
+        "tooltip": {
+         "mode": "multi",
+         "sort": "desc"
+        }
+       }
+      },
+      {
+       "type": "row",
+       "title": "CPU",
+       "id": 13,
+       "collapsed": false,
+       "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 11
+       }
+      },
+      {
+       "type": "timeseries",
+       "title": "CPU by mode",
+       "id": 14,
+       "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+       },
+       "description": "",
+       "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 12
+       },
+       "targets": [
+        {
+         "refId": "A",
+         "expr": "100 * sum by (mode) (rate(node_cpu_seconds_total{job=\"mac-node\", mode!=\"idle\"}[$__rate_interval])) / scalar(count(node_cpu_seconds_total{job=\"mac-node\", mode=\"idle\"}))",
+         "legendFormat": "{{mode}}",
+         "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+         }
+        }
+       ],
+       "fieldConfig": {
+        "defaults": {
+         "unit": "percent",
+         "min": 0,
+         "max": 100,
+         "custom": {
+          "lineWidth": 2,
+          "fillOpacity": 30,
+          "stacking": {
+           "mode": "normal"
+          }
+         }
+        },
+        "overrides": []
+       },
+       "options": {
+        "legend": {
+         "displayMode": "list",
+         "placement": "bottom"
+        },
+        "tooltip": {
+         "mode": "multi",
+         "sort": "desc"
+        }
+       }
+      },
+      {
+       "type": "timeseries",
+       "title": "CPU per core",
+       "id": 15,
+       "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+       },
+       "description": "",
+       "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 8,
+        "y": 12
+       },
+       "targets": [
+        {
+         "refId": "A",
+         "expr": "100 * (1 - rate(node_cpu_seconds_total{job=\"mac-node\", mode=\"idle\"}[$__rate_interval]))",
+         "legendFormat": "cpu {{cpu}}",
+         "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+         }
+        }
+       ],
+       "fieldConfig": {
+        "defaults": {
+         "unit": "percent",
+         "min": 0,
+         "max": 100,
+         "custom": {
+          "lineWidth": 2,
+          "fillOpacity": 10,
+          "stacking": {
+           "mode": "none"
+          }
+         }
+        },
+        "overrides": []
+       },
+       "options": {
+        "legend": {
+         "displayMode": "list",
+         "placement": "bottom"
+        },
+        "tooltip": {
+         "mode": "multi",
+         "sort": "desc"
+        }
+       }
+      },
+      {
+       "type": "timeseries",
+       "title": "Load average",
+       "id": 16,
+       "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+       },
+       "description": "",
+       "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 12
+       },
+       "targets": [
+        {
+         "refId": "A",
+         "expr": "node_load1{job=\"mac-node\"}",
+         "legendFormat": "1m",
+         "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+         }
+        },
+        {
+         "refId": "B",
+         "expr": "node_load5{job=\"mac-node\"}",
+         "legendFormat": "5m",
+         "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+         }
+        },
+        {
+         "refId": "C",
+         "expr": "node_load15{job=\"mac-node\"}",
+         "legendFormat": "15m",
+         "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+         }
+        },
+        {
+         "refId": "D",
+         "expr": "count(node_cpu_seconds_total{job=\"mac-node\", mode=\"idle\"})",
+         "legendFormat": "cores",
+         "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+         }
+        }
+       ],
+       "fieldConfig": {
+        "defaults": {
+         "unit": "short",
+         "min": 0,
+         "custom": {
+          "lineWidth": 2,
+          "fillOpacity": 10,
+          "stacking": {
+           "mode": "none"
+          }
+         }
+        },
+        "overrides": [
+         {
+          "matcher": {
+           "id": "byName",
+           "options": "cores"
+          },
+          "properties": [
+           {
+            "id": "custom.lineStyle",
+            "value": {
+             "fill": "dash",
+             "dash": [
+              6,
+              4
+             ]
+            }
+           },
+           {
+            "id": "custom.fillOpacity",
+            "value": 0
+           },
+           {
+            "id": "color",
+            "value": {
+             "mode": "fixed",
+             "fixedColor": "red"
+            }
+           }
+          ]
+         }
+        ]
+       },
+       "options": {
+        "legend": {
+         "displayMode": "list",
+         "placement": "bottom"
+        },
+        "tooltip": {
+         "mode": "multi",
+         "sort": "desc"
+        }
+       }
+      },
+      {
+       "type": "row",
+       "title": "Memory",
+       "id": 17,
+       "collapsed": false,
+       "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 20
+       }
+      },
+      {
+       "type": "timeseries",
+       "title": "Unified memory",
+       "id": 18,
+       "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+       },
+       "description": "Stacked to total unified memory. wired + app + compressed = Activity Monitor's 'Memory Used'.",
+       "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 0,
+        "y": 21
+       },
+       "targets": [
+        {
+         "refId": "A",
+         "expr": "node_memory_wired_bytes{job=\"mac-node\"}",
+         "legendFormat": "wired",
+         "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+         }
+        },
+        {
+         "refId": "B",
+         "expr": "node_memory_internal_bytes{job=\"mac-node\"} - node_memory_purgeable_bytes{job=\"mac-node\"}",
+         "legendFormat": "app",
+         "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+         }
+        },
+        {
+         "refId": "C",
+         "expr": "node_memory_compressed_bytes{job=\"mac-node\"}",
+         "legendFormat": "compressed",
+         "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+         }
+        },
+        {
+         "refId": "D",
+         "expr": "node_memory_inactive_bytes{job=\"mac-node\"}",
+         "legendFormat": "inactive (cache)",
+         "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+         }
+        },
+        {
+         "refId": "E",
+         "expr": "node_memory_free_bytes{job=\"mac-node\"}",
+         "legendFormat": "free",
+         "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+         }
+        }
+       ],
+       "fieldConfig": {
+        "defaults": {
+         "unit": "bytes",
+         "min": 0,
+         "custom": {
+          "lineWidth": 2,
+          "fillOpacity": 30,
+          "stacking": {
+           "mode": "normal"
+          }
+         }
+        },
+        "overrides": [
+         {
+          "matcher": {
+           "id": "byName",
+           "options": "free"
+          },
+          "properties": [
+           {
+            "id": "color",
+            "value": {
+             "mode": "fixed",
+             "fixedColor": "transparent"
+            }
+           },
+           {
+            "id": "custom.lineWidth",
+            "value": 0
+           }
+          ]
+         }
+        ]
+       },
+       "options": {
+        "legend": {
+         "displayMode": "list",
+         "placement": "bottom"
+        },
+        "tooltip": {
+         "mode": "multi",
+         "sort": "desc"
+        }
+       }
+      },
+      {
+       "type": "timeseries",
+       "title": "Swap",
+       "id": 19,
+       "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+       },
+       "description": "",
+       "gridPos": {
+        "h": 9,
+        "w": 6,
+        "x": 12,
+        "y": 21
+       },
+       "targets": [
+        {
+         "refId": "A",
+         "expr": "node_memory_swap_used_bytes{job=\"mac-node\"}",
+         "legendFormat": "used",
+         "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+         }
+        },
+        {
+         "refId": "B",
+         "expr": "node_memory_swap_total_bytes{job=\"mac-node\"}",
+         "legendFormat": "allocated",
+         "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+         }
+        }
+       ],
+       "fieldConfig": {
+        "defaults": {
+         "unit": "bytes",
+         "min": 0,
+         "custom": {
+          "lineWidth": 2,
+          "fillOpacity": 10,
+          "stacking": {
+           "mode": "none"
+          }
+         }
+        },
+        "overrides": []
+       },
+       "options": {
+        "legend": {
+         "displayMode": "list",
+         "placement": "bottom"
+        },
+        "tooltip": {
+         "mode": "multi",
+         "sort": "desc"
+        }
+       }
+      },
+      {
+       "type": "timeseries",
+       "title": "Swap traffic",
+       "id": 20,
+       "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+       },
+       "description": "Sustained swap-out during inference means the model plus context doesn't fit in memory.",
+       "gridPos": {
+        "h": 9,
+        "w": 6,
+        "x": 18,
+        "y": 21
+       },
+       "targets": [
+        {
+         "refId": "A",
+         "expr": "rate(node_memory_swapped_in_bytes_total{job=\"mac-node\"}[$__rate_interval])",
+         "legendFormat": "in",
+         "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+         }
+        },
+        {
+         "refId": "B",
+         "expr": "-rate(node_memory_swapped_out_bytes_total{job=\"mac-node\"}[$__rate_interval])",
+         "legendFormat": "out",
+         "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+         }
+        }
+       ],
+       "fieldConfig": {
+        "defaults": {
+         "unit": "Bps",
+         "custom": {
+          "lineWidth": 2,
+          "fillOpacity": 10,
+          "stacking": {
+           "mode": "none"
+          }
+         }
+        },
+        "overrides": []
+       },
+       "options": {
+        "legend": {
+         "displayMode": "list",
+         "placement": "bottom"
+        },
+        "tooltip": {
+         "mode": "multi",
+         "sort": "desc"
+        }
+       }
+      },
+      {
+       "type": "row",
+       "title": "Disk & network",
+       "id": 21,
+       "collapsed": false,
+       "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 30
+       }
+      },
+      {
+       "type": "timeseries",
+       "title": "Disk throughput",
+       "id": 22,
+       "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+       },
+       "description": "Reads spike when a model is loaded from disk.",
+       "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 31
+       },
+       "targets": [
+        {
+         "refId": "A",
+         "expr": "rate(node_disk_read_bytes_total{job=\"mac-node\"}[$__rate_interval])",
+         "legendFormat": "read {{device}}",
+         "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+         }
+        },
+        {
+         "refId": "B",
+         "expr": "-rate(node_disk_written_bytes_total{job=\"mac-node\"}[$__rate_interval])",
+         "legendFormat": "write {{device}}",
+         "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+         }
+        }
+       ],
+       "fieldConfig": {
+        "defaults": {
+         "unit": "Bps",
+         "custom": {
+          "lineWidth": 2,
+          "fillOpacity": 10,
+          "stacking": {
+           "mode": "none"
+          }
+         }
+        },
+        "overrides": []
+       },
+       "options": {
+        "legend": {
+         "displayMode": "list",
+         "placement": "bottom"
+        },
+        "tooltip": {
+         "mode": "multi",
+         "sort": "desc"
+        }
+       }
+      },
+      {
+       "type": "timeseries",
+       "title": "Network",
+       "id": 23,
+       "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+       },
+       "description": "",
+       "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 8,
+        "y": 31
+       },
+       "targets": [
+        {
+         "refId": "A",
+         "expr": "rate(node_network_receive_bytes_total{job=\"mac-node\", device=~\"en[0-9]+\"}[$__rate_interval]) > 0",
+         "legendFormat": "rx {{device}}",
+         "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+         }
+        },
+        {
+         "refId": "B",
+         "expr": "-rate(node_network_transmit_bytes_total{job=\"mac-node\", device=~\"en[0-9]+\"}[$__rate_interval]) < 0",
+         "legendFormat": "tx {{device}}",
+         "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+         }
+        }
+       ],
+       "fieldConfig": {
+        "defaults": {
+         "unit": "Bps",
+         "custom": {
+          "lineWidth": 2,
+          "fillOpacity": 10,
+          "stacking": {
+           "mode": "none"
+          }
+         }
+        },
+        "overrides": []
+       },
+       "options": {
+        "legend": {
+         "displayMode": "list",
+         "placement": "bottom"
+        },
+        "tooltip": {
+         "mode": "multi",
+         "sort": "desc"
+        }
+       }
+      },
+      {
+       "type": "timeseries",
+       "title": "Disk space",
+       "id": 24,
+       "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+       },
+       "description": "",
+       "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 31
+       },
+       "targets": [
+        {
+         "refId": "A",
+         "expr": "node_filesystem_size_bytes{job=\"mac-node\", mountpoint=\"/System/Volumes/Data\"} - node_filesystem_avail_bytes{job=\"mac-node\", mountpoint=\"/System/Volumes/Data\"}",
+         "legendFormat": "used",
+         "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+         }
+        },
+        {
+         "refId": "B",
+         "expr": "node_filesystem_size_bytes{job=\"mac-node\", mountpoint=\"/System/Volumes/Data\"}",
+         "legendFormat": "size",
+         "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+         }
+        }
+       ],
+       "fieldConfig": {
+        "defaults": {
+         "unit": "bytes",
+         "min": 0,
+         "custom": {
+          "lineWidth": 2,
+          "fillOpacity": 10,
+          "stacking": {
+           "mode": "none"
+          }
+         }
+        },
+        "overrides": []
+       },
+       "options": {
+        "legend": {
+         "displayMode": "list",
+         "placement": "bottom"
+        },
+        "tooltip": {
+         "mode": "multi",
+         "sort": "desc"
+        }
+       }
+      }
+     ]
+    }
