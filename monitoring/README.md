@@ -87,4 +87,9 @@ Prometheus can also scrape services directly through `ServiceMonitor`s, such as 
 - **microk8s TLS**: the self-signed CA lacks the Key Usage extension. Loki's sidecar requires `sidecar.skipTlsVerify: true` in `monitoring/helm-values/loki-values.yaml` to avoid CrashLoopBackOff.
 - **Loki WAL on NFS**: if Loki crashes uncleanly, the WAL directory may need manual clearing before it will restart. Location: inside the `loki-0` PVC at `/var/loki/wal`.
 - **Loki gateway**: use `http://loki-gateway.monitoring.svc.cluster.local` (not the pod directly) for the Grafana datasource and any direct log pushes.
+- **Sidecar reloads 401 ("Invalid username or password")**: Grafana takes `GF_SECURITY_ADMIN_PASSWORD` only when it
+  first creates its database, so the `prometheus-grafana` secret and the DB can drift apart. Datasource changes then
+  apply only on a pod restart. Dashboards still load, because Grafana re-reads the folder on its own. Fix (2026-11-01),
+  run in the pod so the password never leaves it:
+  `kubectl -n monitoring exec deploy/prometheus-grafana -c grafana -- sh -c 'grafana cli --homepath "$GF_PATHS_HOME" --config "$GF_PATHS_CONFIG" admin reset-admin-password "$GF_SECURITY_ADMIN_PASSWORD"'`
 - **Do not** run `microk8s enable observability` — it requires hostpath storage and will conflict with this setup.
