@@ -57,10 +57,15 @@ data:
   offsite-backup.sh: |
     #!/bin/sh
     set -eu
-    # First run creates the repository; later runs find its config.
-    if ! restic cat config >/dev/null 2>&1; then
+    # First run creates the repository; later runs find its config. Only exit code 10 means "no repository": any
+    # other failure (a lock left by a killed run, a network error) must stop here with restic's own message, not run
+    # init on an existing repository (2026-11-01).
+    rc=0; restic cat config >/dev/null || rc=$?
+    if [ "$rc" -eq 10 ]; then
       echo "== init repository"
       restic init
+    elif [ "$rc" -ne 0 ]; then
+      exit "$rc"
     fi
     # Clears only locks left by a run that was killed.
     restic unlock
@@ -118,7 +123,8 @@ spec:
                 - secretRef: {name: offsite-backup-restic}
               resources:
                 requests: {cpu: 250m, memory: 1Gi}
-                limits: {memory: 4Gi}
+                # The monthly check peaked past 3 GiB and was OOMKilled at 4Gi on 2026-11-01.
+                limits: {memory: 8Gi}
               volumeMounts:
                 - {name: share, mountPath: /backups, readOnly: true}
                 - {name: scripts, mountPath: /scripts}
