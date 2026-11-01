@@ -10,7 +10,9 @@
 #
 # The same alerts also go to incident-operator (infra/incident-operator), which triages each one with a local model
 # and mails its own suggestion: its webhook sits on the `email` receiver, so what is triaged is always what is mailed.
-# In-cluster Service only, no Ingress.
+# In-cluster Service only, no Ingress. scrape-job-manager's ScrapeJobStale/ScrapeJobSuspended go to incident-operator
+# only (receiver `triage`): scrape-job-manager mails its own run failures, and the triage runbook (scraper-failures)
+# says why it stopped.
 #
 # SMTP: hand-applied secret `alertmanager-smtp` in namespace monitoring (key SMTP_PASSWORD), a copy of the one in
 # postgres.
@@ -30,6 +32,9 @@ spec:
       - receiver: "null"
         matchers:
           - {name: alertname, matchType: "=~", value: "Watchdog|InfoInhibitor"}
+      - receiver: triage
+        matchers:
+          - {name: alertname, matchType: "=~", value: "ScrapeJobStale|ScrapeJobSuspended"}
       - receiver: email
         matchers:
           - {name: severity, matchType: "=", value: critical}
@@ -38,7 +43,7 @@ spec:
           - name: alertname
             matchType: "=~"
             value: >-
-              KubePodCrashLooping|KubeNodeNotReady|KubeNodeUnreachable|KubeNodeReadinessFlapping|KubePersistentVolumeFillingUp|NodeFilesystemSpaceFillingUp|NodeFilesystemAlmostOutOfSpace|NodeMemoryHighUtilization|NodeClockNotSynchronising|KubeDeploymentReplicasMismatch|KubeStatefulSetReplicasMismatch|KubeDeploymentRolloutStuck|KubeDaemonSetRolloutStuck|KubeJobFailed|TargetDown
+              KubePodCrashLooping|KubeNodeNotReady|KubeNodeUnreachable|KubeNodeReadinessFlapping|KubePersistentVolumeFillingUp|NodeFilesystemSpaceFillingUp|NodeFilesystemAlmostOutOfSpace|NodeMemoryHighUtilization|NodeClockNotSynchronising|KubeDeploymentReplicasMismatch|KubeStatefulSetReplicasMismatch|KubeDeploymentRolloutStuck|KubeDaemonSetRolloutStuck|KubeJobFailed|TargetDown|NodeLoadHighCPUIdle
   receivers:
     - name: "null"
     - name: email
@@ -52,6 +57,10 @@ spec:
             key: SMTP_PASSWORD
           requireTLS: true
           sendResolved: true
+      webhookConfigs:
+        - url: http://incident-operator-webhook.incident-operator.svc/alertmanager
+          sendResolved: true
+    - name: triage
       webhookConfigs:
         - url: http://incident-operator-webhook.incident-operator.svc/alertmanager
           sendResolved: true
@@ -81,3 +90,35 @@ spec:
             description: >-
               Check `kubectl -n {{ $labels.namespace }} describe job {{ $labels.job_name }}` and its pod logs.
               The alert clears when the failed Job is deleted.
+---
+# A node whose NFS client is wedged (infra/cluster-config/docs/issues/2026_10_18_unraid_nfs_v41_client_wedge.md):
+# mount.nfs piles up in D state, so load climbs while the CPU idles. node_procs_blocked does not see it (stayed 0 on
+# 2026-10-22). Thresholds from 14 days of history (queried 2026-11-01): outside that wedge, no node's 15-minute load
+# went above 1.6x its cores with the CPU under half busy; during it, k8s-worker1 reached 13x for hours. Triaged by
+# incident-operator's nfs-client-wedge runbook. Aggregated by instance: the raw series carry the exporter pod's
+# own pod/namespace labels, which would point evidence at node-exporter instead of the node.
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: cluster-node-alerts
+  namespace: monitoring
+  labels:
+    release: prometheus
+spec:
+  groups:
+    - name: cluster-nodes
+      rules:
+        - alert: NodeLoadHighCPUIdle
+          expr: >-
+            max by (instance) (node_load15{job="node-exporter"})
+              / count by (instance) (node_cpu_seconds_total{job="node-exporter", mode="idle"}) > 2
+            and on(instance)
+            (1 - avg by (instance) (rate(node_cpu_seconds_total{job="node-exporter", mode="idle"}[10m]))) < 0.5
+          for: 20m
+          labels:
+            severity: warning
+          annotations:
+            summary: "{{ $labels.instance }}: load is {{ $value | printf \"%.1f\" }}x its cores while the CPU is mostly idle"
+            description: >-
+              Processes are stuck waiting, most often on an NFS mount that never answers. Pods mounting NFS volumes on
+              this node will hang in ContainerCreating. Never test with a new NFS mount from a cluster node.

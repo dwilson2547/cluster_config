@@ -27,8 +27,17 @@ resolved notice follows.
 The `email` receiver of `cluster-alerts` also posts to incident-operator's in-cluster webhook
 (`incident-operator-webhook.incident-operator.svc/alertmanager`, `sendResolved`). So every alert mailed by
 `cluster-alerts` is also triaged: incident-operator collects read-only evidence, asks a local model through
-gpu-scheduler, and mails one suggestion per incident (subject `[triage] …`). Alerts mailed by the namespaced backup
-configs are not triaged (they stop before the root route). Details: `infra/incident-operator/README.md`.
+gpu-scheduler, and mails one suggestion per incident (subject `[triage] …`). Details:
+`infra/incident-operator/README.md`. Also posted to the same webhook:
+- the three namespaced backup configs' receivers (`postgres-backup-email`, `secrets-backup-email`,
+  `offsite-backup-email`), so backup job failures are triaged (runbook `backup-job-failed`);
+- `ScrapeJobStale` and `ScrapeJobSuspended`, through the root config's `triage` receiver (webhook only, not mailed by
+  Alertmanager: scrape-job-manager mails its own run failures).
+
+`NodeLoadHighCPUIdle` (PrometheusRule `cluster-node-alerts` in `cluster-alerts.yaml`, warning, mailed): load over 2x a
+node's cores while its CPU is under half busy, for 20 minutes: the NFS client wedge signature
+(`docs/issues/2026_10_18_unraid_nfs_v41_client_wedge.md`). Backtested 2026-11-01 over 14 days: true only on
+k8s-worker1 during the 2026-10-22 wedge (6.5 h from 07:30Z).
 
 scrape-job-manager's own Jobs are left out of `KubeJobFailed`: they fail and retry as normal operation, and
 scrape-job-manager mails on its own (`ScrapeJob*` alerts stay unmailed for the same reason; `ScrapeOperatorDown` is

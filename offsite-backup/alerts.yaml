@@ -90,3 +90,7 @@ spec:
             key: SMTP_PASSWORD
           requireTLS: true
           sendResolved: true
+      webhookConfigs:
+        # incident-operator triages it too (infra/incident-operator, runbook backup-job-failed); docs/alerting.md
+        - url: http://incident-operator-webhook.incident-operator.svc/alertmanager
+          sendResolved: true
