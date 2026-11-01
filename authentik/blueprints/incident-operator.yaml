@@ -1,4 +1,4 @@
-# incident-operator's incident page (http://incident-operator.cluster.local, LAN) as an OIDC client of authentik.
+# incident-operator's incident page (https://incident-operator.danwils.com) as an OIDC client of authentik.
 #
 # Access is by group only: the application is bound to incident-operator-admins, so a user outside it is refused by
 # authentik and never reaches the page. Every signed-in user can approve the fixes the operator proposes, so this
@@ -29,6 +29,9 @@ entries:
       client_secret: !Env [AUTHENTIK_INCIDENT_OPERATOR_CLIENT_SECRET, ""]
       redirect_uris:
         - matching_mode: strict
+          url: https://incident-operator.danwils.com/api/auth/oidc/callback
+        # LAN page, until the public host is released; then removed.
+        - matching_mode: strict
           url: http://incident-operator.cluster.local/api/auth/oidc/callback
       property_mappings:
         - !Find [authentik_providers_oauth2.scopemapping, [managed, goauthentik.io/providers/oauth2/scope-openid]]
@@ -48,7 +51,7 @@ entries:
       name: incident-operator
       provider: !KeyOf provider
       policy_engine_mode: any
-      meta_launch_url: http://incident-operator.cluster.local
+      meta_launch_url: https://incident-operator.danwils.com
       meta_description: Alert triage by a local model, and approving the fixes it proposes
 
   - model: authentik_policies.policybinding
