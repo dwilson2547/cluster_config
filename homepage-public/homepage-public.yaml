@@ -44,6 +44,10 @@ data:
             href: https://gyopart.danwils.com
             description: Used auto parts - interchange catalogue and junkyard inventory
             icon: mdi-car-wrench
+        - genai:
+            href: https://genai.danwils.com
+            description: Generate and keep images by project (sign in via authentik)
+            icon: mdi-image-auto-adjust
     - Tools:
         - Web Tools:
             href: https://tools.danwils.com
