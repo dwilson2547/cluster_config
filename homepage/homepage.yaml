@@ -262,6 +262,10 @@ data:
             href: https://gpu-scheduler.danwils.com
             description: GPU queues, model swaps, job stats and request/response browser
             icon: si-nvidia
+        - Incident Operator:
+            href: https://incident-operator.danwils.com
+            description: Alert triage by a local model; approve fixes (authentik sign-in)
+            icon: mdi-alarm-light-outline
         - AI Notes:
             href: http://notes.ai-services.local
             description: Persistent agent knowledge base

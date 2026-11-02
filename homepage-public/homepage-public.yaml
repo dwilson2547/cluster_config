@@ -78,6 +78,14 @@ data:
             href: https://sjm.danwils.com
             description: Scraper fleet status, run history and recovery
             icon: mdi-spider-web
+        - GPU Scheduler:
+            href: https://gpu-scheduler.danwils.com
+            description: GPU queues, model swaps, job stats and request/response browser
+            icon: si-nvidia
+        - Incident Operator:
+            href: https://incident-operator.danwils.com
+            description: Alert triage by a local model; approve fixes (authentik sign-in)
+            icon: mdi-alarm-light-outline
 
   bookmarks.yaml: |
     - GitHub:
