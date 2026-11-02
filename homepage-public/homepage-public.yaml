@@ -61,11 +61,6 @@ data:
             href: https://dxf-converter.danwils.com
             description: Scanned pen tracing to clean, to-scale DXF
             icon: mdi-vector-polyline
-      GenAI:
-        - AI Services:
-            href: https://ai-services.danwils.com
-            description: AI models and tools
-            icon: si-ai
     - Infrastructure:
         - Grafana:
             href: https://grafana.danwils.com
