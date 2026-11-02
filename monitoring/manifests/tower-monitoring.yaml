@@ -105,13 +105,19 @@ spec:
         # time includes processes that have exited and sums across cores, so that churn still shows up as a steady 1-2
         # cores. Idle containers here sit near 0.001 cores. A 1h average above 1 core, held for 2h, is far outside what
         # direct-play Plex does.
+        # Except Plex's Scheduled Tasks: daily 2-6 AM local, one thread pegged (a flat 1.02 cores) for about 3h. The
+        # alert can only fire ~3h after load starts, i.e. just as that job ends, so it paged daily with nothing to
+        # see. Plex is skipped 06:00-12:00 UTC: 2-6 AM Eastern in both EDT and EST, plus the 1h average's tail
+        # (Eastern is inferred: the 2026-11-02 run went 07:02-10:05 UTC, i.e. 02:02 EST).
         - alert: TowerContainerCPUSustained
-          expr: avg_over_time((sum by (name) (rate(container_cpu_usage_seconds_total{job="tower-cadvisor", name!=""}[5m])))[1h:1m]) > 1
+          expr: >-
+            (avg_over_time((sum by (name) (rate(container_cpu_usage_seconds_total{job="tower-cadvisor", name!=""}[5m])))[1h:1m]) > 1)
+            unless on(name) label_replace(hour() >= 6 < 12, "name", "plex", "", "")
           for: 2h
           labels:
             severity: critical
           annotations:
-            summary: "Container {{ $labels.name }} on Tower has averaged {{ $value | humanize }} cores for hours"
+            summary: "Container {{ $labels.name }} on Tower has averaged {{ $value | humanize }} cores over the last hour, for 2h"
             description: >-
               A low, steady load like this is what a throttled miner looks like. Check `docker top {{ $labels.name }}`
               repeatedly: short-lived unknown processes may only show up for a few seconds at a time. For Plex, also
