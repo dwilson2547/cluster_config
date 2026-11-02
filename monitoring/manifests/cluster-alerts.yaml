@@ -10,9 +10,10 @@
 #
 # The same alerts also go to incident-operator (infra/incident-operator), which triages each one with a local model
 # and mails its own suggestion: its webhook sits on the `email` receiver, so what is triaged is always what is mailed.
-# In-cluster Service only, no Ingress. scrape-job-manager's ScrapeJobStale/ScrapeJobSuspended go to incident-operator
-# only (receiver `triage`): scrape-job-manager mails its own run failures, and the triage runbook (scraper-failures)
-# says why it stopped.
+# In-cluster Service only, no Ingress. scrape-job-manager's ScrapeJobFailing/ScrapeJobStale/ScrapeJobSuspended go to
+# incident-operator only (receiver `triage`): scrape-job-manager mails its own run failures, and the triage runbook
+# (scraper-failures) says why it broke. Failing (every failed run) is triaged on purpose: scrapers fail often, which
+# makes them the test bed for runbooks and, later, automated fixes.
 #
 # SMTP: hand-applied secret `alertmanager-smtp` in namespace monitoring (key SMTP_PASSWORD), a copy of the one in
 # postgres.
@@ -34,7 +35,7 @@ spec:
           - {name: alertname, matchType: "=~", value: "Watchdog|InfoInhibitor"}
       - receiver: triage
         matchers:
-          - {name: alertname, matchType: "=~", value: "ScrapeJobStale|ScrapeJobSuspended"}
+          - {name: alertname, matchType: "=~", value: "ScrapeJobFailing|ScrapeJobStale|ScrapeJobSuspended"}
       # incident-operator's own health alerts (its chart): mailed, never sent to its webhook, since a stuck operator
       # can't triage its own outage.
       - receiver: email-direct
