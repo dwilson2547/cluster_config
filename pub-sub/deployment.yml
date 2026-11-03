@@ -231,9 +231,39 @@ metadata:
   name: mosquitto-config
   namespace: pub-sub
 data:
+  # Two listeners with separate security settings (per_listener_settings):
+  #  1883  LAN/in-cluster, anonymous. kreceiver subscribes here. Not forwarded
+  #        from WAN.
+  #  8883  public TLS (router: WAN 48213 -> 192.168.0.71:8883). Clients send an
+  #        authentik access token (phone-gateway provider) as the password and
+  #        its `sub` as the username; mosquitto-go-auth's HTTP backend asks
+  #        mqtt-auth (robotics/robo-services/services/mqtt_auth) to check it at
+  #        CONNECT; the ACL check allows only publishing on telemetry/ingest.
   mosquitto.conf: |
+    per_listener_settings true
+
     listener 1883 0.0.0.0
     allow_anonymous true
+
+    listener 8883 0.0.0.0
+    allow_anonymous false
+    certfile /mosquitto/tls/tls.crt
+    keyfile /mosquitto/tls/tls.key
+    auth_plugin /mosquitto/go-auth.so
+    auth_opt_backends http
+    auth_opt_http_host mqtt-auth.robo-services.svc.cluster.local
+    auth_opt_http_port 8080
+    auth_opt_http_getuser_uri /user
+    auth_opt_http_superuser_uri /superuser
+    auth_opt_http_aclcheck_uri /acl
+    auth_opt_http_params_mode json
+    auth_opt_http_response_mode json
+    auth_opt_http_timeout 5
+    auth_opt_cache true
+    auth_opt_cache_type go-cache
+    auth_opt_auth_cache_seconds 60
+    auth_opt_acl_cache_seconds 60
+
     persistence false
     log_dest stdout
     connection_messages true
@@ -247,6 +277,9 @@ kind: Deployment
 metadata:
   name: mosquitto
   namespace: pub-sub
+  annotations:
+    # restart on cert renewal: mosquitto reads the cert only at startup
+    reloader.stakater.com/auto: "true"
 spec:
   replicas: 1
   selector:
@@ -259,20 +292,31 @@ spec:
     spec:
       containers:
         - name: mosquitto
-          image: eclipse-mosquitto:2
+          # mosquitto 2.0.18 with the mosquitto-go-auth plugin at /mosquitto/go-auth.so.
+          # The image runs `mosquitto -c /etc/mosquitto/mosquitto.conf`.
+          image: iegomez/mosquitto-go-auth:3.0.0-mosquitto_2.0.18
           imagePullPolicy: IfNotPresent
           ports:
             - name: mqtt
               containerPort: 1883
               protocol: TCP
+            - name: mqtts
+              containerPort: 8883
+              protocol: TCP
           volumeMounts:
             - name: config
-              mountPath: /mosquitto/config/mosquitto.conf
+              mountPath: /etc/mosquitto/mosquitto.conf
               subPath: mosquitto.conf
+            - name: tls
+              mountPath: /mosquitto/tls
+              readOnly: true
       volumes:
         - name: config
           configMap:
             name: mosquitto-config
+        - name: tls
+          secret:
+            secretName: mqtt-danwils-tls
 ---
 apiVersion: v1
 kind: Service
@@ -290,6 +334,25 @@ spec:
       port: 1883
       targetPort: 1883
       protocol: TCP
+    - name: mqtts
+      port: 8883
+      targetPort: 8883
+      protocol: TCP
+---
+# Public name for the 8883 listener. DNS-only (grey cloud) A record kept current
+# by ddclient; the router forwards WAN 48213 -> 192.168.0.71:8883.
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: mqtt-danwils-tls
+  namespace: pub-sub
+spec:
+  secretName: mqtt-danwils-tls
+  dnsNames:
+    - mqtt.danwils.com
+  issuerRef:
+    name: letsencrypt-prod
+    kind: ClusterIssuer
 ---
 apiVersion: apps/v1
 kind: Deployment

@@ -1,20 +1,16 @@
-# Phone gateway (robo-services phone_gateway Android app) as an OIDC client of
-# authentik.
+# Phone gateway (robo-services phone_gateway Android app) as an OIDC client of authentik.
 #
-# Public client + PKCE for the Android app (custom-scheme redirect). The app uses
-# the access token (JWT) directly as its MQTT password against the public Mosquitto
-# listener (mqtt.danwils.com:48213 -> 8883). Token validation broker-side is
-# stateless JWKS signature + exp checking (mqtt-auth validator service against
-# /application/o/phone-gateway/.well-known/jwks.json) — authentik introspection is
-# provider-scoped and a public client has no secret, so JWKS is the clean path.
-# Revocation therefore lands within one access-token lifetime (30 min, set below)
-# plus the broker's short revalidation cache.
+# Public client + PKCE with a custom-scheme redirect: an app on a phone cannot keep a client secret.
+# The app sends its access token (a JWT) as the MQTT password, and the token's `sub` as the username,
+# to the public mosquitto listener (mqtt.danwils.com:48213 -> pub-sub mosquitto 8883). mqtt-auth
+# (robotics/robo-services/services/mqtt_auth) checks it against this provider's JWKS
+# (/application/o/phone-gateway/jwks/): signature, iss, aud = client_id, exp.
 #
-# refresh_token grant + 7-day refresh validity => one interactive sign-in per week;
-# mid-drive access-token expiry is handled by silent refresh in the app.
+# Access is by group only: the application is bound to phone-gateway-users, so a user outside it is
+# refused at sign-in and never gets a token. Add members in the authentik admin UI.
 #
-# Access is by group only: bound to `phone-gateway-users` (policy_engine_mode any),
-# membership managed by hand in authentik.
+# 30-minute access tokens, refreshed silently by the app; a 7-day refresh token means about one
+# interactive sign-in a week.
 version: 1
 metadata:
   name: danwils - Phone Gateway OIDC application
@@ -34,10 +30,9 @@ entries:
         - authorization_code
         - refresh_token
       client_id: phone-gateway
-      client_secret: ""
       redirect_uris:
         - matching_mode: strict
-          url: com.robo.phonegateway://oauth2/callback
+          url: com.robo.phonegateway:/oauth2redirect
       property_mappings:
         - !Find [authentik_providers_oauth2.scopemapping, [managed, goauthentik.io/providers/oauth2/scope-openid]]
         - !Find [authentik_providers_oauth2.scopemapping, [managed, goauthentik.io/providers/oauth2/scope-email]]
@@ -52,8 +47,18 @@ entries:
       refresh_token_validity: days=7
 
   - model: authentik_core.application
+    id: app
     identifiers:
       slug: phone-gateway
     attrs:
       name: Phone Gateway
-      provider: phone-gateway
+      provider: !KeyOf provider
+      policy_engine_mode: any
+      meta_description: Android telemetry gateway (BLE dongle -> MQTT)
+
+  - model: authentik_policies.policybinding
+    identifiers:
+      target: !KeyOf app
+      order: 0
+    attrs:
+      group: !KeyOf users
