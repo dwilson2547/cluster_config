@@ -245,6 +245,7 @@ data:
 
     listener 1883 0.0.0.0
     allow_anonymous true
+    acl_file /etc/mosquitto/anonymous.acl
 
     listener 8883 0.0.0.0
     allow_anonymous false
@@ -272,6 +273,13 @@ data:
     log_type warning
     log_type notice
     log_type information
+  # LAN listener (1883, anonymous): loggers publish to telemetry/ingest, and
+  # kreceiver reads it plus the per-user telemetry/ingest/<sub> topics that the
+  # authenticated listener (8883) accepts only from that user. Read-only there, so
+  # the user in the topic is always the one mqtt-auth checked.
+  anonymous.acl: |
+    topic readwrite telemetry/ingest
+    topic read telemetry/ingest/+
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -308,6 +316,9 @@ spec:
             - name: config
               mountPath: /etc/mosquitto/mosquitto.conf
               subPath: mosquitto.conf
+            - name: config
+              mountPath: /etc/mosquitto/anonymous.acl
+              subPath: anonymous.acl
             - name: tls
               mountPath: /mosquitto/tls
               readOnly: true
