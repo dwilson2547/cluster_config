@@ -169,6 +169,7 @@ data:
   KRECEIVER_IMU_TOPIC: "telemetry.raw.imu"
   KRECEIVER_RTK_TOPIC: "telemetry.raw.rtk"
   KRECEIVER_CAN_TOPIC: "telemetry.raw.can"
+  KRECEIVER_SESSION_TOPIC: "telemetry.session"
   KRECEIVER_TRANSPORT: "both"
   KRECEIVER_MQTT_HOST: "mosquitto.pub-sub.svc.cluster.local"
   KRECEIVER_MQTT_PORT: "1883"
@@ -192,7 +193,7 @@ spec:
     spec:
       containers:
         - name: kreceiver
-          image: dwilson2547/kreceiver-proto:20260620-proto-v2
+          image: dwilson2547/kreceiver-proto:20261103-proto-v3
           imagePullPolicy: IfNotPresent
           command:
             - python
