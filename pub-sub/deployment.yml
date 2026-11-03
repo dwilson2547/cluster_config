@@ -86,6 +86,10 @@ spec:
                 configMapKeyRef:
                   name: iggy-config
                   key: IGGY_TCP_ADDRESS
+            # The image's default data path is relative ("local_data" under /app),
+            # so without this iggy wrote to the container filesystem, not the PVC.
+            - name: IGGY_SYSTEM_PATH
+              value: /local_data
           ports:
             - name: http
               containerPort: 3000
