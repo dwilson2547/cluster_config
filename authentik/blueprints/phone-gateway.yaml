@@ -1,0 +1,59 @@
+# Phone gateway (robo-services phone_gateway Android app) as an OIDC client of
+# authentik.
+#
+# Public client + PKCE for the Android app (custom-scheme redirect). The app uses
+# the access token (JWT) directly as its MQTT password against the public Mosquitto
+# listener (mqtt.danwils.com:48213 -> 8883). Token validation broker-side is
+# stateless JWKS signature + exp checking (mqtt-auth validator service against
+# /application/o/phone-gateway/.well-known/jwks.json) — authentik introspection is
+# provider-scoped and a public client has no secret, so JWKS is the clean path.
+# Revocation therefore lands within one access-token lifetime (30 min, set below)
+# plus the broker's short revalidation cache.
+#
+# refresh_token grant + 7-day refresh validity => one interactive sign-in per week;
+# mid-drive access-token expiry is handled by silent refresh in the app.
+#
+# Access is by group only: bound to `phone-gateway-users` (policy_engine_mode any),
+# membership managed by hand in authentik.
+version: 1
+metadata:
+  name: danwils - Phone Gateway OIDC application
+entries:
+  - model: authentik_core.group
+    id: users
+    identifiers:
+      name: phone-gateway-users
+
+  - model: authentik_providers_oauth2.oauth2provider
+    id: provider
+    identifiers:
+      name: phone-gateway
+    attrs:
+      client_type: public
+      grant_types:
+        - authorization_code
+        - refresh_token
+      client_id: phone-gateway
+      client_secret: ""
+      redirect_uris:
+        - matching_mode: strict
+          url: com.robo.phonegateway://oauth2/callback
+      property_mappings:
+        - !Find [authentik_providers_oauth2.scopemapping, [managed, goauthentik.io/providers/oauth2/scope-openid]]
+        - !Find [authentik_providers_oauth2.scopemapping, [managed, goauthentik.io/providers/oauth2/scope-email]]
+        - !Find [authentik_providers_oauth2.scopemapping, [managed, goauthentik.io/providers/oauth2/scope-profile]]
+        - !Find [authentik_providers_oauth2.scopemapping, [managed, goauthentik.io/providers/oauth2/scope-offline_access]]
+      signing_key: !Find [authentik_crypto.certificatekeypair, [name, authentik Self-signed Certificate]]
+      authorization_flow: !Find [authentik_flows.flow, [slug, default-provider-authorization-implicit-consent]]
+      invalidation_flow: !Find [authentik_flows.flow, [slug, default-provider-invalidation-flow]]
+      sub_mode: hashed_user_id
+      issuer_mode: per_provider
+      access_token_validity: minutes=30
+      refresh_token_validity: days=7
+
+  - model: authentik_core.application
+    identifiers:
+      slug: phone-gateway
+    attrs:
+      name: Phone Gateway
+      provider: phone-gateway

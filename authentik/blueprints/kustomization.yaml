@@ -19,5 +19,6 @@ configMapGenerator:
       - gpu-scheduler.yaml
       - incident-operator.yaml
       - gen-ai-platform.yaml
+      - phone-gateway.yaml
 generatorOptions:
   disableNameSuffixHash: true
