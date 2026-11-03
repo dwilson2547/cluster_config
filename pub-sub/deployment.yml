@@ -197,7 +197,7 @@ spec:
     spec:
       containers:
         - name: kreceiver
-          image: dwilson2547/kreceiver-proto:20261103-proto-v6
+          image: dwilson2547/kreceiver-proto:20261103-proto-v7
           imagePullPolicy: IfNotPresent
           command:
             - python
