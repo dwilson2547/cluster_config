@@ -31,7 +31,11 @@ data:
       b=${entry#*:}
       if [ "$full" = 1 ]; then
         echo "== $entry (full sync)"
-        set -- sync --max-delete "$MAX_DELETE" --backup-dir "s4crypt:replaced/$STAMP/$b"
+        # --size-only: compare from the listings alone. Comparing mtimes needs one S4 HEAD per object (S3 listings
+        # carry no metadata): ~120/s at 4 checkers, ~16h for part-images, and that per-object load is what MEGA
+        # blocks. Changed objects are the nightly copy's job (by mtime); this run adds what is missing and carries
+        # deletions.
+        set -- sync --size-only --max-delete "$MAX_DELETE" --backup-dir "s4crypt:replaced/$STAMP/$b"
       else
         echo "== $entry (objects modified in the last 26h)"
         set -- copy --max-age 26h --no-traverse --use-server-modtime

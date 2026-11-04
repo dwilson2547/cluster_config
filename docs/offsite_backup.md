@@ -39,8 +39,11 @@ objects/current/<bucket>/...             mirror of the bucket
 objects/replaced/<stamp>/<bucket>/...    what a full sync overwrote or deleted, kept 28 days
 ```
 
-Nightly: copy objects modified in the last 26h (`--max-age 26h --no-traverse`). Wednesday: full `rclone sync` with
-`--max-delete 500`, so a bucket deletion reaches the offsite copy on the next Wednesday. Force a full run with
+Nightly: copy objects modified in the last 26h (`--max-age 26h --no-traverse`). Wednesday: full `rclone sync
+--size-only` with `--max-delete 500`, so a bucket deletion reaches the offsite copy on the next Wednesday. The full
+sync compares from listings only, and keeps every listing in memory (`LIST_CUTOFF` above the largest directory):
+rclone's on-disk sort and mtime checks both cost one request per object, which MEGA blocks. See
+`docs/issues/2026_11_04_offsite_objects_full_sync_oom_and_max_delete.md`. Force a full run with
 `FULL_SYNC=1` on a manual Job. Unlike restic this is a mirror plus 28 days of undo, not snapshots. MEGA's object
 limit is roughly 20 million (user 2026-10-22). part-images is ~6.9M.
 
