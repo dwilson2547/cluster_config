@@ -37,8 +37,8 @@ data:
         set -- copy --max-age 26h --no-traverse --use-server-modtime
       fi
       if ! rclone "$@" "$entry" "s4crypt:current/$b" \
-          --list-cutoff 200000 --transfers "$TRANSFERS" --checkers 16 \
-          --stats-one-line --stats 5m -v; then
+          --list-cutoff "$LIST_CUTOFF" --transfers "$TRANSFERS" --checkers "$CHECKERS" \
+          --modify-window 1s --stats-one-line --stats 5m -v; then
         echo "   FAILED: $b"
         failed="$failed $b"
       fi
@@ -97,6 +97,16 @@ spec:
                 # 128 ~40/s, 256 no faster. For a big backlog use 128 on a manual Job (the 6.9M-object first upload
                 # is ~2 days at that rate).
                 - {name: TRANSFERS, value: "32"}
+                # Listing. Above LIST_CUTOFF entries rclone sorts a directory on disk and then re-reads every object
+                # with a HEAD. On S4 that is one request per object (millions for part-images), which gets us
+                # blocked; on AIStor the HEAD returns whole-second mtimes, so every object whose mtime has
+                # milliseconds looks changed, is moved to replaced/ and re-uploaded, and the moves trip MAX_DELETE.
+                # Both broke the 2026-10-28 and 2026-11-04 full syncs. So the cutoff sits above the largest directory
+                # (part-images gm/images: 970,874 objects on 2026-11-04) and listings stay in memory; CHECKERS bounds
+                # how many directories are listed at once. If a directory nears LIST_CUTOFF, raise both it and the
+                # memory limit; don't lower it. --modify-window 1s covers any remaining sub-second mismatch.
+                - {name: LIST_CUTOFF, value: "1500000"}
+                - {name: CHECKERS, value: "4"}
                 - {name: HOME, value: /tmp}
                 - {name: RCLONE_CONFIG, value: /tmp/rclone.conf}
                 - {name: RCLONE_CONFIG_AISTOR_TYPE, value: s3}
@@ -122,12 +132,13 @@ spec:
                 - name: RCLONE_CONFIG_S4CRYPT_PASSWORD2
                   valueFrom: {secretKeyRef: {name: offsite-objects, key: CRYPT_PASSWORD2}}
               resources:
-                requests: {cpu: 250m, memory: 256Mi}
-                limits: {memory: 4Gi}
+                # Full sync holds the largest part-images listings for both sides in memory; peak measured in
+                # docs/issues/2026_11_04_offsite_objects_full_sync_oom_and_max_delete.md.
+                requests: {cpu: 250m, memory: 4Gi}
+                limits: {memory: 12Gi}
               volumeMounts:
                 - {name: scripts, mountPath: /scripts}
-                # rclone >= 1.70 sorts listings above --list-cutoff here instead of in memory (part-images keeps
-                # millions of objects per flat folder).
+                # Scratch for rclone (config path, any on-disk sort if a listing ever passes LIST_CUTOFF).
                 - {name: tmp, mountPath: /tmp}
           volumes:
             - name: scripts
