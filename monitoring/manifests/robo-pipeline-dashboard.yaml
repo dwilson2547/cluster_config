@@ -1,0 +1,618 @@
+# Robo pipeline dashboard: how far behind real time the robo-services telemetry pipeline runs.
+# Provisioned by the Grafana sidecar (label grafana_dashboard). Edit the generator, not the JSON:
+# python3 monitoring/dashboards/gen_robo_pipeline.py > monitoring/manifests/robo-pipeline-dashboard.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: robo-pipeline-dashboard
+  namespace: monitoring
+  labels:
+    grafana_dashboard: "1"
+data:
+  robo-pipeline.json: |
+    {
+     "uid": "robo-pipeline",
+     "title": "Robo pipeline",
+     "tags": [
+      "robo-services",
+      "pipeline"
+     ],
+     "timezone": "browser",
+     "schemaVersion": 39,
+     "refresh": "30s",
+     "editable": false,
+     "time": {
+      "from": "now-3h",
+      "to": "now"
+     },
+     "templating": {
+      "list": [
+       {
+        "type": "datasource",
+        "name": "datasource",
+        "label": "Prometheus",
+        "query": "prometheus",
+        "current": {},
+        "hide": 0
+       }
+      ]
+     },
+     "annotations": {
+      "list": []
+     },
+     "links": [
+      {
+       "title": "Iggy Broker",
+       "type": "link",
+       "url": "/d/iggy-broker"
+      }
+     ],
+     "panels": [
+      {
+       "type": "row",
+       "title": "Now",
+       "id": 1,
+       "collapsed": false,
+       "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+       }
+      },
+      {
+       "type": "stat",
+       "title": "Pipeline lag p95 (vehicle-state)",
+       "description": "Receive at kreceiver \u2192 snapshot row written, last 5 minutes. Includes vehicle-state's wait for a frame's last sample.",
+       "id": 2,
+       "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+       },
+       "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 0,
+        "y": 1
+       },
+       "targets": [
+        {
+         "refId": "A",
+         "expr": "histogram_quantile(0.95, sum by (le) (rate(robo_pipeline_lag_seconds_bucket{stage=\"vehicle-state\"}[5m])))",
+         "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+         },
+         "range": true,
+         "legendFormat": ""
+        }
+       ],
+       "fieldConfig": {
+        "defaults": {
+         "unit": "s",
+         "noValue": "idle",
+         "thresholds": {
+          "mode": "absolute",
+          "steps": [
+           {
+            "color": "green",
+            "value": null
+           },
+           {
+            "color": "orange",
+            "value": 15
+           },
+           {
+            "color": "red",
+            "value": 60
+           }
+          ]
+         }
+        },
+        "overrides": []
+       },
+       "options": {
+        "reduceOptions": {
+         "calcs": [
+          "lastNotNull"
+         ]
+        },
+        "colorMode": "background",
+        "graphMode": "none"
+       }
+      },
+      {
+       "type": "stat",
+       "title": "Upload lag p95",
+       "description": "Frame end on the phone \u2192 kreceiver, last 5 minutes. High after the phone was offline.",
+       "id": 3,
+       "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+       },
+       "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 6,
+        "y": 1
+       },
+       "targets": [
+        {
+         "refId": "A",
+         "expr": "histogram_quantile(0.95, sum by (le) (rate(robo_upload_lag_seconds_bucket[5m])))",
+         "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+         },
+         "range": true,
+         "legendFormat": ""
+        }
+       ],
+       "fieldConfig": {
+        "defaults": {
+         "unit": "s",
+         "noValue": "idle",
+         "thresholds": {
+          "mode": "absolute",
+          "steps": [
+           {
+            "color": "green",
+            "value": null
+           },
+           {
+            "color": "orange",
+            "value": 10
+           },
+           {
+            "color": "red",
+            "value": 60
+           }
+          ]
+         }
+        },
+        "overrides": []
+       },
+       "options": {
+        "reduceOptions": {
+         "calcs": [
+          "lastNotNull"
+         ]
+        },
+        "colorMode": "background",
+        "graphMode": "none"
+       }
+      },
+      {
+       "type": "stat",
+       "title": "Backlog",
+       "description": "Messages not yet read, all readers and topics.",
+       "id": 4,
+       "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+       },
+       "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 12,
+        "y": 1
+       },
+       "targets": [
+        {
+         "refId": "A",
+         "expr": "sum(robo_consumer_backlog)",
+         "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+         },
+         "range": true,
+         "legendFormat": ""
+        }
+       ],
+       "fieldConfig": {
+        "defaults": {
+         "unit": "short",
+         "noValue": "idle",
+         "thresholds": {
+          "mode": "absolute",
+          "steps": [
+           {
+            "color": "green",
+            "value": null
+           },
+           {
+            "color": "orange",
+            "value": 5000
+           },
+           {
+            "color": "red",
+            "value": 50000
+           }
+          ]
+         }
+        },
+        "overrides": []
+       },
+       "options": {
+        "reduceOptions": {
+         "calcs": [
+          "lastNotNull"
+         ]
+        },
+        "colorMode": "background",
+        "graphMode": "none"
+       }
+      },
+      {
+       "type": "stat",
+       "title": "Frames closed / min",
+       "description": "Frames vehicle-state closed in the last minute (any status).",
+       "id": 5,
+       "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+       },
+       "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 18,
+        "y": 1
+       },
+       "targets": [
+        {
+         "refId": "A",
+         "expr": "sum(increase(robo_frames_total[1m]))",
+         "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+         },
+         "range": true,
+         "legendFormat": ""
+        }
+       ],
+       "fieldConfig": {
+        "defaults": {
+         "unit": "short",
+         "noValue": "idle",
+         "thresholds": {
+          "mode": "absolute",
+          "steps": [
+           {
+            "color": "blue",
+            "value": null
+           }
+          ]
+         }
+        },
+        "overrides": []
+       },
+       "options": {
+        "reduceOptions": {
+         "calcs": [
+          "lastNotNull"
+         ]
+        },
+        "colorMode": "background",
+        "graphMode": "none"
+       }
+      },
+      {
+       "type": "row",
+       "title": "Lag",
+       "id": 6,
+       "collapsed": false,
+       "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 5
+       }
+      },
+      {
+       "type": "timeseries",
+       "title": "Pipeline lag p95 by stage",
+       "description": "When each stage finished with a record or frame, minus kreceiver's receive time. vehicle-state waits for a frame's last sample, so it sits above can-decode.",
+       "id": 7,
+       "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+       },
+       "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 6
+       },
+       "targets": [
+        {
+         "refId": "A",
+         "expr": "histogram_quantile(0.95, sum by (le, stage) (rate(robo_pipeline_lag_seconds_bucket[$__rate_interval])))",
+         "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+         },
+         "range": true,
+         "legendFormat": "{{stage}}"
+        }
+       ],
+       "fieldConfig": {
+        "defaults": {
+         "unit": "s",
+         "custom": {
+          "lineWidth": 1,
+          "fillOpacity": 10,
+          "showPoints": "never",
+          "spanNulls": false
+         }
+        },
+        "overrides": []
+       },
+       "options": {
+        "legend": {
+         "displayMode": "table",
+         "placement": "right",
+         "calcs": [
+          "lastNotNull",
+          "max"
+         ]
+        },
+        "tooltip": {
+         "mode": "multi",
+         "sort": "desc"
+        }
+       }
+      },
+      {
+       "type": "timeseries",
+       "title": "Pipeline lag p50 by stage",
+       "description": "As left, median.",
+       "id": 8,
+       "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+       },
+       "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 6
+       },
+       "targets": [
+        {
+         "refId": "A",
+         "expr": "histogram_quantile(0.5, sum by (le, stage) (rate(robo_pipeline_lag_seconds_bucket[$__rate_interval])))",
+         "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+         },
+         "range": true,
+         "legendFormat": "{{stage}}"
+        }
+       ],
+       "fieldConfig": {
+        "defaults": {
+         "unit": "s",
+         "custom": {
+          "lineWidth": 1,
+          "fillOpacity": 10,
+          "showPoints": "never",
+          "spanNulls": false
+         }
+        },
+        "overrides": []
+       },
+       "options": {
+        "legend": {
+         "displayMode": "table",
+         "placement": "right",
+         "calcs": [
+          "lastNotNull",
+          "max"
+         ]
+        },
+        "tooltip": {
+         "mode": "multi",
+         "sort": "desc"
+        }
+       }
+      },
+      {
+       "type": "timeseries",
+       "title": "Upload lag",
+       "description": "kreceiver receive time minus the end of the frame on the phone's clock. Phone and network, not the pipeline.",
+       "id": 9,
+       "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+       },
+       "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 14
+       },
+       "targets": [
+        {
+         "refId": "A",
+         "expr": "histogram_quantile(0.5, sum by (le) (rate(robo_upload_lag_seconds_bucket[$__rate_interval])))",
+         "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+         },
+         "range": true,
+         "legendFormat": "p50"
+        },
+        {
+         "refId": "B",
+         "expr": "histogram_quantile(0.95, sum by (le) (rate(robo_upload_lag_seconds_bucket[$__rate_interval])))",
+         "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+         },
+         "range": true,
+         "legendFormat": "p95"
+        },
+        {
+         "refId": "C",
+         "expr": "max(rate(robo_upload_lag_seconds_sum[$__rate_interval]) / rate(robo_upload_lag_seconds_count[$__rate_interval]))",
+         "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+         },
+         "range": true,
+         "legendFormat": "mean"
+        }
+       ],
+       "fieldConfig": {
+        "defaults": {
+         "unit": "s",
+         "custom": {
+          "lineWidth": 1,
+          "fillOpacity": 10,
+          "showPoints": "never",
+          "spanNulls": false
+         }
+        },
+        "overrides": []
+       },
+       "options": {
+        "legend": {
+         "displayMode": "table",
+         "placement": "right",
+         "calcs": [
+          "lastNotNull",
+          "max"
+         ]
+        },
+        "tooltip": {
+         "mode": "multi",
+         "sort": "desc"
+        }
+       }
+      },
+      {
+       "type": "row",
+       "title": "Backlog and frames",
+       "id": 10,
+       "collapsed": false,
+       "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 22
+       }
+      },
+      {
+       "type": "timeseries",
+       "title": "Backlog by reader and topic",
+       "description": "Topic size minus the reader's position, read every 30 s by each service's consumer watchdog. Climbs during an iggy restart catch-up, then drains.",
+       "id": 11,
+       "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+       },
+       "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 23
+       },
+       "targets": [
+        {
+         "refId": "A",
+         "expr": "sum by (reader, topic) (robo_consumer_backlog)",
+         "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+         },
+         "range": true,
+         "legendFormat": "{{reader}} \u00b7 {{topic}}"
+        }
+       ],
+       "fieldConfig": {
+        "defaults": {
+         "unit": "short",
+         "custom": {
+          "lineWidth": 1,
+          "fillOpacity": 10,
+          "showPoints": "never",
+          "spanNulls": false
+         }
+        },
+        "overrides": []
+       },
+       "options": {
+        "legend": {
+         "displayMode": "table",
+         "placement": "right",
+         "calcs": [
+          "lastNotNull",
+          "max"
+         ]
+        },
+        "tooltip": {
+         "mode": "multi",
+         "sort": "desc"
+        }
+       }
+      },
+      {
+       "type": "timeseries",
+       "title": "Frames closed by vehicle-state",
+       "description": "Per minute, by how the frame closed: complete (every sample in its receipt arrived), incomplete, empty (a receipt with no samples).",
+       "id": 12,
+       "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+       },
+       "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 23
+       },
+       "targets": [
+        {
+         "refId": "A",
+         "expr": "sum by (status) (increase(robo_frames_total[1m]))",
+         "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+         },
+         "range": true,
+         "legendFormat": "{{status}}"
+        }
+       ],
+       "fieldConfig": {
+        "defaults": {
+         "unit": "short",
+         "custom": {
+          "lineWidth": 1,
+          "fillOpacity": 80,
+          "showPoints": "never",
+          "spanNulls": false,
+          "stacking": {
+           "mode": "normal"
+          },
+          "drawStyle": "bars"
+         }
+        },
+        "overrides": []
+       },
+       "options": {
+        "legend": {
+         "displayMode": "table",
+         "placement": "right",
+         "calcs": [
+          "lastNotNull",
+          "max"
+         ]
+        },
+        "tooltip": {
+         "mode": "multi",
+         "sort": "desc"
+        }
+       }
+      }
+     ]
+    }
