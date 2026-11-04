@@ -136,10 +136,11 @@ spec:
                 - name: RCLONE_CONFIG_S4CRYPT_PASSWORD2
                   valueFrom: {secretKeyRef: {name: offsite-objects, key: CRYPT_PASSWORD2}}
               resources:
-                # Full sync holds the largest part-images listings for both sides in memory; peak measured in
+                # Full sync holds the largest part-images listings for both sides in memory: peaked at 3.1 GiB on
+                # 2026-11-04 (6.9M objects; largest directory 970,874). See
                 # docs/issues/2026_11_04_offsite_objects_full_sync_oom_and_max_delete.md.
                 requests: {cpu: 250m, memory: 4Gi}
-                limits: {memory: 12Gi}
+                limits: {memory: 8Gi}
               volumeMounts:
                 - {name: scripts, mountPath: /scripts}
                 # Scratch for rclone (config path, any on-disk sort if a listing ever passes LIST_CUTOFF).
