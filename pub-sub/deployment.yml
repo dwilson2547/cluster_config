@@ -197,7 +197,7 @@ spec:
     spec:
       containers:
         - name: kreceiver
-          image: dwilson2547/kreceiver-proto:20261103-proto-v8
+          image: dwilson2547/kreceiver-proto:20261103-proto-v9
           imagePullPolicy: IfNotPresent
           command:
             - python
@@ -207,6 +207,12 @@ spec:
             - name: udp-ingest
               containerPort: 5514
               protocol: UDP
+          env:
+            # processing-lag metrics (robo-services docs/plans/2026-11-03-processing-lag.md)
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: http://otel-collector.monitoring.svc.cluster.local:4318
+            - name: OTEL_SERVICE_NAME
+              value: kreceiver
           envFrom:
             - configMapRef:
                 name: kreceiver-config
