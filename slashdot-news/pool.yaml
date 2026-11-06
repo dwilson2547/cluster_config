@@ -1,0 +1,12 @@
+# Daily pool for the Slashdot archive: one run per day, early morning Eastern.
+apiVersion: scrape.danwils.com/v1alpha1
+kind: ScrapePool
+metadata:
+  name: slashdot-news
+  namespace: slashdot-news
+spec:
+  every: 1d
+  activeHours:
+    tz: America/New_York
+    days: [Mon, Tue, Wed, Thu, Fri, Sat, Sun]
+    hours: "06:00-08:00"

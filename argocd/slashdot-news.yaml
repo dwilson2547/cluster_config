@@ -1,0 +1,21 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: slashdot-news
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: git@github.com:dwilson2547/cluster_config.git
+    targetRevision: main
+    path: slashdot-news
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: slashdot-news
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true

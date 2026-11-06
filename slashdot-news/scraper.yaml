@@ -1,0 +1,35 @@
+# Slashdot homepage story archive (web-scrapers/slashdot-news-archive in the workspace repo).
+# Daily incremental scrape of https://slashdot.org/?page=N into the slashdot_news
+# Postgres+pgvector DB; pages via webcache, target requests paced by request-auth.
+# Stories are keyed by firehose id so runs are idempotent; the pool walks ?page=N until
+# an all-known page fills any gap. Embeddings (all-MiniLM-L6-v2) are computed in-pod
+# for newly seen stories at the end of each run.
+
+apiVersion: scrape.danwils.com/v1alpha1
+kind: Scraper
+metadata:
+  name: slashdot-news
+  namespace: slashdot-news
+spec:
+  image: dwilson2547/slashdot-news-archive@sha256:e406a7af4e4eed4ebeab1e4e08d2c5fb211f9ee99e72ae1e1248c667a791d4a9
+  imagePullPolicy: IfNotPresent
+  timeout: 2h
+  env:
+    # Order matters: $(VAR) only expands variables defined earlier in the list.
+    - name: DATABASE_URL
+      valueFrom: {secretKeyRef: {name: slashdot-news-db, key: DATABASE_URL}}
+    - {name: WEBCACHE_URL, value: "http://webcache.scrape-stack.svc.cluster.local:8000"}
+    - {name: REQUEST_AUTH_SERVER_URL, value: "request-auth-server.scrape-stack.svc.cluster.local:9000"}
+    - {name: CACHE_MAX_AGE_SECONDS, value: "3600"}
+  resources:
+    requests: {cpu: 250m, memory: 1Gi}
+    limits: {memory: 3Gi}
+  policy:
+    concurrency: 1
+    spacing: {min: 10m, jitter: 15m}
+    retry: {attempts: 3, backoff: {initial: 5m, factor: 3, max: 2h}}
+    suspendAfter: 3
+  # A caught-up daily run legitimately reports few or zero new stories.
+  health:
+    minItems: 0
+    maxDropPct: 100

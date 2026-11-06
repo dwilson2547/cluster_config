@@ -1,0 +1,8 @@
+apiVersion: scrape.danwils.com/v1alpha1
+kind: ScrapeJob
+metadata:
+  name: slashdot-news
+  namespace: slashdot-news
+spec:
+  scraperRef: slashdot-news
+  poolRef: slashdot-news
