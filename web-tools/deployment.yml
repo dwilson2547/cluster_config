@@ -18,6 +18,7 @@ spec:
       labels:
         app: web-tools
     spec:
+      automountServiceAccountToken: false
       containers:
         - name: web-tools
           image: dwilson2547/web-tools:1.0.1
