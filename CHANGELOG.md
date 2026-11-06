@@ -1,3 +1,10 @@
+## 2026-11-05 - monitoring: Tower CPU alerts no longer skip the parity check
+
+### Changed
+- `monitoring/manifests/tower-monitoring.yaml`: removed the parity window from `TowerCPUSaturated` and
+  `TowerCPUElevated`. The 2026-11-01 check ran about 16h, not the 22h recorded on 2026-10-20, and host CPU peaked at 38%
+  on the 5m average and 19% on the 15m average, under both thresholds.
+
 ## 2026-11-01 - gen-ai-platform at genai.danwils.com
 
 ### Added
