@@ -11,7 +11,7 @@ metadata:
   name: slashdot-news
   namespace: slashdot-news
 spec:
-  image: dwilson2547/slashdot-news-archive@sha256:9d8a2c28ad3ceb4eb218750417d2ee8ba94f5d5041953c2faa78b6cf1b3b0a5a
+  image: dwilson2547/slashdot-news-archive@sha256:e9baf9f510cc3598f4b0a61283a9191e8084125b9e17e875965f0a955c49e545
   imagePullPolicy: IfNotPresent
   timeout: 2h
   env:
