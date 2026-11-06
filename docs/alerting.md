@@ -61,26 +61,23 @@ reboot and `TargetDown{job="tower-cadvisor"}` fires (seen 2026-10-23 after an up
 | `TowerConnectionCountHigh` | `node_nf_conntrack_entries` > 3000 for 10m (baseline < 100) | yes |
 | `TowerContainerCPUHigh` | one container uses more than 6 of 12 cores for 30m (names the container) | yes |
 | `TowerContainerCPUSustained` | one container's 1h average CPU is above 1 core, held for 2h; plex is skipped 06:00–12:00 UTC for its Scheduled Tasks | yes |
-| `TowerCPUSaturated` | CPU > 80% for 30m, outside the parity window | yes |
-| `TowerCPUElevated` | CPU > 50% for 3h, outside the parity window | no |
+| `TowerCPUSaturated` | CPU > 80% for 30m | yes |
+| `TowerCPUElevated` | CPU > 50% for 3h | no |
 | `TowerBtrfsDeviceErrors` | any btrfs device error counter rises | yes |
 
 These target the 2026-10 Plex compromise: a crypto miner (CPU) and a residential proxy (a flood of connections, with
 no unusual bandwidth). Write-up: workspace `docs/machines/2026_10_20_plex_owner_token_transcoder_codec_injection.md`.
 
-**Parity window:** the monthly parity check starts on the 1st at local midnight. It was recorded as pinning every core
-for about 22h, so both CPU alerts are suppressed from 00:00 UTC on the 1st to 12:00 UTC on the 2nd, because PromQL time
-is UTC. If the parity schedule moves, move the `unless` clause in both rules with it. Measured on 2026-11-01 (one
-check): 6–8 disks read from 04:13 to 20:03 UTC with host CPU near 5%, at most 17% while Plex's tasks ran, and no
-container's CPU changed.
+**Parity check:** monthly, on the 1st at local midnight. No alert has a window for it. Measured on 2026-11-01 (one
+check): 6–8 disks read from 04:13 to 20:03 UTC, about 16h. From 00:00 UTC on the 1st to 12:00 UTC on the 2nd, host CPU
+peaked at 38% on the 5m average and 19% on the 15m average, under the 80% and 50% thresholds, and no container's CPU
+changed.
 
 `TowerContainerCPUSustained` is the one that fits the real incident. The miner ran as short-lived processes using
 1–2 cores between them and hopping between cores, far below every other CPU threshold. Container CPU time sums across
 cores and includes exited processes, so the churn still shows up as a steady load. Idle containers sit near 0.001
 cores. Process-creation rate (`node_forks_total`) was considered and rejected: Unraid itself creates 20–60
 processes a second, which hides a miner restarting every few seconds.
-
-`TowerContainerCPUHigh` and `TowerContainerCPUSustained` need no parity window, because the parity check runs in the host, not in a container.
 
 ## Mac mini (inference node)
 

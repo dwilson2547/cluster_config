@@ -71,14 +71,12 @@ spec:
               On Tower, find the container responsible: `conntrack -L | awk '{print $5}' | sort | uniq -c | sort -rn | head`
               shows the busiest source addresses. Map them to containers with `docker network inspect bridge`.
 
-        # A miner pins every core; Plex hardware transcoding stays well below this. The monthly parity check starts on
-        # the 1st (local midnight, America/New_York). It was recorded as pinning every core for about 22h, so both CPU
-        # alerts are suppressed from 00:00 UTC on the 1st to 12:00 UTC on the 2nd (PromQL time is UTC). Measured on
-        # 2026-11-01 it read disks 04:13-20:03 UTC with host CPU near 5%, 17% at most.
+        # A miner pins every core; Plex hardware transcoding stays well below this. The monthly parity check needs no
+        # window: on 2026-11-01 it read disks 04:13-20:03 UTC and CPU stayed far under both host thresholds. If a later
+        # parity check does trip them, that is the place to look before tuning anything.
         - alert: TowerCPUSaturated
           expr: >-
             1 - avg by (instance) (rate(node_cpu_seconds_total{job="tower-node", mode="idle"}[5m])) > 0.8
-            unless on() (day_of_month() == 1 or (day_of_month() == 2 and hour() < 12))
           for: 30m
           labels:
             severity: critical
@@ -88,8 +86,7 @@ spec:
               Check `docker stats --no-stream` on Tower for the container using it, and `docker top <container>` for
               processes that don't belong (xmrig and similar).
 
-        # Names the container. A miner takes every core; a Plex software transcode takes a few. The parity check runs in
-        # the host, not in a container, so this needs no parity window.
+        # Names the container. A miner takes every core; a Plex software transcode takes a few.
         - alert: TowerContainerCPUHigh
           expr: sum by (name) (rate(container_cpu_usage_seconds_total{job="tower-cadvisor", name!=""}[5m])) > 6
           for: 30m
@@ -128,7 +125,6 @@ spec:
         - alert: TowerCPUElevated
           expr: >-
             1 - avg by (instance) (rate(node_cpu_seconds_total{job="tower-node", mode="idle"}[15m])) > 0.5
-            unless on() (day_of_month() == 1 or (day_of_month() == 2 and hour() < 12))
           for: 3h
           labels:
             severity: warning
