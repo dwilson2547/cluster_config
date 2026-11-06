@@ -60,7 +60,7 @@ reboot and `TargetDown{job="tower-cadvisor"}` fires (seen 2026-10-23 after an up
 |---|---|---|
 | `TowerConnectionCountHigh` | `node_nf_conntrack_entries` > 3000 for 10m (baseline < 100) | yes |
 | `TowerContainerCPUHigh` | one container uses more than 6 of 12 cores for 30m (names the container) | yes |
-| `TowerContainerCPUSustained` | one container's 1h average CPU is above 1 core, held for 2h | yes |
+| `TowerContainerCPUSustained` | one container's 1h average CPU is above 1 core, held for 2h; plex is skipped 06:00–12:00 UTC for its Scheduled Tasks | yes |
 | `TowerCPUSaturated` | CPU > 80% for 30m, outside the parity window | yes |
 | `TowerCPUElevated` | CPU > 50% for 3h, outside the parity window | no |
 | `TowerBtrfsDeviceErrors` | any btrfs device error counter rises | yes |
@@ -68,9 +68,11 @@ reboot and `TargetDown{job="tower-cadvisor"}` fires (seen 2026-10-23 after an up
 These target the 2026-10 Plex compromise: a crypto miner (CPU) and a residential proxy (a flood of connections, with
 no unusual bandwidth). Write-up: workspace `docs/machines/2026_10_20_plex_owner_token_transcoder_codec_injection.md`.
 
-**Parity window:** the monthly parity check (starts on the 1st at local midnight, runs about 22h) pins every core.
-Both CPU alerts are suppressed from 00:00 UTC on the 1st to 12:00 UTC on the 2nd, because PromQL time is UTC. If the
-parity schedule moves, move the `unless` clause in both rules with it.
+**Parity window:** the monthly parity check starts on the 1st at local midnight. It was recorded as pinning every core
+for about 22h, so both CPU alerts are suppressed from 00:00 UTC on the 1st to 12:00 UTC on the 2nd, because PromQL time
+is UTC. If the parity schedule moves, move the `unless` clause in both rules with it. Measured on 2026-11-01 (one
+check): 6–8 disks read from 04:13 to 20:03 UTC with host CPU near 5%, at most 17% while Plex's tasks ran, and no
+container's CPU changed.
 
 `TowerContainerCPUSustained` is the one that fits the real incident. The miner ran as short-lived processes using
 1–2 cores between them and hopping between cores, far below every other CPU threshold. Container CPU time sums across

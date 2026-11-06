@@ -71,10 +71,10 @@ spec:
               On Tower, find the container responsible: `conntrack -L | awk '{print $5}' | sort | uniq -c | sort -rn | head`
               shows the busiest source addresses. Map them to containers with `docker network inspect bridge`.
 
-        # A miner pins every core; Plex hardware transcoding stays well below this. The monthly parity check also
-        # pins every core: it starts on the 1st (local midnight, America/New_York) and runs about 22h. PromQL time
-        # is UTC, so both CPU alerts are suppressed from 00:00 UTC on the 1st to 12:00 UTC on the 2nd. That is about
-        # 8h of slack for a late start or a long run.
+        # A miner pins every core; Plex hardware transcoding stays well below this. The monthly parity check starts on
+        # the 1st (local midnight, America/New_York). It was recorded as pinning every core for about 22h, so both CPU
+        # alerts are suppressed from 00:00 UTC on the 1st to 12:00 UTC on the 2nd (PromQL time is UTC). Measured on
+        # 2026-11-01 it read disks 04:13-20:03 UTC with host CPU near 5%, 17% at most.
         - alert: TowerCPUSaturated
           expr: >-
             1 - avg by (instance) (rate(node_cpu_seconds_total{job="tower-node", mode="idle"}[5m])) > 0.8
@@ -105,10 +105,11 @@ spec:
         # time includes processes that have exited and sums across cores, so that churn still shows up as a steady 1-2
         # cores. Idle containers here sit near 0.001 cores. A 1h average above 1 core, held for 2h, is far outside what
         # direct-play Plex does.
-        # Except Plex's Scheduled Tasks: daily 2-6 AM local, one thread pegged (a flat 1.02 cores) for about 3h. The
+        # Except Plex's Scheduled Tasks: daily from 02:07 Eastern, one thread pegged (a flat 1.02 cores) for 3-5h. The
         # alert can only fire ~3h after load starts, i.e. just as that job ends, so it paged daily with nothing to
         # see. Plex is skipped 06:00-12:00 UTC: 2-6 AM Eastern in both EDT and EST, plus the 1h average's tail
-        # (Eastern is inferred: the 2026-11-02 run went 07:02-10:05 UTC, i.e. 02:02 EST).
+        # (measured: starts 06:07 UTC through 10-31, 07:07 UTC from 11-01, moving with the clock change; longest run
+        # ended 10:57 UTC). Nothing has gone pending since the exclusion went in, through 11-05.
         - alert: TowerContainerCPUSustained
           expr: >-
             (avg_over_time((sum by (name) (rate(container_cpu_usage_seconds_total{job="tower-cadvisor", name!=""}[5m])))[1h:1m]) > 1)
