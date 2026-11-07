@@ -181,6 +181,7 @@ data:
   KRECEIVER_REGISTRY_URL: "http://robo-registry.robo-services.svc.cluster.local"
 ---
 apiVersion: apps/v1
+# Source and Dockerfile: robo-services ingest/kreceiver (build from the repo root).
 kind: Deployment
 metadata:
   name: kreceiver
