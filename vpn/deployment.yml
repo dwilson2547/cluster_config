@@ -20,6 +20,7 @@ spec:
       labels:
         app: nordvpn-proxy
     spec:
+      automountServiceAccountToken: false
       containers:
         - name: nordvpn-proxy
           image: dwilson2547/nordvpn-proxy

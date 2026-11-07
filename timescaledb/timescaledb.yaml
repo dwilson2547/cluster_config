@@ -19,6 +19,7 @@ spec:
       securityContext:
         runAsUser: 999
         runAsGroup: 999
+      automountServiceAccountToken: false
       containers:
         - name: timescaledb
           image: timescale/timescaledb:2.16.1-pg16

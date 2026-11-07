@@ -90,6 +90,7 @@ spec:
           securityContext:
             runAsUser: 99
             runAsGroup: 100
+          automountServiceAccountToken: false
           containers:
             - name: backup
               image: rclone/rclone:1.71.1

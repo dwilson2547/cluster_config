@@ -20,6 +20,7 @@ spec:
       securityContext:
         runAsUser: 999
         runAsGroup: 999
+      automountServiceAccountToken: false
       containers:
         - name: postgres
           image: postgres:17
@@ -106,6 +107,7 @@ spec:
       securityContext:
         runAsUser: 999
         runAsGroup: 999
+      automountServiceAccountToken: false
       containers:
         - name: postgres
           image: postgres:17
@@ -201,6 +203,7 @@ spec:
       securityContext:
         runAsUser: 999
         runAsGroup: 999
+      automountServiceAccountToken: false
       containers:
         - name: postgres
           image: pgvector/pgvector:pg16
@@ -293,6 +296,7 @@ spec:
       securityContext:
         runAsUser: 999
         runAsGroup: 999
+      automountServiceAccountToken: false
       containers:
         - name: postgres
           image: pgvector/pgvector:pg16

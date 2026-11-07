@@ -216,6 +216,7 @@ spec:
           securityContext:
             runAsUser: 99
             runAsGroup: 100
+          automountServiceAccountToken: false
           containers:
             - name: backup
               image: postgres:17
@@ -280,6 +281,7 @@ spec:
           securityContext:
             runAsUser: 99
             runAsGroup: 100
+          automountServiceAccountToken: false
           containers:
             - name: backup
               image: pgvector/pgvector:pg16
@@ -344,6 +346,7 @@ spec:
           securityContext:
             runAsUser: 99
             runAsGroup: 100
+          automountServiceAccountToken: false
           containers:
             - name: restore-test
               image: postgres:17
@@ -409,6 +412,7 @@ spec:
           securityContext:
             runAsUser: 99
             runAsGroup: 100
+          automountServiceAccountToken: false
           containers:
             - name: restore-test
               image: pgvector/pgvector:pg16
