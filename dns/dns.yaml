@@ -34,12 +34,6 @@ data:
         errors
     }
 
-    ai-services.local:53 {
-        file /etc/coredns/db.ai-services.local
-        log
-        errors
-    }
-
     gyopart-dev.local:53 {
         file /etc/coredns/db.gyopart-dev.local
         log
@@ -192,26 +186,6 @@ data:
 
     ; Apex → Traefik ingress controller
     @   IN  A    192.168.0.60
-
-  db.ai-services.local: |
-    $ORIGIN ai-services.local.
-    $TTL 300
-
-    @   IN  SOA  ns1.scrapestack.local. admin.scrapestack.local. (
-                    2026052501 ; serial
-                    3600       ; refresh
-                    900        ; retry
-                    86400      ; expire
-                    300        ; minimum TTL
-                 )
-
-    @   IN  NS   ns1.scrapestack.local.
-
-    ; Subdomains → Traefik ingress controller
-    notes      IN  A    192.168.0.60
-    context-store  IN  A    192.168.0.60
-    docs       IN  A    192.168.0.60
-    todo       IN  A    192.168.0.60
 
   db.gyopart-dev.local: |
     $ORIGIN gyopart-dev.local.
@@ -438,12 +412,6 @@ data:
 
     ; argocd
     argocd                                IN  A  192.168.0.60
-
-    ; ai-services — explicit hosts only, as in the .local zone
-    notes.ai-services                     IN  A  192.168.0.60
-    context-store.ai-services              IN  A  192.168.0.60
-    docs.ai-services                      IN  A  192.168.0.60
-    todo.ai-services                      IN  A  192.168.0.60
 
     ; gyopart + gyopart-dev
     gyopart                               IN  A  192.168.0.60

@@ -1,3 +1,12 @@
+## 2026-11-07 - ai-services removed
+
+### Removed
+- `ai-services/`, `argocd/ai-services.yaml`: the abandoned agent knowledge services (ai-notes, ai-playbooks,
+  ai-tool-docs, context-store, todo-store), replaced by repo-local markdown in the workspace. Also their
+  `ai-services.local` zone and `*.ai-services` records in `dns/dns.yaml`, and their homepage links. Their four
+  volumes were set to Retain first, so the data stays on the NFS share (`nfs_dataset`, directories named after the
+  PVs) until deleted by hand.
+
 ## 2026-11-05 - monitoring: Tower CPU alerts no longer skip the parity check
 
 ### Changed

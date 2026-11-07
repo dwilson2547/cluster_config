@@ -56,7 +56,6 @@ Most services are plain Kubernetes manifests tracked directly in this repo. Argo
 
 | Service | Directory | ArgoCD App |
 |---|---|---|
-| ai-services | `ai-services/` | `argocd/ai-services.yaml` |
 | monitoring | `monitoring/` | `argocd/monitoring.yaml` |
 | postgres | `postgres/` | `argocd/postgres.yaml` |
 | timescaledb | `timescaledb/` | `argocd/timescaledb.yaml` |
@@ -141,9 +140,6 @@ Contains legacy and one-off manifests that predate the ArgoCD setup (postgres, b
 |---|---|
 | `argocd.local` | ArgoCD UI (LAN; SSO or local admin break-glass) |
 | `argocd.danwils.com` | ArgoCD UI (public; authentik SSO only, see `docs/argocd_access.md`) |
-| `notes.ai-services.local` | AI Notes |
-| `playbooks.ai-services.local` | AI Playbooks |
-| `docs.ai-services.local` | AI Tool Docs |
 | `home.cluster.local` | Homepage dashboard (internal) |
 | `danwils.com` | Public landing page (homepage-public, cert-manager TLS) |
 | `dxf-converter.danwils.com` | DXF converter (public; anonymous use, sign-in via authentik only) |
