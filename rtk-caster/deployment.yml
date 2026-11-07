@@ -315,6 +315,7 @@ spec:
       labels:
         app: rtk-caster
     spec:
+      automountServiceAccountToken: false
       containers:
         - name: caster
           image: python:3.11-slim
@@ -391,6 +392,7 @@ spec:
       labels:
         app: rtk2go-relay
     spec:
+      automountServiceAccountToken: false
       containers:
         - name: relay
           image: python:3.11-slim

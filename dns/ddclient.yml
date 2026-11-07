@@ -29,6 +29,7 @@ spec:
         - name: ddclient-config-file
           secret:
             secretName: ddclient-secret
+      automountServiceAccountToken: false
       containers:
         - name: ddclient
           image: linuxserver/ddclient

@@ -46,6 +46,7 @@ spec:
       labels:
         app: iggy
     spec:
+      automountServiceAccountToken: false
       containers:
         - name: iggy
           image: apache/iggy:0.8.0
@@ -196,6 +197,7 @@ spec:
       labels:
         app: kreceiver
     spec:
+      automountServiceAccountToken: false
       containers:
         - name: kreceiver
           image: dwilson2547/kreceiver-proto:20261104-qos1-v1
@@ -310,6 +312,7 @@ spec:
       labels:
         app: mosquitto
     spec:
+      automountServiceAccountToken: false
       containers:
         - name: mosquitto
           # mosquitto 2.0.18 with the mosquitto-go-auth plugin at /mosquitto/go-auth.so.
@@ -392,6 +395,7 @@ spec:
       labels:
         app: iggy-web-ui
     spec:
+      automountServiceAccountToken: false
       containers:
         - name: iggy-web-ui
           image: apache/iggy-web-ui:0.3.0

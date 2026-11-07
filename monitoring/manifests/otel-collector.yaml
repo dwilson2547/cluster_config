@@ -100,6 +100,7 @@ spec:
         # Restart on config change (stakater reloader).
         reloader.stakater.com/auto: "true"
     spec:
+      automountServiceAccountToken: false
       containers:
         - name: otel-collector
           image: otel/opentelemetry-collector-contrib:0.123.0

@@ -474,6 +474,7 @@ spec:
       labels:
         app: coredns-local
     spec:
+      automountServiceAccountToken: false
       containers:
         - name: coredns
           image: coredns/coredns:latest
