@@ -145,6 +145,10 @@ postgresql:
   enabled: false
 
 server:
+  # The server doesn't call the Kubernetes API (the worker does, under its own `authentik` account),
+  # so its pods don't mount a token. The chart only honours the automount flag with a name set.
+  serviceAccountName: default
+  automountServiceAccountToken: false
   ingress:
     enabled: true
     ingressClassName: traefik

@@ -17,6 +17,8 @@ defaultRules:
     KubeJobFailed: true
 alertmanager:
   alertmanagerSpec:
+    # Alertmanager and its config-reloader read mounted files only; no Kubernetes API calls.
+    automountServiceAccountToken: false
     # Pick up AlertmanagerConfig CRs from any namespace (e.g. the postgres-backup
     # email config in postgres/). The operator routes each config by its own namespace.
     alertmanagerConfigSelector: {}

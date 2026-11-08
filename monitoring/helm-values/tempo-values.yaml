@@ -16,3 +16,7 @@ persistence:
 
 service:
   type: ClusterIP
+
+# Tempo doesn't call the Kubernetes API.
+serviceAccount:
+  automountServiceAccountToken: false
