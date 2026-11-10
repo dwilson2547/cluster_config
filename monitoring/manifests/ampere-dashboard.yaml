@@ -1,0 +1,1287 @@
+# Ampere Altra dashboard: host metrics (job ampere-node) plus per-process CPU and RAM (job ampere-process).
+# Provisioned by the Grafana sidecar (label grafana_dashboard); edit the generator, not the JSON:
+# monitoring/dashboards/gen_ampere_node.py > monitoring/manifests/ampere-dashboard.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ampere-dashboard
+  namespace: monitoring
+  labels:
+    grafana_dashboard: "1"
+data:
+  ampere-altra.json: |
+    {
+     "uid": "ampere-altra",
+     "title": "Ampere Altra (CPU box)",
+     "tags": [
+      "ampere",
+      "cpu-box"
+     ],
+     "timezone": "browser",
+     "schemaVersion": 39,
+     "refresh": "30s",
+     "editable": false,
+     "time": {
+      "from": "now-6h",
+      "to": "now"
+     },
+     "templating": {
+      "list": [
+       {
+        "type": "datasource",
+        "name": "datasource",
+        "label": "Prometheus",
+        "query": "prometheus",
+        "current": {},
+        "hide": 0
+       }
+      ]
+     },
+     "annotations": {
+      "list": []
+     },
+     "panels": [
+      {
+       "type": "row",
+       "title": "At a glance",
+       "id": 1,
+       "collapsed": false,
+       "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+       }
+      },
+      {
+       "type": "stat",
+       "title": "State",
+       "id": 2,
+       "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+       },
+       "description": "BUSY when the box uses 0.5 cores or more in total (idle background is about 0.03). One single-threaded process is about 1 core, so it counts as busy.",
+       "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 0,
+        "y": 1
+       },
+       "targets": [
+        {
+         "refId": "A",
+         "expr": "(count(node_cpu_seconds_total{job=\"ampere-node\", mode=\"idle\"}) - sum(rate(node_cpu_seconds_total{job=\"ampere-node\", mode=\"idle\"}[$__rate_interval]))) > bool 0.5",
+         "instant": true,
+         "legendFormat": "",
+         "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+         }
+        }
+       ],
+       "fieldConfig": {
+        "defaults": {
+         "unit": "none",
+         "decimals": 0,
+         "mappings": [
+          {
+           "type": "value",
+           "options": {
+            "0": {
+             "text": "IDLE",
+             "color": "blue"
+            },
+            "1": {
+             "text": "BUSY",
+             "color": "green"
+            }
+           }
+          }
+         ],
+         "thresholds": {
+          "mode": "absolute",
+          "steps": [
+           {
+            "color": "blue",
+            "value": null
+           },
+           {
+            "color": "green",
+            "value": 1
+           }
+          ]
+         },
+         "color": {
+          "mode": "thresholds"
+         }
+        },
+        "overrides": []
+       },
+       "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value",
+        "reduceOptions": {
+         "calcs": [
+          "lastNotNull"
+         ],
+         "fields": "",
+         "values": false
+        }
+       }
+      },
+      {
+       "type": "stat",
+       "title": "Busy cores",
+       "id": 3,
+       "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+       },
+       "description": "Cores' worth of non-idle CPU time (iowait included: a job waiting on disk is still working), of 128.",
+       "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 3,
+        "y": 1
+       },
+       "targets": [
+        {
+         "refId": "A",
+         "expr": "(count(node_cpu_seconds_total{job=\"ampere-node\", mode=\"idle\"}) - sum(rate(node_cpu_seconds_total{job=\"ampere-node\", mode=\"idle\"}[$__rate_interval])))",
+         "instant": false,
+         "legendFormat": "",
+         "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+         }
+        }
+       ],
+       "fieldConfig": {
+        "defaults": {
+         "unit": "none",
+         "decimals": 2,
+         "mappings": [],
+         "thresholds": {
+          "mode": "absolute",
+          "steps": [
+           {
+            "color": "blue",
+            "value": null
+           },
+           {
+            "color": "green",
+            "value": 0.5
+           }
+          ]
+         },
+         "color": {
+          "mode": "thresholds"
+         }
+        },
+        "overrides": []
+       },
+       "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "textMode": "value",
+        "reduceOptions": {
+         "calcs": [
+          "lastNotNull"
+         ],
+         "fields": "",
+         "values": false
+        }
+       }
+      },
+      {
+       "type": "stat",
+       "title": "Busiest process",
+       "id": 4,
+       "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+       },
+       "description": "The process group using the most CPU right now, in cores.",
+       "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 6,
+        "y": 1
+       },
+       "targets": [
+        {
+         "refId": "A",
+         "expr": "topk(1, sum by (groupname) (rate(namedprocess_namegroup_cpu_seconds_total{job=\"ampere-process\"}[$__rate_interval])))",
+         "instant": true,
+         "legendFormat": "{{groupname}}",
+         "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+         }
+        }
+       ],
+       "fieldConfig": {
+        "defaults": {
+         "unit": "none",
+         "decimals": 2,
+         "mappings": [],
+         "thresholds": {
+          "mode": "absolute",
+          "steps": [
+           {
+            "color": "blue",
+            "value": null
+           },
+           {
+            "color": "green",
+            "value": 0.5
+           }
+          ]
+         },
+         "color": {
+          "mode": "thresholds"
+         }
+        },
+        "overrides": []
+       },
+       "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value_and_name",
+        "reduceOptions": {
+         "calcs": [
+          "lastNotNull"
+         ],
+         "fields": "",
+         "values": false
+        }
+       }
+      },
+      {
+       "type": "stat",
+       "title": "Exporters",
+       "id": 5,
+       "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+       },
+       "description": "How many of the two exporters (node :9100, process :9256) Prometheus can scrape. 2 is healthy.",
+       "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 12,
+        "y": 1
+       },
+       "targets": [
+        {
+         "refId": "A",
+         "expr": "sum(up{job=~\"ampere-node|ampere-process\"}) or vector(0)",
+         "instant": true,
+         "legendFormat": "",
+         "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+         }
+        }
+       ],
+       "fieldConfig": {
+        "defaults": {
+         "unit": "none",
+         "decimals": 0,
+         "mappings": [],
+         "thresholds": {
+          "mode": "absolute",
+          "steps": [
+           {
+            "color": "red",
+            "value": null
+           },
+           {
+            "color": "orange",
+            "value": 1
+           },
+           {
+            "color": "green",
+            "value": 2
+           }
+          ]
+         },
+         "color": {
+          "mode": "thresholds"
+         }
+        },
+        "overrides": []
+       },
+       "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value",
+        "reduceOptions": {
+         "calcs": [
+          "lastNotNull"
+         ],
+         "fields": "",
+         "values": false
+        }
+       }
+      },
+      {
+       "type": "stat",
+       "title": "Memory used",
+       "id": 6,
+       "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+       },
+       "description": "Total minus MemAvailable: page cache (model files read from disk) is not counted.",
+       "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 15,
+        "y": 1
+       },
+       "targets": [
+        {
+         "refId": "A",
+         "expr": "100 * (node_memory_MemTotal_bytes{job=\"ampere-node\"} - node_memory_MemAvailable_bytes{job=\"ampere-node\"}) / node_memory_MemTotal_bytes{job=\"ampere-node\"}",
+         "instant": false,
+         "legendFormat": "",
+         "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+         }
+        }
+       ],
+       "fieldConfig": {
+        "defaults": {
+         "unit": "percent",
+         "decimals": 0,
+         "mappings": [],
+         "thresholds": {
+          "mode": "absolute",
+          "steps": [
+           {
+            "color": "green",
+            "value": null
+           },
+           {
+            "color": "orange",
+            "value": 75
+           },
+           {
+            "color": "red",
+            "value": 90
+           }
+          ]
+         },
+         "color": {
+          "mode": "thresholds"
+         }
+        },
+        "overrides": []
+       },
+       "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "textMode": "value",
+        "reduceOptions": {
+         "calcs": [
+          "lastNotNull"
+         ],
+         "fields": "",
+         "values": false
+        }
+       }
+      },
+      {
+       "type": "stat",
+       "title": "Disk free",
+       "id": 7,
+       "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+       },
+       "description": "Free space on / (the NVMe), where models and run artifacts live.",
+       "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 18,
+        "y": 1
+       },
+       "targets": [
+        {
+         "refId": "A",
+         "expr": "node_filesystem_avail_bytes{job=\"ampere-node\", mountpoint=\"/\"}",
+         "instant": true,
+         "legendFormat": "",
+         "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+         }
+        }
+       ],
+       "fieldConfig": {
+        "defaults": {
+         "unit": "bytes",
+         "decimals": 0,
+         "mappings": [],
+         "thresholds": {
+          "mode": "absolute",
+          "steps": [
+           {
+            "color": "red",
+            "value": null
+           },
+           {
+            "color": "orange",
+            "value": 100000000000
+           },
+           {
+            "color": "green",
+            "value": 200000000000
+           }
+          ]
+         },
+         "color": {
+          "mode": "thresholds"
+         }
+        },
+        "overrides": []
+       },
+       "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value",
+        "reduceOptions": {
+         "calcs": [
+          "lastNotNull"
+         ],
+         "fields": "",
+         "values": false
+        }
+       }
+      },
+      {
+       "type": "stat",
+       "title": "Uptime",
+       "id": 8,
+       "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+       },
+       "description": "",
+       "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 21,
+        "y": 1
+       },
+       "targets": [
+        {
+         "refId": "A",
+         "expr": "time() - node_boot_time_seconds{job=\"ampere-node\"}",
+         "instant": true,
+         "legendFormat": "",
+         "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+         }
+        }
+       ],
+       "fieldConfig": {
+        "defaults": {
+         "unit": "s",
+         "decimals": 0,
+         "mappings": [],
+         "thresholds": {
+          "mode": "absolute",
+          "steps": [
+           {
+            "color": "orange",
+            "value": null
+           },
+           {
+            "color": "green",
+            "value": 3600
+           }
+          ]
+         },
+         "color": {
+          "mode": "thresholds"
+         }
+        },
+        "overrides": []
+       },
+       "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value",
+        "reduceOptions": {
+         "calcs": [
+          "lastNotNull"
+         ],
+         "fields": "",
+         "values": false
+        }
+       }
+      },
+      {
+       "type": "row",
+       "title": "Processes",
+       "id": 9,
+       "collapsed": false,
+       "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 5
+       }
+      },
+      {
+       "type": "table",
+       "title": "Processes now",
+       "id": 10,
+       "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+       },
+       "description": "Every live process group, by executable name (Python by script or module). CPU in cores: a single-threaded process flat out reads 1.0. Click a column header to sort.",
+       "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 6
+       },
+       "targets": [
+        {
+         "refId": "cpu",
+         "expr": "sum by (groupname) (rate(namedprocess_namegroup_cpu_seconds_total{job=\"ampere-process\"}[$__rate_interval])) and on (groupname) (namedprocess_namegroup_num_procs{job=\"ampere-process\"} > 0)",
+         "instant": true,
+         "format": "table",
+         "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+         }
+        },
+        {
+         "refId": "rss",
+         "expr": "namedprocess_namegroup_memory_bytes{job=\"ampere-process\", memtype=\"resident\"} and on (groupname) (namedprocess_namegroup_num_procs{job=\"ampere-process\"} > 0)",
+         "instant": true,
+         "format": "table",
+         "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+         }
+        },
+        {
+         "refId": "threads",
+         "expr": "namedprocess_namegroup_num_threads{job=\"ampere-process\"} and on (groupname) (namedprocess_namegroup_num_procs{job=\"ampere-process\"} > 0)",
+         "instant": true,
+         "format": "table",
+         "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+         }
+        },
+        {
+         "refId": "procs",
+         "expr": "namedprocess_namegroup_num_procs{job=\"ampere-process\"} > 0",
+         "instant": true,
+         "format": "table",
+         "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+         }
+        },
+        {
+         "refId": "age",
+         "expr": "time() - namedprocess_namegroup_oldest_start_time_seconds{job=\"ampere-process\"} and on (groupname) (namedprocess_namegroup_num_procs{job=\"ampere-process\"} > 0)",
+         "instant": true,
+         "format": "table",
+         "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+         }
+        }
+       ],
+       "transformations": [
+        {
+         "id": "merge",
+         "options": {}
+        },
+        {
+         "id": "organize",
+         "options": {
+          "excludeByName": {
+           "Time": true,
+           "job": true,
+           "instance": true
+          },
+          "indexByName": {
+           "groupname": 0,
+           "Value #cpu": 1,
+           "Value #rss": 2,
+           "Value #threads": 3,
+           "Value #procs": 4,
+           "Value #age": 5
+          },
+          "renameByName": {
+           "groupname": "Process",
+           "Value #cpu": "CPU (cores)",
+           "Value #rss": "RAM (RSS)",
+           "Value #threads": "Threads",
+           "Value #procs": "Processes",
+           "Value #age": "Running for"
+          }
+         }
+        }
+       ],
+       "fieldConfig": {
+        "defaults": {
+         "custom": {
+          "align": "auto"
+         }
+        },
+        "overrides": [
+         {
+          "matcher": {
+           "id": "byName",
+           "options": "CPU (cores)"
+          },
+          "properties": [
+           {
+            "id": "unit",
+            "value": "short"
+           },
+           {
+            "id": "decimals",
+            "value": 2
+           }
+          ]
+         },
+         {
+          "matcher": {
+           "id": "byName",
+           "options": "RAM (RSS)"
+          },
+          "properties": [
+           {
+            "id": "unit",
+            "value": "bytes"
+           },
+           {
+            "id": "decimals",
+            "value": 1
+           }
+          ]
+         },
+         {
+          "matcher": {
+           "id": "byName",
+           "options": "Threads"
+          },
+          "properties": [
+           {
+            "id": "unit",
+            "value": "short"
+           },
+           {
+            "id": "decimals",
+            "value": 0
+           }
+          ]
+         },
+         {
+          "matcher": {
+           "id": "byName",
+           "options": "Processes"
+          },
+          "properties": [
+           {
+            "id": "unit",
+            "value": "short"
+           },
+           {
+            "id": "decimals",
+            "value": 0
+           }
+          ]
+         },
+         {
+          "matcher": {
+           "id": "byName",
+           "options": "Running for"
+          },
+          "properties": [
+           {
+            "id": "unit",
+            "value": "s"
+           },
+           {
+            "id": "decimals",
+            "value": 0
+           }
+          ]
+         },
+         {
+          "matcher": {
+           "id": "byName",
+           "options": "CPU (cores)"
+          },
+          "properties": [
+           {
+            "id": "custom.cellOptions",
+            "value": {
+             "type": "color-background",
+             "mode": "basic"
+            }
+           },
+           {
+            "id": "color",
+            "value": {
+             "mode": "thresholds"
+            }
+           },
+           {
+            "id": "thresholds",
+            "value": {
+             "mode": "absolute",
+             "steps": [
+              {
+               "color": "transparent",
+               "value": null
+              },
+              {
+               "color": "green",
+               "value": 0.5
+              },
+              {
+               "color": "orange",
+               "value": 8
+              }
+             ]
+            }
+           }
+          ]
+         }
+        ]
+       },
+       "options": {
+        "showHeader": true,
+        "sortBy": [
+         {
+          "displayName": "CPU (cores)",
+          "desc": true
+         }
+        ],
+        "cellHeight": "sm",
+        "footer": {
+         "show": false
+        }
+       }
+      },
+      {
+       "type": "timeseries",
+       "title": "Top 10 processes by CPU",
+       "id": 11,
+       "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+       },
+       "description": "Cores per process group. A flat line at 1.0 is a single-threaded process flat out.",
+       "gridPos": {
+        "h": 10,
+        "w": 12,
+        "x": 0,
+        "y": 16
+       },
+       "targets": [
+        {
+         "refId": "A",
+         "expr": "topk(10, sum by (groupname) (rate(namedprocess_namegroup_cpu_seconds_total{job=\"ampere-process\"}[$__rate_interval]))) > 0.05",
+         "legendFormat": "{{groupname}}",
+         "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+         }
+        }
+       ],
+       "fieldConfig": {
+        "defaults": {
+         "unit": "short",
+         "min": 0,
+         "decimals": 2,
+         "custom": {
+          "lineWidth": 2,
+          "fillOpacity": 10,
+          "stacking": {
+           "mode": "none"
+          }
+         }
+        },
+        "overrides": []
+       },
+       "options": {
+        "legend": {
+         "displayMode": "table",
+         "placement": "right",
+         "calcs": [
+          "lastNotNull",
+          "max"
+         ],
+         "sortBy": "Max",
+         "sortDesc": true
+        },
+        "tooltip": {
+         "mode": "multi",
+         "sort": "desc"
+        }
+       }
+      },
+      {
+       "type": "timeseries",
+       "title": "Top 10 processes by RAM",
+       "id": 12,
+       "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+       },
+       "description": "Resident memory per process group.",
+       "gridPos": {
+        "h": 10,
+        "w": 12,
+        "x": 12,
+        "y": 16
+       },
+       "targets": [
+        {
+         "refId": "A",
+         "expr": "topk(10, namedprocess_namegroup_memory_bytes{job=\"ampere-process\", memtype=\"resident\"})",
+         "legendFormat": "{{groupname}}",
+         "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+         }
+        }
+       ],
+       "fieldConfig": {
+        "defaults": {
+         "unit": "bytes",
+         "min": 0,
+         "custom": {
+          "lineWidth": 2,
+          "fillOpacity": 10,
+          "stacking": {
+           "mode": "none"
+          }
+         }
+        },
+        "overrides": []
+       },
+       "options": {
+        "legend": {
+         "displayMode": "table",
+         "placement": "right",
+         "calcs": [
+          "lastNotNull",
+          "max"
+         ],
+         "sortBy": "Max",
+         "sortDesc": true
+        },
+        "tooltip": {
+         "mode": "multi",
+         "sort": "desc"
+        }
+       }
+      },
+      {
+       "type": "row",
+       "title": "CPU",
+       "id": 13,
+       "collapsed": false,
+       "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 26
+       }
+      },
+      {
+       "type": "timeseries",
+       "title": "Busy cores by mode",
+       "id": 14,
+       "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+       },
+       "description": "",
+       "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 27
+       },
+       "targets": [
+        {
+         "refId": "A",
+         "expr": "sum by (mode) (rate(node_cpu_seconds_total{job=\"ampere-node\", mode!=\"idle\"}[$__rate_interval]))",
+         "legendFormat": "{{mode}}",
+         "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+         }
+        }
+       ],
+       "fieldConfig": {
+        "defaults": {
+         "unit": "short",
+         "min": 0,
+         "decimals": 2,
+         "custom": {
+          "lineWidth": 2,
+          "fillOpacity": 30,
+          "stacking": {
+           "mode": "normal"
+          }
+         }
+        },
+        "overrides": []
+       },
+       "options": {
+        "legend": {
+         "displayMode": "table",
+         "placement": "right",
+         "calcs": [
+          "lastNotNull",
+          "max"
+         ],
+         "sortBy": "Max",
+         "sortDesc": true
+        },
+        "tooltip": {
+         "mode": "multi",
+         "sort": "desc"
+        }
+       }
+      },
+      {
+       "type": "timeseries",
+       "title": "Load average",
+       "id": 15,
+       "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+       },
+       "description": "Runnable plus uninterruptible tasks. A single-threaded job holds this near 1.",
+       "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 27
+       },
+       "targets": [
+        {
+         "refId": "A",
+         "expr": "node_load1{job=\"ampere-node\"}",
+         "legendFormat": "1m",
+         "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+         }
+        },
+        {
+         "refId": "B",
+         "expr": "node_load5{job=\"ampere-node\"}",
+         "legendFormat": "5m",
+         "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+         }
+        },
+        {
+         "refId": "C",
+         "expr": "node_load15{job=\"ampere-node\"}",
+         "legendFormat": "15m",
+         "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+         }
+        }
+       ],
+       "fieldConfig": {
+        "defaults": {
+         "unit": "short",
+         "min": 0,
+         "decimals": 2,
+         "custom": {
+          "lineWidth": 2,
+          "fillOpacity": 10,
+          "stacking": {
+           "mode": "none"
+          }
+         }
+        },
+        "overrides": []
+       },
+       "options": {
+        "legend": {
+         "displayMode": "table",
+         "placement": "right",
+         "calcs": [
+          "lastNotNull",
+          "max"
+         ],
+         "sortBy": "Max",
+         "sortDesc": true
+        },
+        "tooltip": {
+         "mode": "multi",
+         "sort": "desc"
+        }
+       }
+      },
+      {
+       "type": "row",
+       "title": "Memory, disk & network",
+       "id": 16,
+       "collapsed": false,
+       "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 35
+       }
+      },
+      {
+       "type": "timeseries",
+       "title": "Memory",
+       "id": 17,
+       "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+       },
+       "description": "",
+       "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 36
+       },
+       "targets": [
+        {
+         "refId": "A",
+         "expr": "node_memory_MemTotal_bytes{job=\"ampere-node\"} - node_memory_MemAvailable_bytes{job=\"ampere-node\"}",
+         "legendFormat": "used",
+         "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+         }
+        },
+        {
+         "refId": "B",
+         "expr": "node_memory_Cached_bytes{job=\"ampere-node\"} + node_memory_Buffers_bytes{job=\"ampere-node\"}",
+         "legendFormat": "page cache",
+         "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+         }
+        },
+        {
+         "refId": "C",
+         "expr": "node_memory_MemTotal_bytes{job=\"ampere-node\"}",
+         "legendFormat": "total",
+         "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+         }
+        }
+       ],
+       "fieldConfig": {
+        "defaults": {
+         "unit": "bytes",
+         "min": 0,
+         "custom": {
+          "lineWidth": 2,
+          "fillOpacity": 10,
+          "stacking": {
+           "mode": "none"
+          }
+         }
+        },
+        "overrides": [
+         {
+          "matcher": {
+           "id": "byName",
+           "options": "total"
+          },
+          "properties": [
+           {
+            "id": "custom.lineStyle",
+            "value": {
+             "fill": "dash",
+             "dash": [
+              6,
+              4
+             ]
+            }
+           },
+           {
+            "id": "custom.fillOpacity",
+            "value": 0
+           }
+          ]
+         }
+        ]
+       },
+       "options": {
+        "legend": {
+         "displayMode": "table",
+         "placement": "right",
+         "calcs": [
+          "lastNotNull",
+          "max"
+         ],
+         "sortBy": "Max",
+         "sortDesc": true
+        },
+        "tooltip": {
+         "mode": "multi",
+         "sort": "desc"
+        }
+       }
+      },
+      {
+       "type": "timeseries",
+       "title": "Disk throughput",
+       "id": 18,
+       "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+       },
+       "description": "",
+       "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 8,
+        "y": 36
+       },
+       "targets": [
+        {
+         "refId": "A",
+         "expr": "rate(node_disk_read_bytes_total{job=\"ampere-node\", device=~\"nvme.+n[0-9]+\"}[$__rate_interval])",
+         "legendFormat": "read {{device}}",
+         "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+         }
+        },
+        {
+         "refId": "B",
+         "expr": "-rate(node_disk_written_bytes_total{job=\"ampere-node\", device=~\"nvme.+n[0-9]+\"}[$__rate_interval])",
+         "legendFormat": "write {{device}}",
+         "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+         }
+        }
+       ],
+       "fieldConfig": {
+        "defaults": {
+         "unit": "Bps",
+         "custom": {
+          "lineWidth": 2,
+          "fillOpacity": 10,
+          "stacking": {
+           "mode": "none"
+          }
+         }
+        },
+        "overrides": []
+       },
+       "options": {
+        "legend": {
+         "displayMode": "table",
+         "placement": "right",
+         "calcs": [
+          "lastNotNull",
+          "max"
+         ],
+         "sortBy": "Max",
+         "sortDesc": true
+        },
+        "tooltip": {
+         "mode": "multi",
+         "sort": "desc"
+        }
+       }
+      },
+      {
+       "type": "timeseries",
+       "title": "Network",
+       "id": 19,
+       "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+       },
+       "description": "",
+       "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 36
+       },
+       "targets": [
+        {
+         "refId": "A",
+         "expr": "rate(node_network_receive_bytes_total{job=\"ampere-node\", device=~\"en.+\"}[$__rate_interval]) > 0",
+         "legendFormat": "rx {{device}}",
+         "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+         }
+        },
+        {
+         "refId": "B",
+         "expr": "-rate(node_network_transmit_bytes_total{job=\"ampere-node\", device=~\"en.+\"}[$__rate_interval]) < 0",
+         "legendFormat": "tx {{device}}",
+         "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+         }
+        }
+       ],
+       "fieldConfig": {
+        "defaults": {
+         "unit": "Bps",
+         "custom": {
+          "lineWidth": 2,
+          "fillOpacity": 10,
+          "stacking": {
+           "mode": "none"
+          }
+         }
+        },
+        "overrides": []
+       },
+       "options": {
+        "legend": {
+         "displayMode": "table",
+         "placement": "right",
+         "calcs": [
+          "lastNotNull",
+          "max"
+         ],
+         "sortBy": "Max",
+         "sortDesc": true
+        },
+        "tooltip": {
+         "mode": "multi",
+         "sort": "desc"
+        }
+       }
+      }
+     ]
+    }

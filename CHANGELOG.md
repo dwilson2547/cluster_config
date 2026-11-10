@@ -1,3 +1,12 @@
+## 2026-11-10 - monitoring: Ampere Altra host and process metrics
+
+### Added
+- `monitoring/manifests/ampere-monitoring.yaml`: scrape jobs `ampere-node` (node_exporter) and `ampere-process`
+  (process-exporter) for the Altra at 192.168.0.13, so it is visible whether the box is idle and, if not, what runs.
+- `monitoring/manifests/ampere-dashboard.yaml` (generator `monitoring/dashboards/gen_ampere_node.py`): idle/busy
+  state in cores, a table of live processes by CPU and RAM, and top-10 CPU and RAM history.
+- `monitoring/hosts/ampere/process-exporter.yml`: the process grouping installed on the box.
+
 ## 2026-11-07 - ai-services removed
 
 ### Removed

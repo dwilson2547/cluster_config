@@ -1,0 +1,48 @@
+# Ampere Altra CPU box (192.168.0.13, Ubuntu 24.04): host metrics plus per-process CPU and RAM, so the dashboard
+# (ampere-dashboard.yaml) shows whether the box is idle and, if not, what is running.
+#
+# Both exporters are Ubuntu packages run by systemd: prometheus-node-exporter (:9100) and prometheus-process-exporter
+# (:9256). process-exporter reads /etc/prometheus/process-exporter.yml on the box, copied from
+# monitoring/hosts/ampere/ (every process grouped by executable name, Python by script or module), with
+# ARGS="-config.path /etc/prometheus/process-exporter.yml -threads=false" in /etc/default/prometheus-process-exporter.
+# Ubuntu ships it with no groups, so without that file it exports nothing.
+#
+# Separate job names, as for Tower and the Mac mini, so the chart's node-exporter rules and dashboards keep covering
+# cluster nodes only. Either exporter going away is the chart's TargetDown for its job.
+apiVersion: monitoring.coreos.com/v1alpha1
+kind: ScrapeConfig
+metadata:
+  name: ampere-node
+  namespace: monitoring
+  labels:
+    release: prometheus
+spec:
+  jobName: ampere-node
+  scrapeInterval: 30s
+  staticConfigs:
+    - targets: ["192.168.0.13:9100"]
+      labels:
+        instance: ampere
+---
+# Only the per-group families the dashboard uses are kept; the exporter's own Go and process metrics are dropped.
+apiVersion: monitoring.coreos.com/v1alpha1
+kind: ScrapeConfig
+metadata:
+  name: ampere-process
+  namespace: monitoring
+  labels:
+    release: prometheus
+spec:
+  jobName: ampere-process
+  scrapeInterval: 30s
+  staticConfigs:
+    - targets: ["192.168.0.13:9256"]
+      labels:
+        instance: ampere
+  metricRelabelings:
+    - sourceLabels: [__name__]
+      regex: namedprocess_namegroup_(cpu_seconds_total|memory_bytes|num_procs|num_threads|oldest_start_time_seconds)
+      action: keep
+    - sourceLabels: [__name__, memtype]
+      regex: namedprocess_namegroup_memory_bytes;(virtual|proportional.*)
+      action: drop

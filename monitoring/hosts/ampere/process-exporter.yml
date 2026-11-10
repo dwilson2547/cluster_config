@@ -1,0 +1,10 @@
+# process-exporter groups for the Ampere Altra. First match wins.
+process_names:
+  # Python runs are split by script or module, else every job reads "python3".
+  - name: "python:{{.Matches.Script}}"
+    comm: [python3, python]
+    cmdline:
+      - '^\S*python[0-9.]*\s+(?:-\S+\s+)*(?:-m\s+)?(?:\S*/)?(?P<Script>[^-/\s][^/\s]*)'
+  # Everything else by executable name (llama-quantize, llama-perplexity, ...).
+  - name: "{{.Comm}}"
+    cmdline: ['.+']

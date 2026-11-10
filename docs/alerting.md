@@ -94,6 +94,18 @@ A launchd keepalive on the Mac restarts LM Studio's server within a minute and w
 | `MacLMStudioServerDown` | `lmstudio_server_up == 0` for 10m: the keepalive can't start the server | yes (critical) |
 | `MacLMStudioKeepaliveStale` | the keepalive hasn't run for 5m, held 10m: launchd stopped running it, or no one is logged in | yes (critical) |
 
+## Ampere Altra (CPU box)
+
+`monitoring/manifests/ampere-monitoring.yaml` scrapes the Altra (`192.168.0.13`, Ubuntu 24.04) as two jobs, instance
+`ampere`: `ampere-node` (node_exporter, :9100) and `ampere-process` (process-exporter, :9256). Both are Ubuntu packages
+under systemd. process-exporter ships with no groups. Its config is `monitoring/hosts/ampere/process-exporter.yml`,
+installed to `/etc/prometheus/` on the box: every process grouped by executable name, and Python by script or module.
+The dashboard is "Ampere Altra (CPU box)" (generator `monitoring/dashboards/gen_ampere_node.py`).
+
+There are no host alerts beyond the chart's `TargetDown` for either job. The dashboard's State panel reads IDLE when
+total busy CPU is under 0.5 cores (background measured 0.03 on 2026-11-10). It counts cores, not percent, because one
+single-threaded job is under 1% of 128 cores but still about 1 core.
+
 ## Turned off
 
 `kubeProxy`, `kubeScheduler`, `kubeControllerManager` and `kubeEtcd` monitoring are disabled: microk8s runs the
