@@ -14,6 +14,7 @@ J = 'job="ampere-node"'
 P = 'job="ampere-process"'
 panels = []
 pid = 0
+DY = 0  # added to every panel's y; bumped after a section inserted above later ones
 
 CORES = f'count(node_cpu_seconds_total{{{J}, mode="idle"}})'
 BUSY = f'({CORES} - sum(rate(node_cpu_seconds_total{{{J}, mode="idle"}}[$__rate_interval])))'
@@ -40,7 +41,7 @@ def nid():
 
 def row(title, y):
     panels.append({"type": "row", "title": title, "id": nid(), "collapsed": False,
-                   "gridPos": {"h": 1, "w": 24, "x": 0, "y": y}})
+                   "gridPos": {"h": 1, "w": 24, "x": 0, "y": y + DY}})
 
 
 def stat(title, expr, x, y, w=3, h=4, steps=None, desc="", unit="none", decimals=0, mappings=None,
@@ -48,7 +49,7 @@ def stat(title, expr, x, y, w=3, h=4, steps=None, desc="", unit="none", decimals
     steps = steps or [{"color": "green", "value": None}]
     panels.append({
         "type": "stat", "title": title, "id": nid(), "datasource": DS, "description": desc,
-        "gridPos": {"h": h, "w": w, "x": x, "y": y},
+        "gridPos": {"h": h, "w": w, "x": x, "y": y + DY},
         "targets": [{"refId": "A", "expr": expr, "instant": not graph, "legendFormat": legend, "datasource": DS}],
         "fieldConfig": {"defaults": {"unit": unit, "decimals": decimals, "mappings": mappings or [],
                                      "thresholds": {"mode": "absolute", "steps": steps},
@@ -62,7 +63,7 @@ def timeseries(title, targets, x, y, w, h, unit="short", max_=None, stack=False,
                min_=0, decimals=None):
     panels.append({
         "type": "timeseries", "title": title, "id": nid(), "datasource": DS, "description": desc,
-        "gridPos": {"h": h, "w": w, "x": x, "y": y},
+        "gridPos": {"h": h, "w": w, "x": x, "y": y + DY},
         "targets": [{"refId": chr(65 + i), "expr": e, "legendFormat": l, "datasource": DS}
                     for i, (e, l) in enumerate(targets)],
         "fieldConfig": {"defaults": {"unit": unit, **({"min": min_} if min_ is not None else {}),
@@ -74,6 +75,22 @@ def timeseries(title, targets, x, y, w, h, unit="short", max_=None, stack=False,
         "options": {"legend": {"displayMode": "table", "placement": "right", "calcs": ["lastNotNull", "max"],
                                "sortBy": "Max", "sortDesc": True},
                     "tooltip": {"mode": "multi", "sort": "desc"}},
+    })
+
+
+def state_timeline(title, expr, x, y, w, h, desc=""):
+    panels.append({
+        "type": "state-timeline", "title": title, "id": nid(), "datasource": DS, "description": desc,
+        "gridPos": {"h": h, "w": w, "x": x, "y": y + DY},
+        "targets": [{"refId": "A", "expr": expr, "legendFormat": "Altra", "datasource": DS}],
+        "fieldConfig": {"defaults": {"mappings": [IDLEBUSY, {"type": "special", "options": {
+                                         "match": "null", "result": {"text": "NO DATA", "color": "red"}}}],
+                                     "color": {"mode": "thresholds"},
+                                     "thresholds": {"mode": "absolute", "steps": [
+                                         {"color": "blue", "value": None}, {"color": "green", "value": 1}]}},
+                        "overrides": []},
+        "options": {"showValue": "never", "mergeValues": True, "rowHeight": 0.9, "insertNulls": 90000,
+                    "legend": {"showLegend": False}, "tooltip": {"mode": "single"}},
     })
 
 
@@ -100,7 +117,7 @@ def process_table(x, y, w, h):
         "type": "table", "title": "Processes now", "id": nid(), "datasource": DS,
         "description": "Every live process group, by executable name (Python by script or module). CPU in cores: "
                        "a single-threaded process flat out reads 1.0. Click a column header to sort.",
-        "gridPos": {"h": h, "w": w, "x": x, "y": y},
+        "gridPos": {"h": h, "w": w, "x": x, "y": y + DY},
         "targets": [{"refId": ref, "expr": e, "instant": True, "format": "table", "datasource": DS}
                     for ref, e in queries],
         "transformations": [
@@ -151,6 +168,24 @@ stat("Disk free", f'node_filesystem_avail_bytes{{{ROOT_FS}}}', 18, 1, unit="byte
 stat("Uptime", f'time() - node_boot_time_seconds{{{J}}}', 21, 1, unit="s",
      steps=[{"color": "orange", "value": None}, {"color": "green", "value": 3600}])
 
+# ── Usage ────────────────────────────────────────────────────────────────────
+row("Usage: busy or idle", 5)
+state_timeline("Busy / idle", f'{BUSY} > bool {IDLE_BELOW}', 0, 6, 24, 4,
+               desc=f"Green = BUSY (0.5 cores or more in use), blue = IDLE, red = no data (box or exporter down). "
+                    "Zoom out the time range to see when runs started and finished.")
+timeseries("Busy cores", [(BUSY, "busy cores"), (f'vector({IDLE_BELOW})', "idle threshold")], 0, 10, 12, 8,
+           decimals=2, desc="Cores' worth of CPU in use, of 128. Under the dashed line counts as idle.",
+           overrides=[{"matcher": {"id": "byName", "options": "idle threshold"},
+                       "properties": [{"id": "custom.lineStyle", "value": {"fill": "dash", "dash": [6, 4]}},
+                                      {"id": "custom.fillOpacity", "value": 0},
+                                      {"id": "color", "value": {"mode": "fixed", "fixedColor": "red"}}]}])
+timeseries("Memory used", [(USED, "used"), (TOTAL, "total")], 12, 10, 12, 8, unit="bytes",
+           desc="Total minus MemAvailable (page cache not counted).",
+           overrides=[{"matcher": {"id": "byName", "options": "total"},
+                       "properties": [{"id": "custom.lineStyle", "value": {"fill": "dash", "dash": [6, 4]}},
+                                      {"id": "custom.fillOpacity", "value": 0}]}])
+DY = 13
+
 # ── Processes ────────────────────────────────────────────────────────────────
 row("Processes", 5)
 process_table(0, 6, 24, 10)
@@ -197,7 +232,7 @@ dashboard = {
     "schemaVersion": 39,
     "refresh": "30s",
     "editable": False,
-    "time": {"from": "now-6h", "to": "now"},
+    "time": {"from": "now-24h", "to": "now"},
     "templating": {"list": [{"type": "datasource", "name": "datasource", "label": "Prometheus",
                              "query": "prometheus", "current": {}, "hide": 0}]},
     "annotations": {"list": []},
