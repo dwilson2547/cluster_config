@@ -1565,6 +1565,172 @@ data:
          "sort": "desc"
         }
        }
+      },
+      {
+       "type": "row",
+       "title": "Drives",
+       "id": 24,
+       "collapsed": false,
+       "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 57
+       }
+      },
+      {
+       "type": "timeseries",
+       "title": "Drive temperature",
+       "id": 25,
+       "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+       },
+       "description": "Each NVMe drive's composite temperature, as the drive reports it. The dashed line is the lowest of the drives' own warning limits (about 70 C on the Intel 4 TB drives, 82 C on the boot drive). nvmeN numbering can change between boots.",
+       "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 58
+       },
+       "targets": [
+        {
+         "refId": "A",
+         "expr": "node_hwmon_temp_celsius{job=\"ampere-node\", chip=~\"nvme_.+\", sensor=\"temp1\"}",
+         "legendFormat": "{{chip}}",
+         "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+         }
+        },
+        {
+         "refId": "B",
+         "expr": "min(node_hwmon_temp_max_celsius{job=\"ampere-node\", chip=~\"nvme_.+\", sensor=\"temp1\"})",
+         "legendFormat": "lowest warning limit",
+         "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+         }
+        }
+       ],
+       "fieldConfig": {
+        "defaults": {
+         "unit": "celsius",
+         "min": 20,
+         "decimals": 0,
+         "custom": {
+          "lineWidth": 2,
+          "fillOpacity": 10,
+          "stacking": {
+           "mode": "none"
+          }
+         }
+        },
+        "overrides": [
+         {
+          "matcher": {
+           "id": "byName",
+           "options": "lowest warning limit"
+          },
+          "properties": [
+           {
+            "id": "custom.lineStyle",
+            "value": {
+             "fill": "dash",
+             "dash": [
+              6,
+              4
+             ]
+            }
+           },
+           {
+            "id": "custom.fillOpacity",
+            "value": 0
+           },
+           {
+            "id": "color",
+            "value": {
+             "mode": "fixed",
+             "fixedColor": "red"
+            }
+           }
+          ]
+         }
+        ]
+       },
+       "options": {
+        "legend": {
+         "displayMode": "table",
+         "placement": "right",
+         "calcs": [
+          "lastNotNull",
+          "max"
+         ],
+         "sortBy": "Max",
+         "sortDesc": true
+        },
+        "tooltip": {
+         "mode": "multi",
+         "sort": "desc"
+        }
+       }
+      },
+      {
+       "type": "timeseries",
+       "title": "Free space by volume",
+       "id": 26,
+       "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+       },
+       "description": "Free space on / and on each data volume.",
+       "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 58
+       },
+       "targets": [
+        {
+         "refId": "A",
+         "expr": "node_filesystem_avail_bytes{job=\"ampere-node\", fstype=~\"ext4|xfs\"}",
+         "legendFormat": "{{mountpoint}}",
+         "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+         }
+        }
+       ],
+       "fieldConfig": {
+        "defaults": {
+         "unit": "bytes",
+         "min": 0,
+         "custom": {
+          "lineWidth": 2,
+          "fillOpacity": 10,
+          "stacking": {
+           "mode": "none"
+          }
+         }
+        },
+        "overrides": []
+       },
+       "options": {
+        "legend": {
+         "displayMode": "table",
+         "placement": "right",
+         "calcs": [
+          "lastNotNull",
+          "max"
+         ],
+         "sortBy": "Max",
+         "sortDesc": true
+        },
+        "tooltip": {
+         "mode": "multi",
+         "sort": "desc"
+        }
+       }
       }
      ]
     }

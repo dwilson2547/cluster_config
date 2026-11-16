@@ -224,6 +224,25 @@ timeseries("Network",
             (f'-rate(node_network_transmit_bytes_total{{{NIC}}}[$__rate_interval]) < 0', "tx {{device}}")],
            16, 36, 8, 8, unit="Bps", min_=None)
 
+# ── Drives ───────────────────────────────────────────────────────────────────
+NVME = f'{J}, chip=~"nvme_.+", sensor="temp1"'
+row("Drives", 44)
+timeseries("Drive temperature",
+           [(f'node_hwmon_temp_celsius{{{NVME}}}', "{{chip}}"),
+            (f'min(node_hwmon_temp_max_celsius{{{NVME}}})', "lowest warning limit")],
+           0, 45, 12, 8, unit="celsius", min_=20, decimals=0,
+           desc="Each NVMe drive's composite temperature, as the drive reports it. The dashed line is the lowest of "
+                "the drives' own warning limits (about 70 C on the Intel 4 TB drives, 82 C on the boot drive). "
+                "nvmeN numbering can change between boots.",
+           overrides=[{"matcher": {"id": "byName", "options": "lowest warning limit"},
+                       "properties": [{"id": "custom.lineStyle", "value": {"fill": "dash", "dash": [6, 4]}},
+                                      {"id": "custom.fillOpacity", "value": 0},
+                                      {"id": "color", "value": {"mode": "fixed", "fixedColor": "red"}}]}])
+timeseries("Free space by volume",
+           [(f'node_filesystem_avail_bytes{{{J}, fstype=~"ext4|xfs"}}', "{{mountpoint}}")],
+           12, 45, 12, 8, unit="bytes",
+           desc="Free space on / and on each data volume.")
+
 dashboard = {
     "uid": "ampere-altra",
     "title": "Ampere Altra (CPU box)",

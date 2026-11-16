@@ -46,3 +46,46 @@ spec:
     - sourceLabels: [__name__, memtype]
       regex: namedprocess_namegroup_memory_bytes;(virtual|proportional.*)
       action: drop
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: ampere-alerts
+  namespace: monitoring
+  labels:
+    release: prometheus
+spec:
+  groups:
+    - name: ampere
+      rules:
+        # No down alert here: the chart's TargetDown covers job ampere-node.
+
+        # Each drive reports its own warning limit (69.85 C on the Intel SSDPE2KX040T7 pair, 81.85 C on the boot
+        # 990 PRO; read from hwmon 2026-11-15). This fires 10 C below it. Idle they sit at 33 C.
+        - alert: AmpereDriveHot
+          expr: >-
+            node_hwmon_temp_celsius{job="ampere-node", chip=~"nvme_.+", sensor="temp1"}
+            > on (instance, chip, sensor) (node_hwmon_temp_max_celsius{job="ampere-node", chip=~"nvme_.+", sensor="temp1"} - 10)
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Ampere drive {{ $labels.chip }} is at {{ $value | humanize }} C, within 10 C of its warning limit"
+            description: >-
+              Check airflow over the U.2 drives. `sudo nvme smart-log /dev/nvmeN` on the box shows the drive's own
+              temperature counters; `ls -l /dev/disk/by-id/ | grep nvme-` maps nvmeN to a serial (the numbering can
+              change between boots).
+
+        # Two drives of this model stopped answering on 2026-11-15: they stayed on the PCI bus but exposed no disk.
+        # A drive that drops out the same way loses its hwmon sensor, so the count falls below three.
+        - alert: AmpereDriveMissing
+          expr: >-
+            count(node_hwmon_temp_celsius{job="ampere-node", chip=~"nvme_.+", sensor="temp1"}) < 3
+          for: 10m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Ampere reports {{ $value }} NVMe drives, expected 3"
+            description: >-
+              On the box: `lsblk` for which disk is gone and `journalctl -k -b | grep -i nvme` for why. A drive that
+              logs "IO queues not created" has failed internally and needs replacing.
