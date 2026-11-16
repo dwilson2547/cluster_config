@@ -1,0 +1,5 @@
+# /etc/default/prometheus-node-exporter on the Altra.
+# Ubuntu's build leaves /mnt and /media out of the filesystem collector. The data volumes are at
+# /mnt/data1 and /mnt/data2, so this keeps the stock list minus /mnt, and leaves out only the
+# network share at /mnt/models (a statfs on it can hang when the NAS is away).
+ARGS="--collector.filesystem.mount-points-exclude=^/(dev|proc|run|sys|media|mnt/models|var/lib/docker/.+|var/lib/containers/storage/.+)($|/)"

@@ -100,9 +100,13 @@ A launchd keepalive on the Mac restarts LM Studio's server within a minute and w
 `ampere`: `ampere-node` (node_exporter, :9100) and `ampere-process` (process-exporter, :9256). Both are Ubuntu packages
 under systemd. process-exporter ships with no groups. Its config is `monitoring/hosts/ampere/process-exporter.yml`,
 installed to `/etc/prometheus/` on the box: every process grouped by executable name, and Python by script or module.
+node_exporter's settings are `monitoring/hosts/ampere/prometheus-node-exporter.default`, installed as
+`/etc/default/prometheus-node-exporter`: Ubuntu's build leaves `/mnt` out of the filesystem collector, and the data
+volumes are at `/mnt/data1` and `/mnt/data2`.
 The dashboard is "Ampere Altra (CPU box)" (generator `monitoring/dashboards/gen_ampere_node.py`).
 
-There are no host alerts beyond the chart's `TargetDown` for either job. The dashboard's State panel reads IDLE when
+Host alerts beyond the chart's `TargetDown` (rule `ampere-alerts` in the same manifest): `AmpereDriveHot` and
+`AmpereDriveMissing`, both waiting 10 minutes. The dashboard's State panel reads IDLE when
 total busy CPU is under 0.5 cores (background measured 0.03 on 2026-11-10). It counts cores, not percent, because one
 single-threaded job is under 1% of 128 cores but still about 1 core.
 

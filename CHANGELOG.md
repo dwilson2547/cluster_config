@@ -1,3 +1,9 @@
+## 2026-11-15 - monitoring: Ampere data volumes in the filesystem metrics
+
+### Added
+- `monitoring/hosts/ampere/prometheus-node-exporter.default`: node_exporter settings for the box, so `/mnt/data1` and
+  `/mnt/data2` show in "Free space by volume" (Ubuntu's build skips everything under `/mnt`).
+
 ## 2026-11-10 - monitoring: Ampere Altra host and process metrics
 
 ### Added
