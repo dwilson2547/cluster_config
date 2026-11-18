@@ -200,7 +200,7 @@ spec:
       automountServiceAccountToken: false
       containers:
         - name: kreceiver
-          image: dwilson2547/kreceiver-proto:20261104-qos1-v1
+          image: dwilson2547/kreceiver-proto:20261117-donglegps-v1
           imagePullPolicy: IfNotPresent
           command:
             - python
