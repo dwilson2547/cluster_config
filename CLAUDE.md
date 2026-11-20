@@ -64,6 +64,7 @@ Most services are plain Kubernetes manifests tracked directly in this repo. Argo
 | dns | `dns/` | `argocd/dns.yaml` |
 | rtk-caster | `rtk-caster/` | `argocd/rtk-caster.yaml` |
 | vpn | `vpn/` | `argocd/vpn.yaml` |
+| tailscale (subnet router + exit node `home-k8s`, LAN 192.168.0.0/24) | `tailscale/` | `argocd/tailscale.yaml` |
 | searxng | `searxng/` | `argocd/searxng.yaml` |
 | argocd-server ingresses (LAN + public), `argocd-cm` / `argocd-rbac-cm` patches (authentik SSO, LAN-only admin) | `argocd-server/` — layout in `docs/argocd_access.md` | (applied manually) |
 | reloader | — (Helm chart, stakater) | `argocd/reloader.yaml` |

@@ -1,3 +1,10 @@
+## 2026-11-20 - tailscale: subnet router for remote access
+
+### Added
+- `tailscale/`, `argocd/tailscale.yaml`: a Tailscale node (`home-k8s`, userspace networking) advertising the LAN
+  `192.168.0.0/24` and offering itself as an exit node, for reaching home services while away. Node state is kept in
+  the `tailscale-state` Secret, so the auth key (`example-secrets/tailscale/secret.yml`) is only needed for first login.
+
 ## 2026-11-15 - monitoring: Ampere data volumes in the filesystem metrics
 
 ### Added
